@@ -10,6 +10,9 @@ export interface FeatureFlags {
   'auto-dismiss-still-watching'?: boolean;
   'hide-end-screen-cards'?: boolean;
   'default-playback-speed'?: boolean;
+  'disable-autoplay'?: boolean;
+  'hide-watch-page-sidebar'?: boolean;
+  'true-black-dark-mode'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -17,6 +20,9 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'auto-dismiss-still-watching': true,
   'hide-end-screen-cards': true,
   'default-playback-speed': false,
+  'disable-autoplay': true,
+  'hide-watch-page-sidebar': false,
+  'true-black-dark-mode': false,
 };
 
 /**

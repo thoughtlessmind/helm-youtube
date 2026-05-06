@@ -30,6 +30,21 @@
       label: 'Default playback speed',
       desc: 'Force every video to start at your preferred speed.',
     },
+    {
+      id: 'disable-autoplay',
+      label: 'Disable autoplay',
+      desc: 'Turns off the autoplay toggle on every watch page.',
+    },
+    {
+      id: 'hide-watch-page-sidebar',
+      label: 'Hide watch-page sidebar',
+      desc: 'Removes the right-rail recommendations while watching a video.',
+    },
+    {
+      id: 'true-black-dark-mode',
+      label: 'True black dark mode',
+      desc: 'Replaces YouTube\'s dark grey backgrounds with #000 for OLED.',
+    },
   ];
 
   const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];

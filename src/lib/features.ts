@@ -24,4 +24,7 @@ export const featureRegistry: Record<string, Loader> = {
   'auto-dismiss-still-watching': () => import('../features/auto-dismiss-still-watching'),
   'hide-end-screen-cards': () => import('../features/hide-end-screen-cards'),
   'default-playback-speed': () => import('../features/default-playback-speed'),
+  'disable-autoplay': () => import('../features/disable-autoplay'),
+  'hide-watch-page-sidebar': () => import('../features/hide-watch-page-sidebar'),
+  'true-black-dark-mode': () => import('../features/true-black-dark-mode'),
 };
