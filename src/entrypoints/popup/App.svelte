@@ -23,80 +23,29 @@
   }
 </script>
 
-<main>
-  <header>
-    <h1>YouTube Pro</h1>
+<main class="w-80 p-4">
+  <header class="mb-3">
+    <h1 class="text-base font-semibold m-0">YouTube Pro</h1>
   </header>
 
-  <ul>
+  <ul class="flex flex-col gap-2 list-none p-0 m-0">
     {#each features as f (f.id)}
       <li>
-        <label>
+        <label
+          class="flex gap-3 items-start p-3 rounded-lg cursor-pointer bg-yt-surface hover:bg-yt-surface-hover transition-colors"
+        >
           <input
             type="checkbox"
             checked={!!flags[f.id]}
             onchange={() => toggle(f.id)}
+            class="mt-0.5 accent-yt-red"
           />
-          <span class="label">
-            <strong>{f.label}</strong>
-            <small>{f.desc}</small>
+          <span class="flex flex-col gap-0.5">
+            <strong class="font-medium">{f.label}</strong>
+            <small class="text-xs text-yt-text-muted">{f.desc}</small>
           </span>
         </label>
       </li>
     {/each}
   </ul>
 </main>
-
-<style>
-  :global(body) {
-    margin: 0;
-  }
-  main {
-    width: 320px;
-    padding: 16px;
-    font-family: system-ui, -apple-system, sans-serif;
-    color: #eee;
-    background: #0f0f0f;
-  }
-  header {
-    margin-bottom: 12px;
-  }
-  h1 {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0;
-  }
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  label {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    padding: 10px;
-    background: #1f1f1f;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  label:hover {
-    background: #272727;
-  }
-  input[type='checkbox'] {
-    margin-top: 2px;
-    accent-color: #ff0033;
-  }
-  .label {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  small {
-    color: #aaa;
-    font-size: 12px;
-  }
-</style>
