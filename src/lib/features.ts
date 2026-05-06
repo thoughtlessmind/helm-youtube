@@ -30,4 +30,6 @@ export const featureRegistry: Record<string, Loader> = {
   'persistent-volume': () => import('../features/persistent-volume'),
   'copy-timestamped-link': () => import('../features/copy-timestamped-link'),
   'screenshot-current-frame': () => import('../features/screenshot-current-frame'),
+  'hide-up-next-panel': () => import('../features/hide-up-next-panel'),
+  'volume-boost': () => import('../features/volume-boost'),
 };

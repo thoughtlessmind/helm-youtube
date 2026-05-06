@@ -45,9 +45,19 @@ src/
 
 1. Author a `Feature` object in `src/features/<id>.ts` exporting `default`. Its `setup(ctx)` returns an optional teardown.
 2. Add `'<id>': () => import('../features/<id>')` to `featureRegistry` in `src/lib/features.ts`.
-3. Add the flag to `FeatureFlags` in `src/lib/settings.ts`.
+3. Add the flag to `FeatureFlags` + a default in `FEATURE_DEFAULTS` in `src/lib/settings.ts`.
+4. Add an entry to the `features` array in `src/entrypoints/popup/App.svelte` for the toggle.
+5. If the feature needs config beyond on/off (e.g. a chosen speed): add a key to `FeatureConfig` + default, then use `getConfig(id)` / `watchConfig(id, cb)` inside `setup()` to react reactively.
 
-The content script reads enabled flags from `chrome.storage.sync`, dynamic-imports only those modules, and tears them down when the user disables them. **Disabled features cost zero** — their code is never fetched or parsed on youtube.com.
+The content script reads enabled flags from `chrome.storage.sync`, dynamic-imports only those modules, and tears them down when the user disables them. **Disabled features pay zero runtime cost** — `setup()` never runs, no observer subscriptions, no listeners. (Note: due to content-script chunk-loading constraints, the bundle still includes all feature code; runtime cost is the part we control.)
+
+### Shared helpers in `src/lib/yt/`
+
+- `context.ts` — bundles the observer and navigation bus; created once per content-script lifetime
+- `observer.ts` — single batched MutationObserver. Use `ctx.observer.onChange(cb)` (debounced 100 ms re-scan) or `ctx.observer.subscribe(mutations => …)` for raw access
+- `navigation.ts` — `ctx.navigation.onNavigate(url => …)` for SPA route changes (`yt-navigate-finish`)
+- `keys.ts` — `onKey('y', handler)` page-level keyboard shortcut helper that auto-skips when the user is typing in an input/textarea/contenteditable
+- `toast.ts` — `flashToast('Link copied')` for action feedback
 
 ### Performance rules — these are the moat
 

@@ -60,7 +60,20 @@
       label: 'Screenshot frame (S)',
       desc: 'Press S to download a PNG of the current frame, no overlay.',
     },
+    {
+      id: 'hide-up-next-panel',
+      label: 'Hide "Up next" panel',
+      desc: 'Removes the in-player autoplay countdown overlay.',
+    },
+    {
+      id: 'volume-boost',
+      label: 'Volume boost',
+      desc: 'Push audio above 100% via Web Audio API gain.',
+    },
   ];
+
+  const BOOST_LEVELS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+  let boost = $state<FeatureConfig['volume-boost']>({ multiplier: 1.5 });
 
   const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 
@@ -70,7 +83,13 @@
   onMount(async () => {
     flags = await getFlags();
     speed = await getConfig('default-playback-speed');
+    boost = await getConfig('volume-boost');
   });
+
+  async function changeBoost(multiplier: number) {
+    boost = { multiplier };
+    await setConfig('volume-boost', { multiplier });
+  }
 
   async function toggle(id: keyof FeatureFlags) {
     const next = !flags[id];
@@ -114,6 +133,19 @@
               >
                 {#each SPEEDS as s (s)}
                   <option value={s}>{s}×</option>
+                {/each}
+              </select>
+            {/if}
+
+            {#if f.id === 'volume-boost' && flags['volume-boost']}
+              <select
+                value={boost.multiplier}
+                onchange={(e) => changeBoost(Number((e.currentTarget as HTMLSelectElement).value))}
+                onclick={(e) => e.preventDefault()}
+                class="mt-2 w-24 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+              >
+                {#each BOOST_LEVELS as b (b)}
+                  <option value={b}>{Math.round(b * 100)}%</option>
                 {/each}
               </select>
             {/if}

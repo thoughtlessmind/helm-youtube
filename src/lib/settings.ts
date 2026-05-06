@@ -16,6 +16,8 @@ export interface FeatureFlags {
   'persistent-volume'?: boolean;
   'copy-timestamped-link'?: boolean;
   'screenshot-current-frame'?: boolean;
+  'hide-up-next-panel'?: boolean;
+  'volume-boost'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -29,6 +31,8 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'persistent-volume': true,
   'copy-timestamped-link': true,
   'screenshot-current-frame': true,
+  'hide-up-next-panel': true,
+  'volume-boost': false,
 };
 
 /**
@@ -38,10 +42,12 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
  */
 export interface FeatureConfig {
   'default-playback-speed': { rate: number };
+  'volume-boost': { multiplier: number };
 }
 
 export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
   'default-playback-speed': { rate: 1 },
+  'volume-boost': { multiplier: 1.5 },
 };
 
 export async function getConfig<K extends keyof FeatureConfig>(
