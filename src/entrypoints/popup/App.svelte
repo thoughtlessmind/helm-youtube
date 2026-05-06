@@ -1,42 +1,102 @@
 <script lang="ts">
-  import svelteLogo from '../../assets/svelte.svg'
-  import Counter from '../../lib/Counter.svelte'
+  import { onMount } from 'svelte';
+  import { getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
+
+  const features: { id: keyof FeatureFlags; label: string; desc: string }[] = [
+    {
+      id: 'hide-shorts',
+      label: 'Hide Shorts',
+      desc: 'Removes Shorts from feed, sidebar, search, and channel pages.',
+    },
+  ];
+
+  let flags = $state<FeatureFlags>({});
+
+  onMount(async () => {
+    flags = await getFlags();
+  });
+
+  async function toggle(id: keyof FeatureFlags) {
+    const next = !flags[id];
+    flags = { ...flags, [id]: next };
+    await setFlag(id, next);
+  }
 </script>
 
 <main>
-  <div>
-    <a href="https://wxt.dev" target="_blank" rel="noreferrer">
-      <img src="/wxt.svg" class="logo" alt="WXT Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>WXT + Svelte</h1>
+  <header>
+    <h1>YouTube Pro</h1>
+  </header>
 
-  <div class="card">
-    <Counter />
-  </div>
-
-  <p class="read-the-docs">
-    Click on the WXT and Svelte logos to learn more
-  </p>
+  <ul>
+    {#each features as f (f.id)}
+      <li>
+        <label>
+          <input
+            type="checkbox"
+            checked={!!flags[f.id]}
+            onchange={() => toggle(f.id)}
+          />
+          <span class="label">
+            <strong>{f.label}</strong>
+            <small>{f.desc}</small>
+          </span>
+        </label>
+      </li>
+    {/each}
+  </ul>
 </main>
 
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
+  :global(body) {
+    margin: 0;
   }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #54bc4ae0);
+  main {
+    width: 320px;
+    padding: 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #eee;
+    background: #0f0f0f;
   }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
+  header {
+    margin-bottom: 12px;
   }
-  .read-the-docs {
-    color: #888;
+  h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  label {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px;
+    background: #1f1f1f;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  label:hover {
+    background: #272727;
+  }
+  input[type='checkbox'] {
+    margin-top: 2px;
+    accent-color: #ff0033;
+  }
+  .label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  small {
+    color: #aaa;
+    font-size: 12px;
   }
 </style>

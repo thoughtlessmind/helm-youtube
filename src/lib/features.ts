@@ -20,5 +20,5 @@ type Loader = () => Promise<{ default: Feature }>;
  * chunk and is only fetched/parsed when the user has it enabled.
  */
 export const featureRegistry: Record<string, Loader> = {
-  // 'hide-shorts': () => import('../features/hide-shorts'),
+  'hide-shorts': () => import('../features/hide-shorts'),
 };
