@@ -27,4 +27,7 @@ export const featureRegistry: Record<string, Loader> = {
   'disable-autoplay': () => import('../features/disable-autoplay'),
   'hide-watch-page-sidebar': () => import('../features/hide-watch-page-sidebar'),
   'true-black-dark-mode': () => import('../features/true-black-dark-mode'),
+  'persistent-volume': () => import('../features/persistent-volume'),
+  'copy-timestamped-link': () => import('../features/copy-timestamped-link'),
+  'screenshot-current-frame': () => import('../features/screenshot-current-frame'),
 };

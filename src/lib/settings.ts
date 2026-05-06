@@ -13,6 +13,9 @@ export interface FeatureFlags {
   'disable-autoplay'?: boolean;
   'hide-watch-page-sidebar'?: boolean;
   'true-black-dark-mode'?: boolean;
+  'persistent-volume'?: boolean;
+  'copy-timestamped-link'?: boolean;
+  'screenshot-current-frame'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -23,6 +26,9 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'disable-autoplay': true,
   'hide-watch-page-sidebar': false,
   'true-black-dark-mode': false,
+  'persistent-volume': true,
+  'copy-timestamped-link': true,
+  'screenshot-current-frame': true,
 };
 
 /**

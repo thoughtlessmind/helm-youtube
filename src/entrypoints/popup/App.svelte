@@ -45,6 +45,21 @@
       label: 'True black dark mode',
       desc: 'Replaces YouTube\'s dark grey backgrounds with #000 for OLED.',
     },
+    {
+      id: 'persistent-volume',
+      label: 'Persistent volume',
+      desc: 'Restore your last volume on every video.',
+    },
+    {
+      id: 'copy-timestamped-link',
+      label: 'Copy timestamped link (Y)',
+      desc: 'Press Y on a video to copy a link to the current playback position.',
+    },
+    {
+      id: 'screenshot-current-frame',
+      label: 'Screenshot frame (S)',
+      desc: 'Press S to download a PNG of the current frame, no overlay.',
+    },
   ];
 
   const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
