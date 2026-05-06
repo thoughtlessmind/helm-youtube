@@ -21,4 +21,7 @@ type Loader = () => Promise<{ default: Feature }>;
  */
 export const featureRegistry: Record<string, Loader> = {
   'hide-shorts': () => import('../features/hide-shorts'),
+  'auto-dismiss-still-watching': () => import('../features/auto-dismiss-still-watching'),
+  'hide-end-screen-cards': () => import('../features/hide-end-screen-cards'),
+  'default-playback-speed': () => import('../features/default-playback-speed'),
 };

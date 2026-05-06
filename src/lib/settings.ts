@@ -7,11 +7,56 @@ import { storage } from '#imports';
  */
 export interface FeatureFlags {
   'hide-shorts'?: boolean;
+  'auto-dismiss-still-watching'?: boolean;
+  'hide-end-screen-cards'?: boolean;
+  'default-playback-speed'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
   'hide-shorts': true,
+  'auto-dismiss-still-watching': true,
+  'hide-end-screen-cards': true,
+  'default-playback-speed': false,
 };
+
+/**
+ * Per-feature config blobs (separate from on/off flag). Each feature
+ * owns its own key under `sync:config:<id>`. Use TypeScript module
+ * augmentation in feature files to type the value.
+ */
+export interface FeatureConfig {
+  'default-playback-speed': { rate: number };
+}
+
+export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
+  'default-playback-speed': { rate: 1 },
+};
+
+export async function getConfig<K extends keyof FeatureConfig>(
+  id: K,
+): Promise<FeatureConfig[K]> {
+  const key = `sync:config:${id}` as const;
+  const stored = await storage.getItem<FeatureConfig[K]>(key);
+  return { ...FEATURE_CONFIG_DEFAULTS[id], ...(stored ?? {}) };
+}
+
+export async function setConfig<K extends keyof FeatureConfig>(
+  id: K,
+  value: FeatureConfig[K],
+): Promise<void> {
+  const key = `sync:config:${id}` as const;
+  await storage.setItem(key, value);
+}
+
+export function watchConfig<K extends keyof FeatureConfig>(
+  id: K,
+  cb: (value: FeatureConfig[K]) => void,
+): () => void {
+  const key = `sync:config:${id}` as const;
+  return storage.watch<FeatureConfig[K]>(key, (value) => {
+    cb({ ...FEATURE_CONFIG_DEFAULTS[id], ...(value ?? {}) });
+  });
+}
 
 const FLAGS_KEY = 'sync:featureFlags' as const;
 

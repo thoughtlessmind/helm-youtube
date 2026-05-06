@@ -1,6 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
+  import {
+    getFlags,
+    setFlag,
+    getConfig,
+    setConfig,
+    type FeatureFlags,
+    type FeatureConfig,
+  } from '../../lib/settings';
 
   const features: { id: keyof FeatureFlags; label: string; desc: string }[] = [
     {
@@ -8,18 +15,42 @@
       label: 'Hide Shorts',
       desc: 'Removes Shorts from feed, sidebar, search, and channel pages.',
     },
+    {
+      id: 'hide-end-screen-cards',
+      label: 'Hide end-screen cards',
+      desc: 'Removes the suggested-video overlay from the last 20s of videos.',
+    },
+    {
+      id: 'auto-dismiss-still-watching',
+      label: 'Auto-dismiss "Still watching?"',
+      desc: 'Auto-confirms YouTube\'s periodic playback-paused prompt.',
+    },
+    {
+      id: 'default-playback-speed',
+      label: 'Default playback speed',
+      desc: 'Force every video to start at your preferred speed.',
+    },
   ];
 
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+
   let flags = $state<FeatureFlags>({});
+  let speed = $state<FeatureConfig['default-playback-speed']>({ rate: 1 });
 
   onMount(async () => {
     flags = await getFlags();
+    speed = await getConfig('default-playback-speed');
   });
 
   async function toggle(id: keyof FeatureFlags) {
     const next = !flags[id];
     flags = { ...flags, [id]: next };
     await setFlag(id, next);
+  }
+
+  async function changeSpeed(rate: number) {
+    speed = { rate };
+    await setConfig('default-playback-speed', { rate });
   }
 </script>
 
@@ -40,9 +71,22 @@
             onchange={() => toggle(f.id)}
             class="mt-0.5 accent-yt-red"
           />
-          <span class="flex flex-col gap-0.5">
+          <span class="flex flex-col gap-0.5 flex-1">
             <strong class="font-medium">{f.label}</strong>
             <small class="text-xs text-yt-text-muted">{f.desc}</small>
+
+            {#if f.id === 'default-playback-speed' && flags['default-playback-speed']}
+              <select
+                value={speed.rate}
+                onchange={(e) => changeSpeed(Number((e.currentTarget as HTMLSelectElement).value))}
+                onclick={(e) => e.preventDefault()}
+                class="mt-2 w-24 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+              >
+                {#each SPEEDS as s (s)}
+                  <option value={s}>{s}×</option>
+                {/each}
+              </select>
+            {/if}
           </span>
         </label>
       </li>
