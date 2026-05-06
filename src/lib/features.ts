@@ -1,0 +1,24 @@
+import type { YTContext } from './yt/context';
+
+/**
+ * A feature is a self-contained unit of behavior. Lazy-loaded so that
+ * disabled features cost zero on the YouTube page.
+ */
+export interface Feature {
+  id: string;
+  /** Called once when the feature is enabled. Return a teardown fn. */
+  setup(ctx: YTContext): void | (() => void) | Promise<void | (() => void)>;
+}
+
+type Loader = () => Promise<{ default: Feature }>;
+
+/**
+ * Registry maps feature id → dynamic import. Adding a new feature is one
+ * line here plus one new file under src/features/.
+ *
+ * Keep these as `() => import(...)` so each feature ends up in its own
+ * chunk and is only fetched/parsed when the user has it enabled.
+ */
+export const featureRegistry: Record<string, Loader> = {
+  // 'hide-shorts': () => import('../features/hide-shorts'),
+};
