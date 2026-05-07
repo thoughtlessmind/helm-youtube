@@ -18,6 +18,9 @@ export interface FeatureFlags {
   'screenshot-current-frame'?: boolean;
   'hide-up-next-panel'?: boolean;
   'volume-boost'?: boolean;
+  'hide-comments-by-default'?: boolean;
+  'hide-metadata'?: boolean;
+  'loop-section'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -33,6 +36,9 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'screenshot-current-frame': true,
   'hide-up-next-panel': true,
   'volume-boost': false,
+  'hide-comments-by-default': false,
+  'hide-metadata': false,
+  'loop-section': true,
 };
 
 /**

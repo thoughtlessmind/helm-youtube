@@ -2,7 +2,7 @@
 
 Implementation status for everything in `features.md`. Mirrors that file's structure. Update this list whenever a feature ships or its scope changes.
 
-**Progress:** 12 / 21 Phase 1 · 0 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
+**Progress:** 15 / 21 Phase 1 · 0 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
 
 ---
 
@@ -20,10 +20,10 @@ Implementation status for everything in `features.md`. Mirrors that file's struc
 
 - [x] Hide Shorts everywhere — `hide-shorts`
 - [x] Hide recommendations sidebar while watching — `hide-watch-page-sidebar`
-- [ ] Hide comments by default, with reveal toggle
+- [x] Hide comments by default — `hide-comments-by-default` (no reveal toggle yet)
 - [x] Hide the "Up Next" autoplay panel — `hide-up-next-panel`
 - [x] Remove end-screen video cards — `hide-end-screen-cards`
-- [ ] Hide view counts and/or upload dates
+- [x] Hide view counts and/or upload dates — `hide-metadata`
 
 ### Friction Reducers
 
@@ -36,7 +36,7 @@ Implementation status for everything in `features.md`. Mirrors that file's struc
 
 - [x] Persistent volume across videos and sessions — `persistent-volume`
 - [x] Volume boost beyond 100% — `volume-boost`
-- [ ] Loop a custom section A→B
+- [x] Loop a custom section A→B — `loop-section` (`[` `]` `\`)
 - [x] Default playback speed — `default-playback-speed`
 
 ### Visual Polish

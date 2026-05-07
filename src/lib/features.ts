@@ -32,4 +32,7 @@ export const featureRegistry: Record<string, Loader> = {
   'screenshot-current-frame': () => import('../features/screenshot-current-frame'),
   'hide-up-next-panel': () => import('../features/hide-up-next-panel'),
   'volume-boost': () => import('../features/volume-boost'),
+  'hide-comments-by-default': () => import('../features/hide-comments-by-default'),
+  'hide-metadata': () => import('../features/hide-metadata'),
+  'loop-section': () => import('../features/loop-section'),
 };

@@ -70,6 +70,21 @@
       label: 'Volume boost',
       desc: 'Push audio above 100% via Web Audio API gain.',
     },
+    {
+      id: 'hide-comments-by-default',
+      label: 'Hide comments',
+      desc: 'Hide the comments section on watch pages.',
+    },
+    {
+      id: 'hide-metadata',
+      label: 'Hide view counts & dates',
+      desc: 'Reduce clickbait pull by hiding view counts and upload dates on thumbnails.',
+    },
+    {
+      id: 'loop-section',
+      label: 'Loop section ([ ] \\)',
+      desc: 'Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.',
+    },
   ];
 
   const BOOST_LEVELS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
