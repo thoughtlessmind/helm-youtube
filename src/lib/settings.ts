@@ -21,6 +21,7 @@ export interface FeatureFlags {
   'hide-comments-by-default'?: boolean;
   'hide-metadata'?: boolean;
   'loop-section'?: boolean;
+  'customize-grid'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -39,6 +40,7 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'hide-comments-by-default': false,
   'hide-metadata': false,
   'loop-section': true,
+  'customize-grid': false,
 };
 
 /**
@@ -49,11 +51,13 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
 export interface FeatureConfig {
   'default-playback-speed': { rate: number };
   'volume-boost': { multiplier: number };
+  'customize-grid': { columnsPerRow: number; hideCardInfo: boolean };
 }
 
 export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
   'default-playback-speed': { rate: 1 },
   'volume-boost': { multiplier: 1.5 },
+  'customize-grid': { columnsPerRow: 3, hideCardInfo: false },
 };
 
 export async function getConfig<K extends keyof FeatureConfig>(

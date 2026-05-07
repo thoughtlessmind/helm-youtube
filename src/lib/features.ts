@@ -35,4 +35,5 @@ export const featureRegistry: Record<string, Loader> = {
   'hide-comments-by-default': () => import('../features/hide-comments-by-default'),
   'hide-metadata': () => import('../features/hide-metadata'),
   'loop-section': () => import('../features/loop-section'),
+  'customize-grid': () => import('../features/customize-grid'),
 };

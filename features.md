@@ -26,6 +26,7 @@ These are small, self-contained features that mostly rely on DOM manipulation an
 - **Hide the "Up Next" autoplay panel.**
 - **Remove end-screen video cards** that block the last 20 seconds of videos.
 - **Hide view counts and/or upload dates** to reduce clickbait pull (optional).
+- **Customize homepage grid** — bump videos-per-row above the default 3, optionally hide the title/channel/views block under each thumbnail for a denser feed.
 
 ### Friction Reducers
 

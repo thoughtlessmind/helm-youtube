@@ -2,7 +2,9 @@
 
 Implementation status for everything in `features.md`. Mirrors that file's structure. Update this list whenever a feature ships or its scope changes.
 
-**Progress:** 15 / 21 Phase 1 · 0 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
+**Progress:** 16 / 22 Phase 1 · 0 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
+
+✅ Verified working in Chrome on real youtube.com.
 
 ---
 
@@ -24,6 +26,7 @@ Implementation status for everything in `features.md`. Mirrors that file's struc
 - [x] Hide the "Up Next" autoplay panel — `hide-up-next-panel`
 - [x] Remove end-screen video cards — `hide-end-screen-cards`
 - [x] Hide view counts and/or upload dates — `hide-metadata`
+- [x] Customize homepage grid columns + hide card info — `customize-grid`
 
 ### Friction Reducers
 

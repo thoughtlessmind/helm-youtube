@@ -85,10 +85,18 @@
       label: 'Loop section ([ ] \\)',
       desc: 'Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.',
     },
+    {
+      id: 'customize-grid',
+      label: 'Customize grid',
+      desc: 'Pack more videos per row on the homepage and hide card info for a denser feed.',
+    },
   ];
+
+  const GRID_COLUMNS = [3, 4, 5, 6, 7, 8];
 
   const BOOST_LEVELS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
   let boost = $state<FeatureConfig['volume-boost']>({ multiplier: 1.5 });
+  let grid = $state<FeatureConfig['customize-grid']>({ columnsPerRow: 3, hideCardInfo: false });
 
   const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 
@@ -99,7 +107,18 @@
     flags = await getFlags();
     speed = await getConfig('default-playback-speed');
     boost = await getConfig('volume-boost');
+    grid = await getConfig('customize-grid');
   });
+
+  async function changeGridColumns(columnsPerRow: number) {
+    grid = { ...grid, columnsPerRow };
+    await setConfig('customize-grid', grid);
+  }
+
+  async function toggleGridHideInfo() {
+    grid = { ...grid, hideCardInfo: !grid.hideCardInfo };
+    await setConfig('customize-grid', grid);
+  }
 
   async function changeBoost(multiplier: number) {
     boost = { multiplier };
@@ -150,6 +169,34 @@
                   <option value={s}>{s}×</option>
                 {/each}
               </select>
+            {/if}
+
+            {#if f.id === 'customize-grid' && flags['customize-grid']}
+              <div class="mt-2 flex flex-col gap-2">
+                <label class="flex items-center gap-2 text-xs">
+                  <span class="text-yt-text-muted">Columns:</span>
+                  <select
+                    value={grid.columnsPerRow}
+                    onchange={(e) => changeGridColumns(Number((e.currentTarget as HTMLSelectElement).value))}
+                    onclick={(e) => e.stopPropagation()}
+                    class="bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+                  >
+                    {#each GRID_COLUMNS as c (c)}
+                      <option value={c}>{c}</option>
+                    {/each}
+                  </select>
+                </label>
+                <label class="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={grid.hideCardInfo}
+                    onchange={toggleGridHideInfo}
+                    onclick={(e) => e.stopPropagation()}
+                    class="accent-yt-red"
+                  />
+                  <span>Hide card info (title, channel, views)</span>
+                </label>
+              </div>
             {/if}
 
             {#if f.id === 'volume-boost' && flags['volume-boost']}
