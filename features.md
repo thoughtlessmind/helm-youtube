@@ -45,7 +45,7 @@ These are small, self-contained features that mostly rely on DOM manipulation an
 ### Visual Polish
 
 - **True black dark mode** for OLED displays.
-- **Custom CSS themes** — let users paste their own CSS or pick from presets.
+- **Custom theme presets** — pick from a curated set of styled themes.
 
 ---
 

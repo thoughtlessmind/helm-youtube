@@ -65,7 +65,6 @@ const SECTIONS: Section[] = [
     title: 'Appearance',
     features: [
       { id: 'true-black-dark-mode', label: 'True black dark mode', desc: "Replaces YouTube's dark grey backgrounds with #000 for OLED." },
-      { id: 'custom-css', label: 'Custom CSS', desc: 'Inject your own CSS into youtube.com to theme it freely.' },
     ],
   },
 ];
@@ -87,7 +86,6 @@ interface PanelState {
   boost: FeatureConfig['volume-boost'];
   grid: FeatureConfig['customize-grid'];
   savePlaylist: FeatureConfig['save-to-playlist'];
-  customCss: FeatureConfig['custom-css'];
 }
 
 export function mountHeaderMenu(ctx: YTContext): () => void {
@@ -103,7 +101,6 @@ export function mountHeaderMenu(ctx: YTContext): () => void {
     boost: { multiplier: 1.5 },
     grid: { columnsPerRow: 3, hideCardInfo: false },
     savePlaylist: { playlistName: 'Watch later' },
-    customCss: { css: '' },
   };
 
   // ---------- State load + watch ----------
@@ -114,7 +111,6 @@ export function mountHeaderMenu(ctx: YTContext): () => void {
     state.boost = await getConfig('volume-boost');
     state.grid = await getConfig('customize-grid');
     state.savePlaylist = await getConfig('save-to-playlist');
-    state.customCss = await getConfig('custom-css');
   };
 
   const watchers: Array<() => void> = [];
@@ -155,13 +151,6 @@ export function mountHeaderMenu(ctx: YTContext): () => void {
     storage.watch<FeatureConfig['save-to-playlist']>('sync:config:save-to-playlist', (v) => {
       if (!v || v.playlistName === state.savePlaylist.playlistName) return;
       state.savePlaylist = v;
-      if (state.open) renderPanel();
-    }),
-  );
-  watchers.push(
-    storage.watch<FeatureConfig['custom-css']>('sync:config:custom-css', (v) => {
-      if (!v || v.css === state.customCss.css) return;
-      state.customCss = v;
       if (state.open) renderPanel();
     }),
   );
@@ -365,14 +354,6 @@ export function mountHeaderMenu(ctx: YTContext): () => void {
       state.savePlaylist = { playlistName };
       await setConfig('save-to-playlist', { playlistName });
     });
-
-    const cssArea = panel.querySelector<HTMLTextAreaElement>('[data-act="custom-css"]');
-    cssArea?.addEventListener('click', (e) => e.stopPropagation());
-    cssArea?.addEventListener('change', async () => {
-      const css = cssArea.value;
-      state.customCss = { css };
-      await setConfig('custom-css', { css });
-    });
   };
 
   // ---------- Bootstrap ----------
@@ -465,10 +446,6 @@ function rowHTML(f: FeatureMeta, s: PanelState): string {
   } else if (f.id === 'save-to-playlist' && s.flags['save-to-playlist']) {
     extra = `<div class="config">
       <label class="cfg-row"><span>Playlist:</span><input type="text" data-act="playlist-name" value="${esc(s.savePlaylist.playlistName)}" placeholder="Watch later" /></label>
-    </div>`;
-  } else if (f.id === 'custom-css' && s.flags['custom-css']) {
-    extra = `<div class="config">
-      <textarea data-act="custom-css" rows="6" placeholder="/* Your custom CSS for youtube.com */" class="css-area">${esc(s.customCss.css)}</textarea>
     </div>`;
   }
   return `
@@ -570,15 +547,6 @@ const PANEL_CSS = `
   }
   .config input[type="text"] { flex: 1; }
   .config input[type="checkbox"] { accent-color: #c00; }
-  .config textarea.css-area {
-    width: 100%;
-    background: var(--yt-spec-general-background-a, #f9f9f9);
-    color: var(--yt-spec-text-primary, #0f0f0f);
-    border: 1px solid var(--yt-spec-10-percent-layer, rgba(0,0,0,0.15));
-    border-radius: 4px; padding: 6px 8px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12px; resize: vertical; min-height: 80px;
-  }
   .ftr {
     padding: 8px 16px 12px;
     font-size: 10px;

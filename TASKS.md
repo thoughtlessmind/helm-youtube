@@ -2,7 +2,7 @@
 
 Implementation status for everything in `features.md`. Mirrors that file's structure. Update this list whenever a feature ships or its scope changes.
 
-**Progress:** 18 / 20 Phase 1 (2 skipped) · 1 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
+**Progress:** 17 / 20 Phase 1 (2 skipped) · 1 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
 
 ✅ Verified working in Chrome on real youtube.com.
 
@@ -45,7 +45,7 @@ Implementation status for everything in `features.md`. Mirrors that file's struc
 ### Visual Polish
 
 - [x] True black dark mode for OLED — `true-black-dark-mode`
-- [x] Custom CSS themes — `custom-css` (textarea in menu)
+- [ ] Custom theme presets (planned — replaces the dropped "custom CSS" idea)
 
 ---
 
