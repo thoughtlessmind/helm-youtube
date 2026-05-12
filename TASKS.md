@@ -2,7 +2,7 @@
 
 Implementation status for everything in `features.md`. Mirrors that file's structure. Update this list whenever a feature ships or its scope changes.
 
-**Progress:** 16 / 22 Phase 1 · 0 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
+**Progress:** 17 / 20 Phase 1 (2 skipped) · 0 / 14 Phase 2 · 0 / 19 Phase 3 · 0 / 5 Phase 4
 
 ✅ Verified working in Chrome on real youtube.com.
 
@@ -14,7 +14,7 @@ Implementation status for everything in `features.md`. Mirrors that file's struc
 
 - [ ] One-click "Add to Watch Later" button on every video thumbnail
 - [ ] One-click "Add to favorite playlist" button
-- [ ] Keyboard shortcut to save current video to Watch Later or chosen playlist
+- [x] Keyboard shortcut to save current video to Watch Later or chosen playlist — `save-to-playlist` (W key, configurable playlist name)
 - [x] Copy timestamped link to current playback position — `copy-timestamped-link` (Y key)
 - [x] Screenshot current frame — `screenshot-current-frame` (S key)
 
@@ -32,8 +32,8 @@ Implementation status for everything in `features.md`. Mirrors that file's struc
 
 - [x] Auto-dismiss "Are you still watching?" prompt — `auto-dismiss-still-watching`
 - [x] Disable autoplay by default — `disable-autoplay`
-- [ ] Stop the homepage from reshuffling on back navigation
-- [ ] Preserve scroll position on back navigation
+- [~] ~~Stop the homepage from reshuffling on back navigation~~ — **Skipped.** YouTube's SPA already restores feed + scroll on back-nav; not worth fighting the framework.
+- [~] ~~Preserve scroll position on back navigation~~ — **Skipped.** Same reason as above.
 
 ### Playback
 
@@ -115,6 +115,7 @@ Implementation status for everything in `features.md`. Mirrors that file's struc
 - [ ] Auto-summarize the video (Claude API)
 - [ ] Generate chapter markers from transcript
 - [ ] Ask questions about the video (chat with transcript)
+- [ ] On-device summary + chat in side panel (Chrome built-in AI / Gemini Nano, with jump-to timestamps) — ref https://www.youtube.com/watch?v=8iIvAMZ-XYU
 
 ### Multi-Video Modes
 

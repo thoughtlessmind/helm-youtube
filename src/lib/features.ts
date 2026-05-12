@@ -36,4 +36,5 @@ export const featureRegistry: Record<string, Loader> = {
   'hide-metadata': () => import('../features/hide-metadata'),
   'loop-section': () => import('../features/loop-section'),
   'customize-grid': () => import('../features/customize-grid'),
+  'save-to-playlist': () => import('../features/save-to-playlist'),
 };

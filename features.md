@@ -32,8 +32,8 @@ These are small, self-contained features that mostly rely on DOM manipulation an
 
 - **Auto-dismiss the "Are you still watching?"** prompt.
 - **Disable autoplay by default** but keep a one-click toggle to re-enable per session.
-- **Stop the homepage from reshuffling** when you navigate back from a video.
-- **Preserve scroll position** when navigating back.
+- ~~**Stop the homepage from reshuffling** when you navigate back from a video.~~ _Skipped — YouTube's SPA already restores feed + scroll on back-nav in current Chrome; intervening would fight the framework for marginal gain._
+- ~~**Preserve scroll position** when navigating back.~~ _Skipped — same reason as above._
 
 ### Playback
 
@@ -122,6 +122,7 @@ Let users create custom views and assign channels to them. Switching to a view f
 - **Auto-summarize the video** using the Claude API (transcript → summary).
 - **Generate chapter markers** from the transcript when the creator didn't provide them.
 - **Ask questions about the video** — chat with the transcript.
+- **On-device video summary + chat (side panel)** — use Chrome's built-in AI (Prompt/Summarizer API, Gemini Nano) to summarize the current video locally and open a chat-like UI in the extension side panel for follow-up questions. Answers cite jump-to timestamps drawn from the transcript so the user can click through to the relevant moment. No external API or OAuth; runs offline once the model is downloaded. Reference video: https://www.youtube.com/watch?v=8iIvAMZ-XYU
 
 ### Multi-Video Modes
 
