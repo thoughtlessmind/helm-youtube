@@ -98,6 +98,16 @@
       label: "Save to playlist (W)",
       desc: "Press W on a watch page to toggle the video into the named playlist.",
     },
+    {
+      id: "distraction-free-mode",
+      label: "Distraction-free mode",
+      desc: "On watch pages, hide everything except the player and title.",
+    },
+    {
+      id: "custom-css",
+      label: "Custom CSS",
+      desc: "Inject your own CSS into youtube.com to theme it freely.",
+    },
   ];
 
   const GRID_COLUMNS = [3, 4, 5, 6, 7, 8];
@@ -117,6 +127,7 @@
   let savePlaylist = $state<FeatureConfig["save-to-playlist"]>({
     playlistName: "Watch later",
   });
+  let customCss = $state<FeatureConfig["custom-css"]>({ css: "" });
 
   onMount(async () => {
     flags = await getFlags();
@@ -125,6 +136,7 @@
     boost = await getConfig("volume-boost");
     grid = await getConfig("customize-grid");
     savePlaylist = await getConfig("save-to-playlist");
+    customCss = await getConfig("custom-css");
     watchExtensionEnabled((on) => {
       extensionEnabled = on;
     });
@@ -133,6 +145,11 @@
   async function toggleExtension() {
     extensionEnabled = !extensionEnabled;
     await setExtensionEnabled(extensionEnabled);
+  }
+
+  async function changeCustomCss(css: string) {
+    customCss = { css };
+    await setConfig("custom-css", { css });
   }
 
   async function changePlaylistName(playlistName: string) {
@@ -266,6 +283,20 @@
                   class="flex-1 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
                 />
               </label>
+            {/if}
+
+            {#if f.id === "custom-css" && flags["custom-css"]}
+              <textarea
+                value={customCss.css}
+                onchange={(e) =>
+                  changeCustomCss(
+                    (e.currentTarget as HTMLTextAreaElement).value,
+                  )}
+                onclick={(e) => e.stopPropagation()}
+                placeholder="/* Your custom CSS for youtube.com */"
+                rows="6"
+                class="mt-2 w-full bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs font-mono"
+              ></textarea>
             {/if}
 
             {#if f.id === "volume-boost" && flags["volume-boost"]}

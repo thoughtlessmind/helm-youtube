@@ -37,4 +37,6 @@ export const featureRegistry: Record<string, Loader> = {
   'loop-section': () => import('../features/loop-section'),
   'customize-grid': () => import('../features/customize-grid'),
   'save-to-playlist': () => import('../features/save-to-playlist'),
+  'custom-css': () => import('../features/custom-css'),
+  'distraction-free-mode': () => import('../features/distraction-free-mode'),
 };

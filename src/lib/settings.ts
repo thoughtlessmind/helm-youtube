@@ -23,6 +23,8 @@ export interface FeatureFlags {
   'loop-section'?: boolean;
   'customize-grid'?: boolean;
   'save-to-playlist'?: boolean;
+  'custom-css'?: boolean;
+  'distraction-free-mode'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -43,6 +45,8 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'loop-section': true,
   'customize-grid': false,
   'save-to-playlist': true,
+  'custom-css': false,
+  'distraction-free-mode': false,
 };
 
 /**
@@ -55,6 +59,7 @@ export interface FeatureConfig {
   'volume-boost': { multiplier: number };
   'customize-grid': { columnsPerRow: number; hideCardInfo: boolean };
   'save-to-playlist': { playlistName: string };
+  'custom-css': { css: string };
 }
 
 export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
@@ -62,6 +67,7 @@ export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
   'volume-boost': { multiplier: 1.5 },
   'customize-grid': { columnsPerRow: 3, hideCardInfo: false },
   'save-to-playlist': { playlistName: 'Watch later' },
+  'custom-css': { css: '' },
 };
 
 export async function getConfig<K extends keyof FeatureConfig>(
