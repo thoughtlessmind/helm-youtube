@@ -1,6 +1,7 @@
 import { createYTContext } from '../lib/yt/context';
 import { featureRegistry } from '../lib/features';
 import { getEnabledFeatures, watchEnabledFeatures } from '../lib/settings';
+import { mountHeaderMenu } from '../lib/yt/header-menu';
 
 export default defineContentScript({
   matches: ['*://*.youtube.com/*'],
@@ -8,6 +9,10 @@ export default defineContentScript({
   async main() {
     const ctx = createYTContext();
     const teardowns = new Map<string, () => void>();
+
+    // Header menu mounts independently of feature flags — it must remain
+    // available even when the extension kill-switch is off.
+    mountHeaderMenu(ctx);
 
     const sync = async (enabledIds: string[]) => {
       const enabled = new Set(enabledIds);

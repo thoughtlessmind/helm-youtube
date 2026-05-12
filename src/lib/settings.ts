@@ -22,6 +22,7 @@ export interface FeatureFlags {
   'hide-metadata'?: boolean;
   'loop-section'?: boolean;
   'customize-grid'?: boolean;
+  'save-to-playlist'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -41,6 +42,7 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'hide-metadata': false,
   'loop-section': true,
   'customize-grid': false,
+  'save-to-playlist': true,
 };
 
 /**
@@ -52,12 +54,14 @@ export interface FeatureConfig {
   'default-playback-speed': { rate: number };
   'volume-boost': { multiplier: number };
   'customize-grid': { columnsPerRow: number; hideCardInfo: boolean };
+  'save-to-playlist': { playlistName: string };
 }
 
 export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
   'default-playback-speed': { rate: 1 },
   'volume-boost': { multiplier: 1.5 },
   'customize-grid': { columnsPerRow: 3, hideCardInfo: false },
+  'save-to-playlist': { playlistName: 'Watch later' },
 };
 
 export async function getConfig<K extends keyof FeatureConfig>(
@@ -87,6 +91,7 @@ export function watchConfig<K extends keyof FeatureConfig>(
 }
 
 const FLAGS_KEY = 'sync:featureFlags' as const;
+const EXTENSION_ENABLED_KEY = 'sync:extensionEnabled' as const;
 
 export async function getFlags(): Promise<FeatureFlags> {
   const stored = (await storage.getItem<FeatureFlags>(FLAGS_KEY)) ?? {};
@@ -99,17 +104,44 @@ export async function setFlag(id: keyof FeatureFlags, on: boolean): Promise<void
   await storage.setItem(FLAGS_KEY, flags);
 }
 
+export async function getExtensionEnabled(): Promise<boolean> {
+  const stored = await storage.getItem<boolean>(EXTENSION_ENABLED_KEY);
+  return stored ?? true;
+}
+
+export async function setExtensionEnabled(on: boolean): Promise<void> {
+  await storage.setItem(EXTENSION_ENABLED_KEY, on);
+}
+
+export function watchExtensionEnabled(cb: (on: boolean) => void): () => void {
+  return storage.watch<boolean>(EXTENSION_ENABLED_KEY, (value) => {
+    cb(value ?? true);
+  });
+}
+
 const enabledIds = (flags: FeatureFlags) =>
   Object.entries(flags)
     .filter(([, on]) => on)
     .map(([id]) => id);
 
 export async function getEnabledFeatures(): Promise<string[]> {
+  const on = await getExtensionEnabled();
+  if (!on) return [];
   return enabledIds(await getFlags());
 }
 
 export function watchEnabledFeatures(cb: (ids: string[]) => void): () => void {
-  return storage.watch<FeatureFlags>(FLAGS_KEY, (flags) => {
-    cb(enabledIds({ ...FEATURE_DEFAULTS, ...(flags ?? {}) }));
+  const emit = async () => {
+    cb(await getEnabledFeatures());
+  };
+  const offFlags = storage.watch<FeatureFlags>(FLAGS_KEY, () => {
+    void emit();
   });
+  const offEnabled = storage.watch<boolean>(EXTENSION_ENABLED_KEY, () => {
+    void emit();
+  });
+  return () => {
+    offFlags();
+    offEnabled();
+  };
 }

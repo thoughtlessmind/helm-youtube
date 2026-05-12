@@ -1,128 +1,158 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
   import {
     getFlags,
     setFlag,
     getConfig,
     setConfig,
+    getExtensionEnabled,
+    setExtensionEnabled,
+    watchExtensionEnabled,
     type FeatureFlags,
     type FeatureConfig,
-  } from '../../lib/settings';
+  } from "../../lib/settings";
 
   const features: { id: keyof FeatureFlags; label: string; desc: string }[] = [
     {
-      id: 'hide-shorts',
-      label: 'Hide Shorts',
-      desc: 'Removes Shorts from feed, sidebar, search, and channel pages.',
+      id: "hide-shorts",
+      label: "Hide Shorts",
+      desc: "Removes Shorts from feed, sidebar, search, and channel pages.",
     },
     {
-      id: 'hide-end-screen-cards',
-      label: 'Hide end-screen cards',
-      desc: 'Removes the suggested-video overlay from the last 20s of videos.',
+      id: "hide-end-screen-cards",
+      label: "Hide end-screen cards",
+      desc: "Removes the suggested-video overlay from the last 20s of videos.",
     },
     {
-      id: 'auto-dismiss-still-watching',
+      id: "auto-dismiss-still-watching",
       label: 'Auto-dismiss "Still watching?"',
-      desc: 'Auto-confirms YouTube\'s periodic playback-paused prompt.',
+      desc: "Auto-confirms YouTube's periodic playback-paused prompt.",
     },
     {
-      id: 'default-playback-speed',
-      label: 'Default playback speed',
-      desc: 'Force every video to start at your preferred speed.',
+      id: "default-playback-speed",
+      label: "Default playback speed",
+      desc: "Force every video to start at your preferred speed.",
     },
     {
-      id: 'disable-autoplay',
-      label: 'Disable autoplay',
-      desc: 'Turns off the autoplay toggle on every watch page.',
+      id: "disable-autoplay",
+      label: "Disable autoplay",
+      desc: "Turns off the autoplay toggle on every watch page.",
     },
     {
-      id: 'hide-watch-page-sidebar',
-      label: 'Hide watch-page sidebar',
-      desc: 'Removes the right-rail recommendations while watching a video.',
+      id: "hide-watch-page-sidebar",
+      label: "Hide watch-page sidebar",
+      desc: "Removes the right-rail recommendations while watching a video.",
     },
     {
-      id: 'true-black-dark-mode',
-      label: 'True black dark mode',
-      desc: 'Replaces YouTube\'s dark grey backgrounds with #000 for OLED.',
+      id: "true-black-dark-mode",
+      label: "True black dark mode",
+      desc: "Replaces YouTube's dark grey backgrounds with #000 for OLED.",
     },
     {
-      id: 'persistent-volume',
-      label: 'Persistent volume',
-      desc: 'Restore your last volume on every video.',
+      id: "persistent-volume",
+      label: "Persistent volume",
+      desc: "Restore your last volume on every video.",
     },
     {
-      id: 'copy-timestamped-link',
-      label: 'Copy timestamped link (Y)',
-      desc: 'Press Y on a video to copy a link to the current playback position.',
+      id: "copy-timestamped-link",
+      label: "Copy timestamped link (Y)",
+      desc: "Press Y on a video to copy a link to the current playback position.",
     },
     {
-      id: 'screenshot-current-frame',
-      label: 'Screenshot frame (S)',
-      desc: 'Press S to download a PNG of the current frame, no overlay.',
+      id: "screenshot-current-frame",
+      label: "Screenshot frame (S)",
+      desc: "Press S to download a PNG of the current frame, no overlay.",
     },
     {
-      id: 'hide-up-next-panel',
+      id: "hide-up-next-panel",
       label: 'Hide "Up next" panel',
-      desc: 'Removes the in-player autoplay countdown overlay.',
+      desc: "Removes the in-player autoplay countdown overlay.",
     },
     {
-      id: 'volume-boost',
-      label: 'Volume boost',
-      desc: 'Push audio above 100% via Web Audio API gain.',
+      id: "volume-boost",
+      label: "Volume boost",
+      desc: "Push audio above 100% via Web Audio API gain.",
     },
     {
-      id: 'hide-comments-by-default',
-      label: 'Hide comments',
-      desc: 'Hide the comments section on watch pages.',
+      id: "hide-comments-by-default",
+      label: "Hide comments",
+      desc: "Hide the comments section on watch pages.",
     },
     {
-      id: 'hide-metadata',
-      label: 'Hide view counts & dates',
-      desc: 'Reduce clickbait pull by hiding view counts and upload dates on thumbnails.',
+      id: "hide-metadata",
+      label: "Hide view counts & dates",
+      desc: "Reduce clickbait pull by hiding view counts and upload dates on thumbnails.",
     },
     {
-      id: 'loop-section',
-      label: 'Loop section ([ ] \\)',
-      desc: 'Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.',
+      id: "loop-section",
+      label: "Loop section ([ ] \\)",
+      desc: "Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.",
     },
     {
-      id: 'customize-grid',
-      label: 'Customize grid',
-      desc: 'Pack more videos per row on the homepage and hide card info for a denser feed.',
+      id: "customize-grid",
+      label: "Customize grid",
+      desc: "Pack more videos per row on the homepage and hide card info for a denser feed.",
+    },
+    {
+      id: "save-to-playlist",
+      label: "Save to playlist (W)",
+      desc: "Press W on a watch page to toggle the video into the named playlist.",
     },
   ];
 
   const GRID_COLUMNS = [3, 4, 5, 6, 7, 8];
 
   const BOOST_LEVELS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-  let boost = $state<FeatureConfig['volume-boost']>({ multiplier: 1.5 });
-  let grid = $state<FeatureConfig['customize-grid']>({ columnsPerRow: 3, hideCardInfo: false });
+  let boost = $state<FeatureConfig["volume-boost"]>({ multiplier: 1.5 });
+  let grid = $state<FeatureConfig["customize-grid"]>({
+    columnsPerRow: 3,
+    hideCardInfo: false,
+  });
 
   const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 
   let flags = $state<FeatureFlags>({});
-  let speed = $state<FeatureConfig['default-playback-speed']>({ rate: 1 });
+  let extensionEnabled = $state<boolean>(true);
+  let speed = $state<FeatureConfig["default-playback-speed"]>({ rate: 1 });
+  let savePlaylist = $state<FeatureConfig["save-to-playlist"]>({
+    playlistName: "Watch later",
+  });
 
   onMount(async () => {
     flags = await getFlags();
-    speed = await getConfig('default-playback-speed');
-    boost = await getConfig('volume-boost');
-    grid = await getConfig('customize-grid');
+    extensionEnabled = await getExtensionEnabled();
+    speed = await getConfig("default-playback-speed");
+    boost = await getConfig("volume-boost");
+    grid = await getConfig("customize-grid");
+    savePlaylist = await getConfig("save-to-playlist");
+    watchExtensionEnabled((on) => {
+      extensionEnabled = on;
+    });
   });
+
+  async function toggleExtension() {
+    extensionEnabled = !extensionEnabled;
+    await setExtensionEnabled(extensionEnabled);
+  }
+
+  async function changePlaylistName(playlistName: string) {
+    savePlaylist = { playlistName };
+    await setConfig("save-to-playlist", { playlistName });
+  }
 
   async function changeGridColumns(columnsPerRow: number) {
     grid = { ...grid, columnsPerRow };
-    await setConfig('customize-grid', grid);
+    await setConfig("customize-grid", grid);
   }
 
   async function toggleGridHideInfo() {
     grid = { ...grid, hideCardInfo: !grid.hideCardInfo };
-    await setConfig('customize-grid', grid);
+    await setConfig("customize-grid", grid);
   }
 
   async function changeBoost(multiplier: number) {
     boost = { multiplier };
-    await setConfig('volume-boost', { multiplier });
+    await setConfig("volume-boost", { multiplier });
   }
 
   async function toggle(id: keyof FeatureFlags) {
@@ -133,7 +163,7 @@
 
   async function changeSpeed(rate: number) {
     speed = { rate };
-    await setConfig('default-playback-speed', { rate });
+    await setConfig("default-playback-speed", { rate });
   }
 </script>
 
@@ -142,7 +172,23 @@
     <h1 class="text-base font-semibold m-0">YouTube Pro</h1>
   </header>
 
-  <ul class="flex flex-col gap-2 list-none p-0 m-0">
+  <label
+    class="flex items-center justify-between p-3 mb-3 rounded-lg bg-yt-surface cursor-pointer"
+  >
+    <span class="font-medium">Extension enabled</span>
+    <input
+      type="checkbox"
+      checked={extensionEnabled}
+      onchange={toggleExtension}
+      class="accent-yt-red"
+    />
+  </label>
+
+  <ul
+    class="flex flex-col gap-2 list-none p-0 m-0"
+    class:opacity-40={!extensionEnabled}
+    class:pointer-events-none={!extensionEnabled}
+  >
     {#each features as f (f.id)}
       <li>
         <label
@@ -158,10 +204,13 @@
             <strong class="font-medium">{f.label}</strong>
             <small class="text-xs text-yt-text-muted">{f.desc}</small>
 
-            {#if f.id === 'default-playback-speed' && flags['default-playback-speed']}
+            {#if f.id === "default-playback-speed" && flags["default-playback-speed"]}
               <select
                 value={speed.rate}
-                onchange={(e) => changeSpeed(Number((e.currentTarget as HTMLSelectElement).value))}
+                onchange={(e) =>
+                  changeSpeed(
+                    Number((e.currentTarget as HTMLSelectElement).value),
+                  )}
                 onclick={(e) => e.preventDefault()}
                 class="mt-2 w-24 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
               >
@@ -171,13 +220,16 @@
               </select>
             {/if}
 
-            {#if f.id === 'customize-grid' && flags['customize-grid']}
+            {#if f.id === "customize-grid" && flags["customize-grid"]}
               <div class="mt-2 flex flex-col gap-2">
                 <label class="flex items-center gap-2 text-xs">
                   <span class="text-yt-text-muted">Columns:</span>
                   <select
                     value={grid.columnsPerRow}
-                    onchange={(e) => changeGridColumns(Number((e.currentTarget as HTMLSelectElement).value))}
+                    onchange={(e) =>
+                      changeGridColumns(
+                        Number((e.currentTarget as HTMLSelectElement).value),
+                      )}
                     onclick={(e) => e.stopPropagation()}
                     class="bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
                   >
@@ -199,10 +251,30 @@
               </div>
             {/if}
 
-            {#if f.id === 'volume-boost' && flags['volume-boost']}
+            {#if f.id === "save-to-playlist" && flags["save-to-playlist"]}
+              <label class="mt-2 flex items-center gap-2 text-xs">
+                <span class="text-yt-text-muted">Playlist:</span>
+                <input
+                  type="text"
+                  value={savePlaylist.playlistName}
+                  oninput={(e) =>
+                    changePlaylistName(
+                      (e.currentTarget as HTMLInputElement).value,
+                    )}
+                  onclick={(e) => e.stopPropagation()}
+                  placeholder="Watch later"
+                  class="flex-1 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+                />
+              </label>
+            {/if}
+
+            {#if f.id === "volume-boost" && flags["volume-boost"]}
               <select
                 value={boost.multiplier}
-                onchange={(e) => changeBoost(Number((e.currentTarget as HTMLSelectElement).value))}
+                onchange={(e) =>
+                  changeBoost(
+                    Number((e.currentTarget as HTMLSelectElement).value),
+                  )}
                 onclick={(e) => e.preventDefault()}
                 class="mt-2 w-24 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
               >
