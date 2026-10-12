@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getConfig } from '../../lib/settings';
+  import { initials } from '../../lib/format';
   import { dayAgo, fmtMin, getLog, isoDate, minutesOn, minutesOver, watchLog, type Page, type WatchLog } from './lib';
 
   let { go }: { go: (p: Page) => void } = $props();
@@ -98,13 +99,6 @@
     const other = Math.max(0, total - top.reduce((s, c) => s + c.min, 0));
     return { top, other };
   });
-  const initials = (name: string) =>
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]!.toUpperCase())
-      .join('');
 </script>
 
 <div class="page stats">

@@ -26,6 +26,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { thumbUrl } from '../../lib/queue';
+  import { fmtClock, initials } from '../../lib/format';
 
   let { actions, initial }: { actions: CalmActions; initial: CalmState } = $props();
 
@@ -44,20 +45,6 @@
   const rest = $derived(s.upNext.slice(1));
   const listed = $derived(showAll ? rest : rest.slice(0, 3));
 
-  const dur = (sec: number) => {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const ss = String(Math.floor(sec % 60)).padStart(2, '0');
-    return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
-  };
-  const initials = (name: string) =>
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase();
   const channelsLabel = (n: number) => (n === 1 ? '1 channel' : `${n} channels`);
 
   async function seeQueue() {
@@ -88,7 +75,7 @@
           <button class="th" aria-label="Play {first.title}" onclick={() => actions.play(first.videoId)}>
             <img src={thumbUrl(first.videoId)} alt="" />
             <span class="ov"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg></span>
-            {#if first.duration}<span class="dur">{dur(first.duration)}</span>{/if}
+            {#if first.duration}<span class="dur">{fmtClock(first.duration)}</span>{/if}
           </button>
           <div class="info">
             <h3>{first.title}</h3>
@@ -121,7 +108,7 @@
                 <button class="nx" aria-label="Play {v.title}, {v.channelName}" onclick={() => actions.play(v.videoId)}>
                   <span class="sth">
                     <img src={thumbUrl(v.videoId)} alt="" loading="lazy" />
-                    {#if v.duration}<span class="dur sm">{dur(v.duration)}</span>{/if}
+                    {#if v.duration}<span class="dur sm">{fmtClock(v.duration)}</span>{/if}
                   </span>
                   <span class="txt">
                     <span class="t">{v.title}</span>

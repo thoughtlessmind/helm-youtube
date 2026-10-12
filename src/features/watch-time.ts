@@ -3,6 +3,7 @@ import type { Feature } from '../lib/features';
 import { getConfig, getFlags, watchConfig } from '../lib/settings';
 import { createHost } from '../lib/yt/ui';
 import { flashToast } from '../lib/yt/toast';
+import { fmtDuration } from '../lib/format';
 import { channelIdFromHref } from '../lib/yt/video';
 import {
   startTracking,
@@ -37,13 +38,6 @@ const ACTIVE_PAGE = 'ytd-page-manager > :not([hidden])';
  * the stat goes after the last row, not inside it. */
 const CHANNEL_META =
   'ytd-browse[page-subtype="channels"]:not([hidden]) yt-page-header-renderer yt-content-metadata-view-model';
-
-/** 7440 → "2h 04m", 7200 → "2h", 2700 → "45m". */
-export function fmtDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return !h ? `${m}m` : !m ? `${h}h` : `${h}h ${String(m).padStart(2, '0')}m`;
-}
 
 function appendHtml(root: ShadowRoot, html: string): void {
   const t = document.createElement('template');

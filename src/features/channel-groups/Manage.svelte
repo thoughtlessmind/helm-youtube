@@ -3,11 +3,11 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from 'svelte';
   import Editor from './Editor.svelte';
+  import { initials } from '../../lib/format';
   import {
     FAV,
     channelCount,
     createGroup,
-    initials,
     isDuplicateName,
     saveGroups,
     store,

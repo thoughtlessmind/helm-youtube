@@ -22,6 +22,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { thumbUrl } from '../../lib/queue';
+  import { fmtClock } from '../../lib/format';
 
   let { actions, initial }: { actions: PanelActions; initial: PanelState } = $props();
 
@@ -50,13 +51,6 @@
       return { item, isCurrent, watched: !!item.playedAt && !isCurrent, num: n };
     });
   });
-
-  const fmt = (sec: number) => {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const ss = String(Math.floor(sec % 60)).padStart(2, '0');
-    return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
-  };
 
   /** Local reorder first (focus + drop feedback stay instant), then persist. */
   function reorder(videoId: string, to: number) {
@@ -198,7 +192,7 @@
             <span class="ov" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
             </span>
-            {#if item.duration > 0}<span class="dur">{fmt(item.duration)}</span>{/if}
+            {#if item.duration > 0}<span class="dur">{fmtClock(item.duration)}</span>{/if}
           </button>
           <div class="meta" class:dim={watched}>
             <div class="t">{item.title}</div>

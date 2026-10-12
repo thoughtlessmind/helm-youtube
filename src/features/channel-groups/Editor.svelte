@@ -2,7 +2,8 @@
 
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
-  import { initials, type Group } from './store.svelte';
+  import { initials } from '../../lib/format';
+  import type { Group } from './store.svelte';
 
   interface Props {
     title: string;

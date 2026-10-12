@@ -1,21 +1,16 @@
 import { storage } from '#imports';
-import type { DayStats } from '../../lib/yt/watch-tracker';
+import { fmtDuration } from '../../lib/format';
+import { LOG_KEY, isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
 
 /** Small helpers shared by the popup pages. */
+
+export { fmtClock } from '../../lib/format';
+export { getLog, isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
 
 export type Page = 'main' | 'settings' | 'stats' | 'firstrun';
 
 export const FIRST_RUN_KEY = 'local:ytpro:first-run-seen' as const;
-/** Written by lib/yt/watch-tracker.ts (read-only here). */
-const LOG_KEY = 'local:ytpro:watch-tracker:log' as const;
-export type WatchLog = Record<string, DayStats>;
-
-export const getLog = async (): Promise<WatchLog> => (await storage.getItem<WatchLog>(LOG_KEY)) ?? {};
 export const watchLog = (cb: (log: WatchLog) => void) => storage.watch<WatchLog>(LOG_KEY, (v) => cb(v ?? {}));
-
-export function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 /** The date `back` days before today (0 = today). */
 export function dayAgo(back: number): Date {
@@ -34,22 +29,8 @@ export function minutesOver(log: WatchLog, days: number, endBack = 0): number {
   return sum;
 }
 
-/** 72 → "1h 12m", 125 → "2h 05m", 120 → "2h", 48 → "48m". */
-export function fmtMin(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = Math.round(min % 60);
-  if (!h) return m + 'm';
-  return h + 'h' + (m ? ' ' + String(m).padStart(2, '0') + 'm' : '');
-}
-
-/** Seconds → "4:05" / "1:02:03". */
-export function fmtClock(sec: number): string {
-  const s = Math.max(0, Math.floor(sec || 0));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const x = s % 60;
-  return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(x).padStart(2, '0');
-}
+/** Whole minutes: 72 → "1h 12m", 120 → "2h", 48 → "48m". */
+export const fmtMin = (min: number) => fmtDuration(min * 60);
 
 /** Every YouTube tab, most recently used first. Host permission gives url/title. */
 export async function youtubeTabs() {

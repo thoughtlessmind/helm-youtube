@@ -92,13 +92,3 @@ export function createGroup(name: string, channels: Record<string, string> = {})
 export function updateGroup(id: string, patch: Partial<Omit<Group, 'id'>>): void {
   saveGroups(store.groups.map((g) => (g.id === id ? { ...g, ...patch } : g)));
 }
-
-/** Initials for the avatar stand-in ("Byte Sized Systems" → "BS"). */
-export const initials = (name: string) =>
-  name
-    .replace(/^@/, '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => [...w][0]?.toUpperCase() ?? '')
-    .join('');
