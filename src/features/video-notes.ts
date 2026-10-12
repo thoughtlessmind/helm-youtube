@@ -23,7 +23,7 @@ import { getVideoId, isWatchPage } from '../lib/yt/video';
 const HOST_ID = 'yt-pro-video-notes-host';
 const STORAGE_KEY = 'local:ytpro:video-notes' as const;
 const DEBOUNCE_MS = 400;
-/** Below the coordinator header-menu (2147483647) but above most YouTube UI. */
+/** Above most YouTube UI. */
 const Z_INDEX = 2147483640;
 
 // ─── CSS (scoped inside shadow root) ─────────────────────────────────────────

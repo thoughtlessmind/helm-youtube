@@ -33,35 +33,7 @@ const WATCHED = [
   'ytd-grid-video-renderer',
 ].map((r) => `${r}:has(ytd-thumbnail-overlay-resume-playback-renderer #progress)`);
 
-const WATCHED_CSS: Record<Config['watched'], string> = {
-  show: '',
-  hide: `${WATCHED.join(',\n')} { display: none !important; }`,
-  dim: `
-${WATCHED.join(',\n')} {
-  opacity: 0.45;
-  transition: opacity 150ms ease;
-}
-${WATCHED.map((s) => `${s}:hover`).join(',\n')} {
-  opacity: 1;
-}
-${WATCHED.map((s) => `${s} ytd-thumbnail`).join(',\n')} {
-  position: relative;
-}
-${WATCHED.map((s) => `${s} ytd-thumbnail::after`).join(',\n')} {
-  content: 'Watched';
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font: 600 11px/1.4 system-ui, sans-serif;
-  letter-spacing: 0.03em;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.75);
-  pointer-events: none;
-  z-index: 10;
-}`,
-};
+const HIDE_WATCHED_CSS = `${WATCHED.join(',\n')} { display: none !important; }`;
 
 const feature: Feature = {
   id: FEATURE_ID,
@@ -105,7 +77,7 @@ const feature: Feature = {
         style.id = STYLE_ID;
         document.head.appendChild(style);
       }
-      style.textContent = WATCHED_CSS[cfg.watched] ?? '';
+      style.textContent = cfg.hideWatched ? HIDE_WATCHED_CSS : '';
     };
 
     apply(await getConfig('feed-filters'));

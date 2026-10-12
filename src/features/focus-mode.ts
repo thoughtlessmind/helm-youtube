@@ -7,6 +7,9 @@ type Surface = keyof FeatureConfig['focus-mode'];
 
 /** One CSS block per surface; the enabled ones are concatenated into one <style>. */
 const CSS: Record<Surface, string> = {
+  /** Calm home replacement is built in setup(); see T7. */
+  homeFeed: '',
+
   /**
    * #secondary also hosts engagement panels (transcript, chapters) and live
    * chat, which never load while it's display:none — that broke YouTube's

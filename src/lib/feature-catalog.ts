@@ -1,10 +1,9 @@
 import type { FeatureFlags } from './settings';
 
 /**
- * Single source of truth for the feature list shown in the toolbar popup
- * AND the in-page header menu. Both surfaces render from this catalog plus
- * a generic config renderer — so adding a feature is one entry here, never
- * a hand-written widget in two files.
+ * Single source of truth for the feature list in the toolbar popup's
+ * Settings page, rendered by a generic config renderer — so adding a
+ * feature is one entry here, never a hand-written widget.
  *
  * Adding a feature end to end:
  *   1. src/features/<id>.ts        — the Feature module
@@ -82,6 +81,7 @@ export const CATALOG: CatalogSection[] = [
         label: 'Focus mode',
         desc: 'Hide the parts of YouTube that pull you into the next video.',
         config: [
+          { key: 'homeFeed', type: 'checkbox', label: 'Home feed' },
           { key: 'recommendations', type: 'checkbox', label: 'Watch-page recommendations' },
           { key: 'comments', type: 'checkbox', label: 'Comments' },
           { key: 'metadata', type: 'checkbox', label: 'View counts & upload dates' },
@@ -95,16 +95,7 @@ export const CATALOG: CatalogSection[] = [
           { key: 'keywords', type: 'text', label: 'Keywords', placeholder: 'clickbait, react, drama' },
           { key: 'minMinutes', type: 'number', label: 'Min minutes', placeholder: '0', min: 0, step: 1 },
           { key: 'maxMinutes', type: 'number', label: 'Max minutes', placeholder: '0', min: 0, step: 1 },
-          {
-            key: 'watched',
-            type: 'select',
-            label: 'Watched',
-            options: [
-              { value: 'show', label: 'Show' },
-              { value: 'dim', label: 'Dim' },
-              { value: 'hide', label: 'Hide' },
-            ],
-          },
+          { key: 'hideWatched', type: 'checkbox', label: 'Hide videos I’ve watched' },
         ],
       },
       {
@@ -113,7 +104,6 @@ export const CATALOG: CatalogSection[] = [
         desc: 'Pack more videos per row on the homepage and hide card info for a denser feed.',
         config: [
           { key: 'columnsPerRow', type: 'select', label: 'Columns', options: GRID_COLUMN_OPTIONS },
-          { key: 'hideCardInfo', type: 'checkbox', label: 'Hide card info (title, channel, views)' },
         ],
       },
       {

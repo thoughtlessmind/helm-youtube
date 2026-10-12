@@ -1,7 +1,7 @@
 import { createYTContext } from '../lib/yt/context';
 import { featureRegistry } from '../lib/features';
 import { getEnabledFeatures, watchEnabledFeatures } from '../lib/settings';
-import { mountHeaderMenu } from '../lib/yt/header-menu';
+import { installPlayerBridge } from '../lib/yt/player-bridge';
 import { installThemeAliases } from '../lib/yt/theme';
 
 export default defineContentScript({
@@ -25,9 +25,9 @@ export default defineContentScript({
 
     installThemeAliases();
 
-    // Header menu mounts independently of feature flags — it must remain
-    // available even when the extension kill-switch is off.
-    mountHeaderMenu(ctx);
+    // The popup's now-playing card talks to every YouTube tab, even with
+    // every feature (or the whole extension) switched off.
+    installPlayerBridge(ctx);
 
     const sync = async (enabledIds: string[]) => {
       const enabled = new Set(enabledIds);

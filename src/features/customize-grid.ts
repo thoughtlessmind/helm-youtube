@@ -5,16 +5,7 @@ const STYLE_ID = 'yt-pro-customize-grid';
 const MIN_COLS = 3;
 const MAX_COLS = 12;
 
-const HIDE_CARD_INFO_CSS = `
-ytd-rich-item-renderer #details,
-ytd-rich-item-renderer #meta,
-ytd-rich-grid-media #details,
-ytd-rich-grid-media #meta {
-  display: none !important;
-}
-`;
-
-function buildCSS(columns: number, hideCardInfo: boolean): string {
+function buildCSS(columns: number): string {
   const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, columns));
 
   // YouTube's media queries override its own items-per-row var at narrow
@@ -23,7 +14,7 @@ function buildCSS(columns: number, hideCardInfo: boolean): string {
   // `display: contents` flattens YT's row wrappers so items become direct
   // grid children. `grid-auto-flow: dense` lets later items fill the gap
   // before a Shorts/Playables shelf so the grid stays packed.
-  let css = `
+  return `
 ytd-rich-grid-renderer {
   --ytd-rich-grid-items-per-row: ${cols} !important;
   --ytd-rich-grid-posts-per-row: ${cols} !important;
@@ -64,9 +55,6 @@ ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *) {
   margin: 0 0 24px 0 !important;
 }
 `;
-
-  if (hideCardInfo) css += HIDE_CARD_INFO_CSS;
-  return css;
 }
 
 function applyStyle(css: string): void {
@@ -83,10 +71,10 @@ const feature: Feature = {
   id: 'customize-grid',
   async setup() {
     const cfg = await getConfig('customize-grid');
-    applyStyle(buildCSS(cfg.columnsPerRow, cfg.hideCardInfo));
+    applyStyle(buildCSS(cfg.columnsPerRow));
 
     const offConfig = watchConfig('customize-grid', (next) => {
-      applyStyle(buildCSS(next.columnsPerRow, next.hideCardInfo));
+      applyStyle(buildCSS(next.columnsPerRow));
     });
 
     return () => {

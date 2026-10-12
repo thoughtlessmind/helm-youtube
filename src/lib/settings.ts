@@ -51,6 +51,7 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
  */
 export interface FeatureConfig {
   'focus-mode': {
+    homeFeed: boolean;
     recommendations: boolean;
     comments: boolean;
     metadata: boolean;
@@ -61,22 +62,38 @@ export interface FeatureConfig {
     /** 0 = no limit. */
     minMinutes: number;
     maxMinutes: number;
-    watched: 'show' | 'dim' | 'hide';
+    hideWatched: boolean;
   };
-  'customize-grid': { columnsPerRow: number; hideCardInfo: boolean };
+  'customize-grid': { columnsPerRow: number };
   'playback-speed': { rate: number; perChannel: boolean };
+  /** SponsorBlock categories to auto-skip. */
+  'sponsorblock': {
+    sponsor: boolean;
+    selfpromo: boolean;
+    interaction: boolean;
+    intro: boolean;
+    outro: boolean;
+  };
+  'read-later-queue': {
+    autoAdvance: boolean;
+    /** Redirect YouTube's own ⋮ → "Add to queue" to our queue. */
+    nativeAdd: boolean;
+    panelCollapsed: boolean;
+  };
   'volume-boost': { multiplier: number };
   /** 0 = no limit. */
   'watch-time': { dailyLimitMinutes: number };
 }
 
 export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
-  'focus-mode': { recommendations: true, comments: true, metadata: false },
-  'feed-filters': { keywords: '', minMinutes: 0, maxMinutes: 0, watched: 'show' },
-  'customize-grid': { columnsPerRow: 3, hideCardInfo: false },
-  'playback-speed': { rate: 1, perChannel: true },
+  'focus-mode': { homeFeed: true, recommendations: true, comments: false, metadata: false },
+  'feed-filters': { keywords: '', minMinutes: 0, maxMinutes: 0, hideWatched: true },
+  'customize-grid': { columnsPerRow: 5 },
+  'playback-speed': { rate: 1.25, perChannel: true },
+  'sponsorblock': { sponsor: true, selfpromo: true, interaction: true, intro: false, outro: false },
+  'read-later-queue': { autoAdvance: true, nativeAdd: true, panelCollapsed: false },
   'volume-boost': { multiplier: 1.5 },
-  'watch-time': { dailyLimitMinutes: 0 },
+  'watch-time': { dailyLimitMinutes: 120 },
 };
 
 export async function getConfig<K extends keyof FeatureConfig>(

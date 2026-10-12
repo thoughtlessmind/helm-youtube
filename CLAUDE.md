@@ -46,7 +46,7 @@ src/
 1. Author a `Feature` object in `src/features/<id>.ts` exporting `default`. Its `setup(ctx)` returns an optional teardown.
 2. Add `'<id>': () => import('../features/<id>')` to `featureRegistry` in `src/lib/features.ts`.
 3. Add the flag to `FeatureFlags` + a default in `FEATURE_DEFAULTS` in `src/lib/settings.ts`.
-4. Add a `CatalogEntry` in `src/lib/feature-catalog.ts` — the popup and the in-page header menu both render from it.
+4. Add a `CatalogEntry` in `src/lib/feature-catalog.ts` — the popup's Settings page renders from it.
 5. If the feature needs config beyond on/off (e.g. a chosen speed): add a key to `FeatureConfig` + default, then use `getConfig(id)` / `watchConfig(id, cb)` inside `setup()` to react reactively.
 
 The content script reads enabled flags from `chrome.storage.sync`, dynamic-imports only those modules, and tears them down when the user disables them. **Disabled features pay zero runtime cost** — `setup()` never runs, no observer subscriptions, no listeners. (Note: due to content-script chunk-loading constraints, the bundle still includes all feature code; runtime cost is the part we control.)
