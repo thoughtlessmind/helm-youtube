@@ -7,7 +7,9 @@
   import FirstRun from './FirstRun.svelte';
 
   let page = $state<Page | null>(null);
-  storage.getItem<boolean>(FIRST_RUN_KEY).then((seen) => (page = seen ? 'main' : 'firstrun'));
+  // `#settings` = opened in a tab (for Import: a file picker closes the toolbar popup).
+  if (location.hash === '#settings') page = 'settings';
+  else storage.getItem<boolean>(FIRST_RUN_KEY).then((seen) => (page = seen ? 'main' : 'firstrun'));
 
   const go = (p: Page) => (page = p);
 </script>

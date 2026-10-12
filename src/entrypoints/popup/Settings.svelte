@@ -112,6 +112,12 @@
     backupStatus = 'Settings exported.';
   }
 
+  // The toolbar popup closes when a file picker opens, so Import runs from a tab.
+  function startImport() {
+    if (location.hash === '#settings') fileInput?.click();
+    else void browser.tabs.create({ url: browser.runtime.getURL('/popup.html#settings') });
+  }
+
   async function doImport(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
@@ -285,7 +291,7 @@
             <span class="muted note">Settings, notes, queue and channel groups in one file.</span>
             <div class="row">
               <button class="btn-sm" onclick={doExport}>Export</button>
-              <button class="btn-sm" onclick={() => fileInput?.click()}>Import</button>
+              <button class="btn-sm" onclick={startImport}>Import</button>
               <input bind:this={fileInput} type="file" accept="application/json,.json" hidden onchange={doImport} />
             </div>
             {#if backupStatus}<span class="muted note" role="status">{backupStatus}</span>{/if}
