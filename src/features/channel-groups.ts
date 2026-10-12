@@ -268,10 +268,15 @@ const feature: Feature = {
 
     const activeGroup = () => store.groups.find((g) => g.id === store.selected && channelCount(g) > 0);
 
-    /** "No new videos from channels in …" when the group (plus any filters) hides every card. */
+    /**
+     * "No new videos from channels in …" when the group (plus any filters, ours or CSS like
+     * hide-shorts) hides every card. Visible cards whose channel we can't read (ads) don't count;
+     * at least one card must be hidden so a feed that hasn't rendered its bylines yet isn't "empty".
+     */
     function updateEmpty(): void {
       const feed = currentFeed();
       const cards = feed ? enumerateVideoCards(feed) : [];
+      const shown = cards.filter((c) => !isCardHidden(c) && c.checkVisibility());
       // ponytail: a fully hidden Home grid keeps YouTube loading more pages until a match shows up.
       store.empty = !!activeGroup() && cards.length > 0 && cards.every(isCardHidden);
     }
@@ -338,6 +343,7 @@ const feature: Feature = {
       dropFeedBarPart('groups');
       guideStyle.remove();
       document.querySelectorAll(`[${FAV_ATTR}]`).forEach((el) => el.removeAttribute(FAV_ATTR));
+      restoreGuide();
       unhideAllCards(ID);
       store.page = null;
     };
