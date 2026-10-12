@@ -1,9 +1,9 @@
-import type { FeatureFlags } from './settings';
+import type { FeatureConfig, FeatureFlags } from './settings';
 
 /**
- * Single source of truth for the feature list in the toolbar popup's
- * Settings page, rendered by a generic config renderer — so adding a
- * feature is one entry here, never a hand-written widget.
+ * The feature list exactly as the popup's Settings board draws it: sections,
+ * per-feature copy and icon, and the controls shown under a feature while it
+ * is on. Settings renders from this; FirstRun reuses the icons.
  *
  * Adding a feature end to end:
  *   1. src/features/<id>.ts        — the Feature module
@@ -12,36 +12,35 @@ import type { FeatureFlags } from './settings';
  *   4. this file                   — one CatalogEntry in the right section
  */
 
-export interface SelectOption {
-  value: string | number;
+export type FeatureId = keyof FeatureFlags;
+export type ConfigId = keyof FeatureConfig;
+
+/** A key of `FeatureConfig[id]` — kept loose so one Control type covers every feature. */
+type Key = string;
+
+export interface Option {
+  value: number;
   label: string;
 }
 
-/**
- * A config control rendered under a feature row when it is enabled. `key`
- * maps into the feature's `FeatureConfig[id]` object. Numeric `select`
- * fields are detected from the option value types and coerced on write.
- */
-export type ConfigField =
-  | { key: string; type: 'select'; label?: string; options: SelectOption[] }
-  | { key: string; type: 'checkbox'; label: string }
-  | { key: string; type: 'text'; label?: string; placeholder?: string }
-  | {
-      key: string;
-      type: 'number';
-      label?: string;
-      placeholder?: string;
-      min?: number;
-      max?: number;
-      step?: number;
-    };
+/** Controls, rendered in this order inside the feature's options panel. */
+export type Control =
+  | { type: 'checks'; items: { key: Key; label: string }[] }
+  | { type: 'chips'; label: string; items: { key: Key; label: string }[] }
+  | { type: 'select'; key: Key; label: string; options: Option[] }
+  | { type: 'keywords'; key: Key; label: string; placeholder: string }
+  | { type: 'length'; minKey: Key; maxKey: Key; label: string }
+  | { type: 'manage-groups' }
+  /** Today / This week from the watch-time log. */
+  | { type: 'watch-stats' };
 
 export interface CatalogEntry {
-  id: keyof FeatureFlags;
-  label: string;
+  id: FeatureId;
+  name: string;
   desc: string;
-  /** Controls shown when the feature is on. Omit for on/off-only features. */
-  config?: ConfigField[];
+  /** SVG path data, 24×24 viewBox, stroked. */
+  icon: string;
+  controls?: Control[];
 }
 
 export interface CatalogSection {
@@ -49,68 +48,77 @@ export interface CatalogSection {
   features: CatalogEntry[];
 }
 
-// ─── Reusable option sets ─────────────────────────────────────────────────────
+export const ICONS = {
+  shorts: 'M3 3l18 18M8 3h8a2 2 0 0 1 2 2v9M18 18v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6',
+  focus: 'M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
+  filter: 'M4 5h16l-6 7.5V19l-4 2v-8.5z',
+  grid: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
+  endCards: 'M3 5h18v14H3zM12 12h6v4h-6z',
+  speed: 'M12 14l4-4M4.9 19a9 9 0 1 1 14.2 0',
+  sponsor: 'M5 5l9 7-9 7zM19 5v14',
+  boost: 'M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13',
+  still: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
+  loop: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
+  queue: 'M3 6h12M3 12h12M3 18h8M17 15l5 3-5 3z',
+  groups: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  notes: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4',
+  clock: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 7v5l3 2',
+  transcript: 'M4 5h16M4 10h16M4 15h8M17 13v8M14 18l3 3 3-3',
+  camera:
+    'M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 13m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0',
+  moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
+} as const;
 
-const SPEED_OPTIONS: SelectOption[] = [
-  0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3,
-].map((v) => ({ value: v, label: `${v}×` }));
-
-const BOOST_OPTIONS: SelectOption[] = [1, 1.25, 1.5, 1.75, 2, 2.5, 3].map((v) => ({
-  value: v,
-  label: `${Math.round(v * 100)}%`,
-}));
-
-const GRID_COLUMN_OPTIONS: SelectOption[] = [3, 4, 5, 6, 7, 8].map((v) => ({
-  value: v,
-  label: String(v),
-}));
-
-// ─── Catalog ──────────────────────────────────────────────────────────────────
+const opts = (pairs: [number, string][]): Option[] => pairs.map(([value, label]) => ({ value, label }));
 
 export const CATALOG: CatalogSection[] = [
   {
-    title: 'Feed',
+    title: 'Clean up YouTube',
     features: [
-      {
-        id: 'hide-shorts',
-        label: 'Hide Shorts',
-        desc: 'Removes Shorts from feed, sidebar, search, and channel pages.',
-      },
+      { id: 'hide-shorts', name: 'Hide Shorts', desc: 'Remove Shorts from Home, search, sidebar and channel pages.', icon: ICONS.shorts },
       {
         id: 'focus-mode',
-        label: 'Focus mode',
-        desc: 'Hide the parts of YouTube that pull you into the next video.',
-        config: [
-          { key: 'homeFeed', type: 'checkbox', label: 'Home feed' },
-          { key: 'recommendations', type: 'checkbox', label: 'Watch-page recommendations' },
-          { key: 'comments', type: 'checkbox', label: 'Comments' },
-          { key: 'metadata', type: 'checkbox', label: 'View counts & upload dates' },
+        name: 'Focus mode',
+        desc: 'Hide the parts of YouTube built to keep you scrolling.',
+        icon: ICONS.focus,
+        controls: [
+          {
+            type: 'checks',
+            items: [
+              { key: 'homeFeed', label: 'Home feed' },
+              { key: 'recommendations', label: 'Recommendations next to videos' },
+              { key: 'comments', label: 'Comments' },
+              { key: 'metadata', label: 'View counts and upload dates' },
+            ],
+          },
         ],
       },
       {
         id: 'feed-filters',
-        label: 'Feed filters',
-        desc: 'Hide videos by title keyword, by length, or that you already watched.',
-        config: [
-          { key: 'keywords', type: 'text', label: 'Keywords', placeholder: 'clickbait, react, drama' },
-          { key: 'minMinutes', type: 'number', label: 'Min minutes', placeholder: '0', min: 0, step: 1 },
-          { key: 'maxMinutes', type: 'number', label: 'Max minutes', placeholder: '0', min: 0, step: 1 },
-          { key: 'hideWatched', type: 'checkbox', label: 'Hide videos I’ve watched' },
+        name: 'Feed filters',
+        desc: 'Hide videos by keyword, by length, or once watched.',
+        icon: ICONS.filter,
+        controls: [
+          { type: 'keywords', key: 'keywords', label: 'Keywords', placeholder: 'drama, reaction' },
+          { type: 'length', minKey: 'minMinutes', maxKey: 'maxMinutes', label: 'Length, minutes' },
+          { type: 'checks', items: [{ key: 'hideWatched', label: 'Hide videos I’ve watched' }] },
         ],
       },
       {
         id: 'customize-grid',
-        label: 'Grid density',
-        desc: 'Pack more videos per row on the homepage and hide card info for a denser feed.',
-        config: [
-          { key: 'columnsPerRow', type: 'select', label: 'Columns', options: GRID_COLUMN_OPTIONS },
+        name: 'Grid density',
+        desc: 'Choose how many videos fit in a row on Home.',
+        icon: ICONS.grid,
+        controls: [
+          {
+            type: 'select',
+            key: 'columnsPerRow',
+            label: 'Videos per row',
+            options: opts([[3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8']]),
+          },
         ],
       },
-      {
-        id: 'channel-groups',
-        label: 'Channel groups',
-        desc: 'Group channels (Favorites is a group) and filter Home and Subscriptions by group.',
-      },
+      { id: 'hide-end-screen-cards', name: 'Hide end-screen cards', desc: 'No video tiles covering the last seconds.', icon: ICONS.endCards },
     ],
   },
   {
@@ -118,95 +126,110 @@ export const CATALOG: CatalogSection[] = [
     features: [
       {
         id: 'playback-speed',
-        label: 'Playback speed',
-        desc: 'A default speed for every video, plus a remembered speed per channel.',
-        config: [
-          { key: 'rate', type: 'select', label: 'Default', options: SPEED_OPTIONS },
-          { key: 'perChannel', type: 'checkbox', label: 'Remember speed per channel' },
+        name: 'Playback speed',
+        desc: 'Start at your speed, and remember one per channel.',
+        icon: ICONS.speed,
+        controls: [
+          {
+            type: 'select',
+            key: 'rate',
+            label: 'Default speed',
+            options: opts([[1, '1×'], [1.25, '1.25×'], [1.5, '1.5×'], [1.75, '1.75×'], [2, '2×']]),
+          },
+          { type: 'checks', items: [{ key: 'perChannel', label: 'Remember speed for each channel' }] },
         ],
       },
       {
         id: 'sponsorblock',
-        label: 'SponsorBlock segments',
-        desc: 'Shows the real watch time with crowd-sourced sponsor segments subtracted.',
-      },
-      {
-        id: 'read-later-queue',
-        label: 'Watch queue (Q)',
-        desc: 'A read-later queue separate from Watch Later. Press Q to add, Shift+Q to open.',
-      },
-      {
-        id: 'hide-end-screen-cards',
-        label: 'Hide end-screen cards',
-        desc: 'Removes the suggested-video overlay from the last 20s of videos.',
-      },
-      {
-        id: 'auto-dismiss-still-watching',
-        label: 'Auto-dismiss "Still watching?"',
-        desc: "Auto-confirms YouTube's periodic playback-paused prompt.",
+        name: 'Skip sponsors',
+        desc: 'Auto-skip sponsor reads and filler, via SponsorBlock.',
+        icon: ICONS.sponsor,
+        controls: [
+          {
+            type: 'chips',
+            label: 'Skip these segments',
+            items: [
+              { key: 'sponsor', label: 'Sponsor' },
+              { key: 'selfpromo', label: 'Self-promo' },
+              { key: 'interaction', label: 'Like/subscribe asks' },
+              { key: 'intro', label: 'Intros' },
+              { key: 'outro', label: 'Outros' },
+            ],
+          },
+        ],
       },
       {
         id: 'volume-boost',
-        label: 'Volume boost',
-        desc: 'Push audio above 100% via Web Audio API gain.',
-        config: [{ key: 'multiplier', type: 'select', options: BOOST_OPTIONS }],
+        name: 'Volume boost',
+        desc: 'Go past 100% on quiet videos.',
+        icon: ICONS.boost,
+        controls: [
+          {
+            type: 'select',
+            key: 'multiplier',
+            label: 'Boost to',
+            options: opts([[1.25, '125%'], [1.5, '150%'], [2, '200%'], [3, '300%']]),
+          },
+        ],
       },
-      {
-        id: 'loop-section',
-        label: 'A→B loop ([ ] \\)',
-        desc: 'Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.',
-      },
+      { id: 'auto-dismiss-still-watching', name: 'Skip “Still watching?”', desc: 'Keep playing without the pause prompt.', icon: ICONS.still },
+      { id: 'loop-section', name: 'A→B loop', desc: 'Loop a section. [ sets the start, ] the end, \\ clears.', icon: ICONS.loop },
     ],
   },
   {
-    title: 'Notes & Stats',
+    title: 'Your library',
     features: [
       {
-        id: 'video-notes',
-        label: 'Video notes',
-        desc: 'Write and auto-save a private note for each video in a floating panel.',
+        id: 'read-later-queue',
+        name: 'Queue',
+        desc: 'One queue for every YouTube tab, kept after reload.',
+        icon: ICONS.queue,
+        controls: [
+          {
+            type: 'checks',
+            items: [
+              { key: 'autoAdvance', label: 'Play the next queued video when one ends' },
+              { key: 'nativeAdd', label: 'Send YouTube’s “Add to queue” here' },
+            ],
+          },
+        ],
       },
       {
+        id: 'channel-groups',
+        name: 'Channel groups',
+        desc: 'Group channels and filter your feed by group.',
+        icon: ICONS.groups,
+        controls: [{ type: 'manage-groups' }],
+      },
+      { id: 'video-notes', name: 'Video notes', desc: 'Keep a private note on any video.', icon: ICONS.notes },
+    ],
+  },
+  {
+    title: 'Watch time',
+    features: [
+      {
         id: 'watch-time',
-        label: 'Watch time',
-        desc: 'Daily and weekly watch time, hours per channel, and an optional soft daily limit.',
-        config: [
+        name: 'Watch time',
+        desc: 'Daily and weekly stats, with a gentle daily limit.',
+        icon: ICONS.clock,
+        controls: [
+          { type: 'watch-stats' },
           {
-            key: 'dailyLimitMinutes',
             type: 'select',
+            key: 'dailyLimitMinutes',
             label: 'Daily limit',
-            options: [
-              { value: 0, label: 'Off' },
-              { value: 30, label: '30 min' },
-              { value: 60, label: '1h' },
-              { value: 90, label: '1h 30m' },
-              { value: 120, label: '2h' },
-              { value: 180, label: '3h' },
-              { value: 240, label: '4h' },
-            ],
+            options: opts([[0, 'Off'], [30, '30 min'], [60, '1 h'], [120, '2 h'], [180, '3 h']]),
           },
         ],
       },
     ],
   },
   {
-    title: 'Tools',
+    title: 'Tools and appearance',
     features: [
-      {
-        id: 'download-transcript',
-        label: 'Transcript download',
-        desc: "Download the current video's transcript as .txt or .srt.",
-      },
-      {
-        id: 'screenshot-current-frame',
-        label: 'Frame screenshot (S)',
-        desc: 'Press S to download a PNG of the current frame, no overlay.',
-      },
-      {
-        id: 'true-black-dark-mode',
-        label: 'True black',
-        desc: "Replaces YouTube's dark grey backgrounds with #000 for OLED.",
-      },
+      { id: 'download-transcript', name: 'Transcript download', desc: 'Save a video’s transcript as .txt or .srt.', icon: ICONS.transcript },
+      { id: 'screenshot-current-frame', name: 'Frame screenshot', desc: 'Press S to save the current frame as a PNG.', icon: ICONS.camera },
+      { id: 'true-black-dark-mode', name: 'True black', desc: 'Pure black backgrounds for OLED screens.', icon: ICONS.moon },
     ],
   },
 ];
