@@ -3,6 +3,7 @@ import { fetchJson } from '../lib/fetch-json';
 import { getConfig, watchConfig, type FeatureConfig } from '../lib/settings';
 import { createHost } from '../lib/yt/ui';
 import {
+  CLOSE_ICON,
   PLAYER_CSS,
   fmtTime,
   getVideo,
@@ -47,9 +48,6 @@ const COLOR: Record<Category, string> = {
   outro: '#3a7bfd',
 };
 const NOTE = 'skipped automatically';
-
-const X_ICON =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 
 // Inside .ytp-progress-bar: above the played/markers layers (z 40), below the scrubber (z 43).
 const BAR_CSS = `
@@ -157,7 +155,7 @@ const feature: Feature = {
       const close = document.createElement('button');
       close.className = 'pb sm';
       close.setAttribute('aria-label', 'Dismiss');
-      close.innerHTML = X_ICON;
+      close.innerHTML = CLOSE_ICON;
       close.addEventListener('click', hideToast);
       el.append(close);
       // Don't time out under the pointer or keyboard focus.
@@ -174,7 +172,8 @@ const feature: Feature = {
     };
 
     const onTime = (v: HTMLVideoElement) => {
-      if (!segs.length || isAdShowing() || playerVideoId() !== videoId) return;
+      if (playerVideoId() !== videoId) return void load(); // a navigation the events didn't catch
+      if (!segs.length || isAdShowing()) return;
       const t = v.currentTime;
       const s = enabled().find((s) => !done.has(s.UUID) && t >= s.segment[0] && t < s.segment[1] - 0.5);
       if (!s) return;

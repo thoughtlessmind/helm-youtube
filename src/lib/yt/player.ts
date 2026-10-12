@@ -19,12 +19,15 @@ export const getPlayer = () => document.querySelector<HTMLElement>('#movie_playe
 export const getVideo = () => document.querySelector<HTMLVideoElement>(VIDEO_SEL);
 export const isAdShowing = () => !!getPlayer()?.classList.contains('ad-showing');
 
-/** Video loaded in the watch player (still set while it plays in the miniplayer), else the URL's. */
+/**
+ * Video of the watch player. On /watch the URL leads (it changes at yt-navigate-start, before the
+ * new video loads; ytd-watch-flexy[video-id] lags until after yt-navigate-finish). Elsewhere
+ * (miniplayer) the flexy attribute still names the playing video.
+ */
 export function playerVideoId(): string | null {
-  return (
-    document.querySelector('ytd-watch-flexy')?.getAttribute('video-id') ||
-    (location.pathname === '/watch' ? new URLSearchParams(location.search).get('v') : null)
-  );
+  return location.pathname === '/watch'
+    ? new URLSearchParams(location.search).get('v')
+    : document.querySelector('ytd-watch-flexy')?.getAttribute('video-id') || null;
 }
 
 /** 412 → "6:52", 3725 → "1:02:05". */
@@ -47,6 +50,9 @@ export function onVideoEvent(type: string, cb: (video: HTMLVideoElement) => void
   document.addEventListener(type, h, true);
   return () => document.removeEventListener(type, h, true);
 }
+
+export const CLOSE_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 
 /** Shared styles for player UI (append to createHost's extraCss). Real px = board px ÷ 0.8916. */
 export const PLAYER_CSS = `
@@ -75,6 +81,7 @@ export function tooltip(el: HTMLElement, content: () => string | (Node | string)
   el.after(tip);
   const show = () => {
     const c = content();
+    if (!c.length) return; // '' = no tooltip right now (e.g. its popover is open)
     if (typeof c === 'string') tip.textContent = c;
     else tip.replaceChildren(...c);
     tip.showPopover();
