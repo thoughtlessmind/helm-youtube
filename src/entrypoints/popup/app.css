@@ -1,18 +1,325 @@
-@import 'tailwindcss';
+/* DM Sans, latin subset only (opsz + wght axes, as the boards load it). */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url('@fontsource-variable/dm-sans/files/dm-sans-latin-opsz-normal.woff2') format('woff2-variations');
+}
 
-@theme {
-  --color-yt-red: #ff0033;
-  --color-yt-bg: #0f0f0f;
-  --color-yt-surface: #1f1f1f;
-  --color-yt-surface-hover: #272727;
-  --color-yt-text: #f1f1f1;
-  --color-yt-text-muted: #aaaaaa;
+/* Tokens = the boards' THEMES const (dark default, light via prefers-color-scheme). */
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0f;
+  --bg-rgb: 11, 11, 15;
+  --surface: #16161d;
+  --surface-card: #16161d; /* Settings / FirstRun cards */
+  --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.08); /* Empty / NoTab */
+  --text: #f5f5f7;
+  --muted: #9c9caa;
+  --track: rgba(255, 255, 255, 0.16);
+  --inset: rgba(255, 255, 255, 0.04);
+  --tile: rgba(255, 255, 255, 0.07);
+  --sw-off: #3a3a46;
+  --glass-btn: rgba(255, 255, 255, 0.1);
+  --ambient: 0.55;
+  --ambient-2: 0.5;
+  --accent: #f97316;
+  --on-accent: #1a0d03;
+  --accent-soft: rgba(249, 115, 22, 0.14);
+  --accent-soft-2: rgba(249, 115, 22, 0.16); /* Settings / FirstRun */
+  --accent-text: #f97316;
+  --accent-mark: #f97316;
+  --focus: #fdba74;
+  --mark-bar: #62626f;
+  --mark-over: #c9c9d3;
+  --avatar: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #fafafb;
+    --bg-rgb: 250, 250, 251;
+    --surface: #f0f0f4;
+    --surface-card: #ffffff;
+    --line: rgba(15, 15, 25, 0.08);
+    --line-2: rgba(15, 15, 25, 0.1);
+    --text: #121218;
+    --muted: #5c5c69;
+    --track: rgba(15, 15, 25, 0.14);
+    --inset: rgba(15, 15, 25, 0.04);
+    --tile: rgba(15, 15, 25, 0.06);
+    --sw-off: #c8c8d2;
+    --glass-btn: rgba(15, 15, 25, 0.06);
+    --ambient: 0.3;
+    --ambient-2: 0.3;
+    --accent-soft: rgba(249, 115, 22, 0.12);
+    --accent-soft-2: rgba(249, 115, 22, 0.12);
+    --accent-text: rgb(154, 71, 14);
+    --accent-mark: rgb(199, 92, 18);
+    /* #FDBA74 is ~1.7:1 on the light bg; the deeper accent step clears 3:1. */
+    --focus: rgb(199, 92, 18);
+    --mark-bar: #85858f;
+    --mark-over: #2e2e38;
+    --avatar: rgba(15, 15, 25, 0.08);
+  }
 }
 
 html,
 body {
   margin: 0;
-  background: var(--color-yt-bg);
-  color: var(--color-yt-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  width: 380px;
+  height: 600px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+#app {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* One popup page: fixed header/footer, content scrolls in between. */
+.page {
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.scroll {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(127, 127, 140, 0.4) transparent;
+}
+
+/* Icon button 40×40 (.sm = 32×32). */
+.ib {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  flex-shrink: 0;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.ib:hover {
+  background-color: rgba(127, 127, 140, 0.16);
+}
+.ib:active {
+  transform: scale(0.94);
+}
+.ib:disabled {
+  opacity: 0.3;
+  background: none;
+  transform: none;
+}
+.ib svg {
+  width: 20px;
+  height: 20px;
+}
+.ib.sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.ib.sm svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Pill button. */
+.btn {
+  font-size: 13px;
+  font-weight: 700;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: filter 0.15s ease, background-color 0.15s ease;
+}
+.btn:hover {
+  filter: brightness(1.08);
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 8px 24px -8px var(--accent);
+}
+
+.ghost {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 10px;
+  border-radius: 9px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.15s ease;
+}
+.ghost:hover {
+  background-color: rgba(127, 127, 140, 0.14);
+}
+
+/* Switch: a real checkbox with role=switch. */
+.sw {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin: 0;
+  background: var(--sw-off);
+  transition: background-color 0.18s ease;
+}
+.sw:checked {
+  background: var(--accent);
+}
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease;
+}
+.sw:checked::after {
+  transform: translateX(16px);
+}
+
+/* Section label + small badge. */
+.label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sub-page header (Settings, Stats). */
+.subhead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px 6px 8px;
+  flex-shrink: 0;
+}
+.subhead h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Equalizer bars next to "Now playing" / "Playing". */
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+.eq span {
+  display: block;
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: currentColor;
+  transform-origin: bottom;
+  animation: eq 0.9s ease-in-out infinite;
+}
+.eq span:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.eq span:nth-child(3) {
+  animation-delay: -0.6s;
+}
+.eq.paused span {
+  animation-play-state: paused;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .eq span {
+    transform: scaleY(0.7);
+  }
 }
