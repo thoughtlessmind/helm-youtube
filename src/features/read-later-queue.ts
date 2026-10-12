@@ -4,12 +4,12 @@ import type { Feature } from '../lib/features';
 import {
   PLAYER_TAB_KEY,
   addToQueue,
+  clearPlayed,
   getQueue,
   getPlayerTabId,
   markPlayed,
   moveInQueue,
   removeFromQueue,
-  setQueue,
   upNext,
   watchQueue,
   watchUrl,
@@ -118,11 +118,7 @@ const feature: Feature = {
               move: (id, to) => void moveInQueue(id, to),
               setAutoAdvance: (on) => void saveConfig({ autoAdvance: on }),
               setCollapsed: (c) => void saveConfig({ panelCollapsed: c }),
-              clearWatched: async () => {
-                const cur = getVideoId();
-                const all = await getQueue();
-                await setQueue(all.filter((i) => !i.playedAt || i.videoId === cur));
-              },
+              clearWatched: () => clearPlayed(getVideoId()),
             },
           },
         });

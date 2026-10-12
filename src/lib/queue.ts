@@ -97,12 +97,9 @@ export async function markPlayed(videoId: string): Promise<void> {
   await setQueue(items.map((i) => (i === it ? { ...i, playedAt: Date.now() } : i)));
 }
 
-export async function clearPlayed(): Promise<void> {
-  await update(upNext);
-}
-
-export function clearQueue(): Promise<void> {
-  return setQueue([]);
+/** Drops played items, except `keepId` (the video playing now, already marked played). */
+export async function clearPlayed(keepId?: string | null): Promise<void> {
+  await update((items) => items.filter((i) => !i.playedAt || i.videoId === keepId));
 }
 
 /** Null when unset — or when session storage isn't readable yet (SW not started; see `myTabId`). */

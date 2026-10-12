@@ -1,11 +1,10 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import {
-    getQueue,
+    clearPlayed,
     moveInQueue,
     playNext,
     removeFromQueue,
-    setQueue,
     thumbUrl,
     type QueueItem,
   } from '../../lib/queue';
@@ -78,11 +77,6 @@
     dragId = overId = null;
   }
 
-  /** Keeps the playing item even though it has been marked played. */
-  async function clearWatched() {
-    const all = await getQueue();
-    await setQueue(all.filter((i) => !i.playedAt || i.videoId === currentId));
-  }
 </script>
 
 <section aria-label="Queue" class="queue">
@@ -90,7 +84,7 @@
     <h2 class="label">Queue</h2>
     {#if upCount}<span class="badge">{upCount} up next</span>{/if}
     <div class="grow"></div>
-    {#if hasPlayed}<button class="ghost" onclick={clearWatched}>Clear watched</button>{/if}
+    {#if hasPlayed}<button class="ghost" onclick={() => clearPlayed(currentId)}>Clear watched</button>{/if}
   </div>
 
   {#if !items.length}
