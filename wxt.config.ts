@@ -12,6 +12,12 @@ export default defineConfig({
     name: 'YouTube Pro',
     description: 'A better YouTube experience — power-user features layered on top of youtube.com.',
     permissions: ['storage'],
-    host_permissions: ['*://*.youtube.com/*'],
+    host_permissions: [
+      '*://*.youtube.com/*',
+      // SponsorBlock feature — crowd-sourced sponsor segment lookups.
+      'https://sponsor.ajay.app/*',
+      // Dislike-count feature — Return YouTube Dislike community API.
+      'https://returnyoutubedislikeapi.com/*',
+    ],
   },
 });

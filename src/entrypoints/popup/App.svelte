@@ -11,125 +11,30 @@
     type FeatureFlags,
     type FeatureConfig,
   } from "../../lib/settings";
+  import {
+    CATALOG,
+    ALL_FEATURES,
+    type ConfigField,
+  } from "../../lib/feature-catalog";
+  import { exportBackup, importBackup, isBackupData } from "../../lib/backup";
 
-  const features: { id: keyof FeatureFlags; label: string; desc: string }[] = [
-    {
-      id: "hide-shorts",
-      label: "Hide Shorts",
-      desc: "Removes Shorts from feed, sidebar, search, and channel pages.",
-    },
-    {
-      id: "hide-end-screen-cards",
-      label: "Hide end-screen cards",
-      desc: "Removes the suggested-video overlay from the last 20s of videos.",
-    },
-    {
-      id: "auto-dismiss-still-watching",
-      label: 'Auto-dismiss "Still watching?"',
-      desc: "Auto-confirms YouTube's periodic playback-paused prompt.",
-    },
-    {
-      id: "default-playback-speed",
-      label: "Default playback speed",
-      desc: "Force every video to start at your preferred speed.",
-    },
-    {
-      id: "disable-autoplay",
-      label: "Disable autoplay",
-      desc: "Turns off the autoplay toggle on every watch page.",
-    },
-    {
-      id: "hide-watch-page-sidebar",
-      label: "Hide watch-page sidebar",
-      desc: "Removes the right-rail recommendations while watching a video.",
-    },
-    {
-      id: "true-black-dark-mode",
-      label: "True black dark mode",
-      desc: "Replaces YouTube's dark grey backgrounds with #000 for OLED.",
-    },
-    {
-      id: "persistent-volume",
-      label: "Persistent volume",
-      desc: "Restore your last volume on every video.",
-    },
-    {
-      id: "copy-timestamped-link",
-      label: "Copy timestamped link (Y)",
-      desc: "Press Y on a video to copy a link to the current playback position.",
-    },
-    {
-      id: "screenshot-current-frame",
-      label: "Screenshot frame (S)",
-      desc: "Press S to download a PNG of the current frame, no overlay.",
-    },
-    {
-      id: "hide-up-next-panel",
-      label: 'Hide "Up next" panel',
-      desc: "Removes the in-player autoplay countdown overlay.",
-    },
-    {
-      id: "volume-boost",
-      label: "Volume boost",
-      desc: "Push audio above 100% via Web Audio API gain.",
-    },
-    {
-      id: "hide-comments-by-default",
-      label: "Hide comments",
-      desc: "Hide the comments section on watch pages.",
-    },
-    {
-      id: "hide-metadata",
-      label: "Hide view counts & dates",
-      desc: "Reduce clickbait pull by hiding view counts and upload dates on thumbnails.",
-    },
-    {
-      id: "loop-section",
-      label: "Loop section ([ ] \\)",
-      desc: "Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.",
-    },
-    {
-      id: "customize-grid",
-      label: "Customize grid",
-      desc: "Pack more videos per row on the homepage and hide card info for a denser feed.",
-    },
-    {
-      id: "save-to-playlist",
-      label: "Save to playlist (W)",
-      desc: "Press W on a watch page to toggle the video into the named playlist.",
-    },
-    {
-      id: "distraction-free-mode",
-      label: "Distraction-free mode",
-      desc: "On watch pages, hide everything except the player and title.",
-    },
-  ];
-
-  const GRID_COLUMNS = [3, 4, 5, 6, 7, 8];
-
-  const BOOST_LEVELS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-  let boost = $state<FeatureConfig["volume-boost"]>({ multiplier: 1.5 });
-  let grid = $state<FeatureConfig["customize-grid"]>({
-    columnsPerRow: 3,
-    hideCardInfo: false,
-  });
-
-  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+  /** Feature ids that carry a config blob. */
+  const CONFIG_IDS = ALL_FEATURES.filter((f) => f.config?.length).map(
+    (f) => f.id,
+  );
 
   let flags = $state<FeatureFlags>({});
   let extensionEnabled = $state<boolean>(true);
-  let speed = $state<FeatureConfig["default-playback-speed"]>({ rate: 1 });
-  let savePlaylist = $state<FeatureConfig["save-to-playlist"]>({
-    playlistName: "Watch later",
-  });
+  let configs = $state<Record<string, Record<string, unknown>>>({});
 
   onMount(async () => {
     flags = await getFlags();
     extensionEnabled = await getExtensionEnabled();
-    speed = await getConfig("default-playback-speed");
-    boost = await getConfig("volume-boost");
-    grid = await getConfig("customize-grid");
-    savePlaylist = await getConfig("save-to-playlist");
+    for (const id of CONFIG_IDS) {
+      configs[id] = (await getConfig(
+        id as keyof FeatureConfig,
+      )) as Record<string, unknown>;
+    }
     watchExtensionEnabled((on) => {
       extensionEnabled = on;
     });
@@ -140,35 +45,65 @@
     await setExtensionEnabled(extensionEnabled);
   }
 
-  async function changePlaylistName(playlistName: string) {
-    savePlaylist = { playlistName };
-    await setConfig("save-to-playlist", { playlistName });
-  }
-
-  async function changeGridColumns(columnsPerRow: number) {
-    grid = { ...grid, columnsPerRow };
-    await setConfig("customize-grid", grid);
-  }
-
-  async function toggleGridHideInfo() {
-    grid = { ...grid, hideCardInfo: !grid.hideCardInfo };
-    await setConfig("customize-grid", grid);
-  }
-
-  async function changeBoost(multiplier: number) {
-    boost = { multiplier };
-    await setConfig("volume-boost", { multiplier });
-  }
-
   async function toggle(id: keyof FeatureFlags) {
     const next = !flags[id];
     flags = { ...flags, [id]: next };
     await setFlag(id, next);
   }
 
-  async function changeSpeed(rate: number) {
-    speed = { rate };
-    await setConfig("default-playback-speed", { rate });
+  async function updateConfig(id: string, key: string, value: unknown) {
+    const next = { ...(configs[id] ?? {}), [key]: value };
+    configs = { ...configs, [id]: next };
+    await setConfig(
+      id as keyof FeatureConfig,
+      next as FeatureConfig[keyof FeatureConfig],
+    );
+  }
+
+  const isNumeric = (field: ConfigField) =>
+    field.type === "select" && typeof field.options[0]?.value === "number";
+
+  // ─── Backup & restore ───────────────────────────────────────────────────
+  let backupStatus = $state("");
+  let fileInput: HTMLInputElement | undefined = $state();
+
+  async function doExport() {
+    const data = await exportBackup();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `youtube-pro-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    backupStatus = "Settings exported.";
+  }
+
+  async function doImport(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (!isBackupData(parsed)) {
+        backupStatus = "That file is not a YouTube Pro backup.";
+        return;
+      }
+      await importBackup(parsed);
+      flags = await getFlags();
+      extensionEnabled = await getExtensionEnabled();
+      for (const id of CONFIG_IDS) {
+        configs[id] = (await getConfig(
+          id as keyof FeatureConfig,
+        )) as Record<string, unknown>;
+      }
+      backupStatus = "Settings restored.";
+    } catch {
+      backupStatus = "Could not read that file.";
+    }
   }
 </script>
 
@@ -189,108 +124,174 @@
     />
   </label>
 
-  <ul
-    class="flex flex-col gap-2 list-none p-0 m-0"
+  <div
+    class="flex flex-col gap-3"
     class:opacity-40={!extensionEnabled}
     class:pointer-events-none={!extensionEnabled}
   >
-    {#each features as f (f.id)}
-      <li>
-        <label
-          class="flex gap-3 items-start p-3 rounded-lg cursor-pointer bg-yt-surface hover:bg-yt-surface-hover transition-colors"
+    {#each CATALOG as section (section.title)}
+      <section>
+        <h2
+          class="text-[11px] font-semibold uppercase tracking-wide text-yt-text-muted m-0 mb-1.5 px-1"
         >
-          <input
-            type="checkbox"
-            checked={!!flags[f.id]}
-            onchange={() => toggle(f.id)}
-            class="mt-0.5 accent-yt-red"
-          />
-          <span class="flex flex-col gap-0.5 flex-1">
-            <strong class="font-medium">{f.label}</strong>
-            <small class="text-xs text-yt-text-muted">{f.desc}</small>
-
-            {#if f.id === "default-playback-speed" && flags["default-playback-speed"]}
-              <select
-                value={speed.rate}
-                onchange={(e) =>
-                  changeSpeed(
-                    Number((e.currentTarget as HTMLSelectElement).value),
-                  )}
-                onclick={(e) => e.preventDefault()}
-                class="mt-2 w-24 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+          {section.title}
+        </h2>
+        <ul class="flex flex-col gap-2 list-none p-0 m-0">
+          {#each section.features as f (f.id)}
+            <li>
+              <label
+                class="flex gap-3 items-start p-3 rounded-lg cursor-pointer bg-yt-surface hover:bg-yt-surface-hover transition-colors"
               >
-                {#each SPEEDS as s (s)}
-                  <option value={s}>{s}×</option>
-                {/each}
-              </select>
-            {/if}
-
-            {#if f.id === "customize-grid" && flags["customize-grid"]}
-              <div class="mt-2 flex flex-col gap-2">
-                <label class="flex items-center gap-2 text-xs">
-                  <span class="text-yt-text-muted">Columns:</span>
-                  <select
-                    value={grid.columnsPerRow}
-                    onchange={(e) =>
-                      changeGridColumns(
-                        Number((e.currentTarget as HTMLSelectElement).value),
-                      )}
-                    onclick={(e) => e.stopPropagation()}
-                    class="bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
-                  >
-                    {#each GRID_COLUMNS as c (c)}
-                      <option value={c}>{c}</option>
-                    {/each}
-                  </select>
-                </label>
-                <label class="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={grid.hideCardInfo}
-                    onchange={toggleGridHideInfo}
-                    onclick={(e) => e.stopPropagation()}
-                    class="accent-yt-red"
-                  />
-                  <span>Hide card info (title, channel, views)</span>
-                </label>
-              </div>
-            {/if}
-
-            {#if f.id === "save-to-playlist" && flags["save-to-playlist"]}
-              <label class="mt-2 flex items-center gap-2 text-xs">
-                <span class="text-yt-text-muted">Playlist:</span>
                 <input
-                  type="text"
-                  value={savePlaylist.playlistName}
-                  oninput={(e) =>
-                    changePlaylistName(
-                      (e.currentTarget as HTMLInputElement).value,
-                    )}
-                  onclick={(e) => e.stopPropagation()}
-                  placeholder="Watch later"
-                  class="flex-1 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+                  type="checkbox"
+                  checked={!!flags[f.id]}
+                  onchange={() => toggle(f.id)}
+                  class="mt-0.5 accent-yt-red"
                 />
-              </label>
-            {/if}
+                <span class="flex flex-col gap-0.5 flex-1 min-w-0">
+                  <strong class="font-medium">{f.label}</strong>
+                  <small class="text-xs text-yt-text-muted">{f.desc}</small>
 
-            {#if f.id === "volume-boost" && flags["volume-boost"]}
-              <select
-                value={boost.multiplier}
-                onchange={(e) =>
-                  changeBoost(
-                    Number((e.currentTarget as HTMLSelectElement).value),
-                  )}
-                onclick={(e) => e.preventDefault()}
-                class="mt-2 w-24 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
-              >
-                {#each BOOST_LEVELS as b (b)}
-                  <option value={b}>{Math.round(b * 100)}%</option>
-                {/each}
-              </select>
-            {/if}
-          </span>
-        </label>
-      </li>
+                  {#if f.config && flags[f.id]}
+                    <div class="mt-2 flex flex-col gap-2">
+                      {#each f.config as field (field.key)}
+                        {#if field.type === "select"}
+                          <label class="flex items-center gap-2 text-xs">
+                            {#if field.label}
+                              <span class="text-yt-text-muted"
+                                >{field.label}:</span
+                              >
+                            {/if}
+                            <select
+                              value={String(configs[f.id]?.[field.key])}
+                              onchange={(e) =>
+                                updateConfig(
+                                  f.id,
+                                  field.key,
+                                  isNumeric(field)
+                                    ? Number(e.currentTarget.value)
+                                    : e.currentTarget.value,
+                                )}
+                              onclick={(e) => e.stopPropagation()}
+                              class="bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+                            >
+                              {#each field.options as o (o.value)}
+                                <option value={String(o.value)}>{o.label}</option
+                                >
+                              {/each}
+                            </select>
+                          </label>
+                        {:else if field.type === "checkbox"}
+                          <label
+                            class="flex items-center gap-2 text-xs cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!configs[f.id]?.[field.key]}
+                              onchange={(e) =>
+                                updateConfig(
+                                  f.id,
+                                  field.key,
+                                  e.currentTarget.checked,
+                                )}
+                              onclick={(e) => e.stopPropagation()}
+                              class="accent-yt-red"
+                            />
+                            <span>{field.label}</span>
+                          </label>
+                        {:else if field.type === "number"}
+                          <label class="flex items-center gap-2 text-xs">
+                            {#if field.label}
+                              <span class="text-yt-text-muted"
+                                >{field.label}:</span
+                              >
+                            {/if}
+                            <input
+                              type="number"
+                              value={String(configs[f.id]?.[field.key] ?? "")}
+                              min={field.min}
+                              max={field.max}
+                              step={field.step}
+                              oninput={(e) =>
+                                updateConfig(
+                                  f.id,
+                                  field.key,
+                                  e.currentTarget.value === ""
+                                    ? 0
+                                    : Number(e.currentTarget.value),
+                                )}
+                              onclick={(e) => e.stopPropagation()}
+                              placeholder={field.placeholder ?? ""}
+                              class="w-20 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+                            />
+                          </label>
+                        {:else}
+                          <label class="flex items-center gap-2 text-xs">
+                            {#if field.label}
+                              <span class="text-yt-text-muted"
+                                >{field.label}:</span
+                              >
+                            {/if}
+                            <input
+                              type="text"
+                              value={String(configs[f.id]?.[field.key] ?? "")}
+                              oninput={(e) =>
+                                updateConfig(
+                                  f.id,
+                                  field.key,
+                                  e.currentTarget.value,
+                                )}
+                              onclick={(e) => e.stopPropagation()}
+                              placeholder={field.placeholder ?? ""}
+                              class="flex-1 bg-yt-bg text-yt-text border border-white/10 rounded px-2 py-1 text-xs"
+                            />
+                          </label>
+                        {/if}
+                      {/each}
+                    </div>
+                  {/if}
+                </span>
+              </label>
+            </li>
+          {/each}
+        </ul>
+      </section>
     {/each}
-  </ul>
+  </div>
+
+  <section class="mt-3 pt-3 border-t border-white/10">
+    <h2
+      class="text-[11px] font-semibold uppercase tracking-wide text-yt-text-muted m-0 mb-1.5 px-1"
+    >
+      Backup
+    </h2>
+    <div class="flex gap-2">
+      <button
+        type="button"
+        onclick={doExport}
+        class="flex-1 bg-yt-surface hover:bg-yt-surface-hover transition-colors rounded-lg px-3 py-2 text-xs font-medium"
+      >
+        Export all settings
+      </button>
+      <button
+        type="button"
+        onclick={() => fileInput?.click()}
+        class="flex-1 bg-yt-surface hover:bg-yt-surface-hover transition-colors rounded-lg px-3 py-2 text-xs font-medium"
+      >
+        Import…
+      </button>
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept="application/json,.json"
+        onchange={doImport}
+        class="hidden"
+      />
+    </div>
+    {#if backupStatus}
+      <small class="block mt-1.5 px-1 text-xs text-yt-text-muted"
+        >{backupStatus}</small
+      >
+    {/if}
+  </section>
 </main>

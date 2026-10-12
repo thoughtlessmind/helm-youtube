@@ -11,81 +11,37 @@ import {
   type FeatureFlags,
   type FeatureConfig,
 } from '../settings';
+import { CATALOG, ALL_FEATURES, type ConfigField } from '../feature-catalog';
 
-interface FeatureMeta {
-  id: keyof FeatureFlags;
-  label: string;
-  desc: string;
-}
-
-interface Section {
-  title: string;
-  features: FeatureMeta[];
-}
-
-const SECTIONS: Section[] = [
-  {
-    title: 'Feed & Discovery',
-    features: [
-      { id: 'hide-shorts', label: 'Hide Shorts', desc: 'Removes Shorts from feed, sidebar, search, and channel pages.' },
-      { id: 'hide-metadata', label: 'Hide view counts & dates', desc: 'Reduce clickbait pull by hiding view counts and upload dates on thumbnails.' },
-      { id: 'customize-grid', label: 'Customize grid', desc: 'Pack more videos per row on the homepage and hide card info for a denser feed.' },
-    ],
-  },
-  {
-    title: 'Watch Page',
-    features: [
-      { id: 'hide-end-screen-cards', label: 'Hide end-screen cards', desc: 'Removes the suggested-video overlay from the last 20s of videos.' },
-      { id: 'hide-watch-page-sidebar', label: 'Hide watch-page sidebar', desc: 'Removes the right-rail recommendations while watching a video.' },
-      { id: 'hide-up-next-panel', label: 'Hide "Up next" panel', desc: 'Removes the in-player autoplay countdown overlay.' },
-      { id: 'hide-comments-by-default', label: 'Hide comments', desc: 'Hide the comments section on watch pages.' },
-      { id: 'disable-autoplay', label: 'Disable autoplay', desc: 'Turns off the autoplay toggle on every watch page.' },
-      { id: 'distraction-free-mode', label: 'Distraction-free mode', desc: 'On watch pages, hide everything except the player and title.' },
-    ],
-  },
-  {
-    title: 'Playback',
-    features: [
-      { id: 'default-playback-speed', label: 'Default playback speed', desc: 'Force every video to start at your preferred speed.' },
-      { id: 'persistent-volume', label: 'Persistent volume', desc: 'Restore your last volume on every video.' },
-      { id: 'volume-boost', label: 'Volume boost', desc: 'Push audio above 100% via Web Audio API gain.' },
-      { id: 'loop-section', label: 'Loop section ([ ] \\)', desc: 'Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.' },
-      { id: 'auto-dismiss-still-watching', label: 'Auto-dismiss "Still watching?"', desc: "Auto-confirms YouTube's periodic playback-paused prompt." },
-    ],
-  },
-  {
-    title: 'Shortcuts',
-    features: [
-      { id: 'copy-timestamped-link', label: 'Copy timestamped link (Y)', desc: 'Press Y on a video to copy a link to the current playback position.' },
-      { id: 'screenshot-current-frame', label: 'Screenshot frame (S)', desc: 'Press S to download a PNG of the current frame, no overlay.' },
-      { id: 'save-to-playlist', label: 'Save to playlist (W)', desc: 'Press W on a watch page to toggle the video into the named playlist.' },
-    ],
-  },
-  {
-    title: 'Appearance',
-    features: [
-      { id: 'true-black-dark-mode', label: 'True black dark mode', desc: "Replaces YouTube's dark grey backgrounds with #000 for OLED." },
-    ],
-  },
-];
-
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-const BOOST_LEVELS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-const GRID_COLUMNS = [3, 4, 5, 6, 7, 8];
+/**
+ * In-page header menu — a YouTube Pro button in the masthead that opens a
+ * settings popover. Renders entirely from the shared feature catalog, so
+ * new features need no edits here.
+ */
 
 const BUTTON_ID = 'ytp-pro-header-btn';
 const POPOVER_ID = 'ytp-pro-popover-host';
 
 const TUNE_ICON = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M3 17v2h6v-2H3zm0-7v2h10v-2H3zm0-7v2h14V3H3zm18 14v-2h-6v2h6zm-6-7v2h6v-2h-6zm-2-3h2V5h2V3h-2V1h-2v2h-2v2h2v2zm-4 5h2v-2h2v-2h-2V8h-2v2H7v2h2v2z"/></svg>`;
 
+/** Feature ids that carry a config blob (have a `config` array in the catalog). */
+const CONFIG_FEATURE_IDS = ALL_FEATURES.filter((f) => f.config?.length).map(
+  (f) => f.id,
+);
+
+type ConfigMap = Record<string, Record<string, unknown>>;
+
 interface PanelState {
   open: boolean;
   enabled: boolean;
   flags: FeatureFlags;
-  speed: FeatureConfig['default-playback-speed'];
-  boost: FeatureConfig['volume-boost'];
-  grid: FeatureConfig['customize-grid'];
-  savePlaylist: FeatureConfig['save-to-playlist'];
+  configs: ConfigMap;
+}
+
+function isNumericField(field: ConfigField): boolean {
+  return (
+    field.type === 'select' && typeof field.options[0]?.value === 'number'
+  );
 }
 
 export function mountHeaderMenu(ctx: YTContext): () => void {
@@ -97,20 +53,18 @@ export function mountHeaderMenu(ctx: YTContext): () => void {
     open: false,
     enabled: true,
     flags: {},
-    speed: { rate: 1 },
-    boost: { multiplier: 1.5 },
-    grid: { columnsPerRow: 3, hideCardInfo: false },
-    savePlaylist: { playlistName: 'Watch later' },
+    configs: {},
   };
 
   // ---------- State load + watch ----------
   const loadState = async () => {
     state.enabled = await getExtensionEnabled();
     state.flags = await getFlags();
-    state.speed = await getConfig('default-playback-speed');
-    state.boost = await getConfig('volume-boost');
-    state.grid = await getConfig('customize-grid');
-    state.savePlaylist = await getConfig('save-to-playlist');
+    for (const id of CONFIG_FEATURE_IDS) {
+      state.configs[id] = (await getConfig(
+        id as keyof FeatureConfig,
+      )) as Record<string, unknown>;
+    }
   };
 
   const watchers: Array<() => void> = [];
@@ -126,34 +80,14 @@ export function mountHeaderMenu(ctx: YTContext): () => void {
       if (state.open) renderPanel();
     }),
   );
-  watchers.push(
-    storage.watch<FeatureConfig['default-playback-speed']>(
-      'sync:config:default-playback-speed',
-      (v) => {
-        if (v) state.speed = v;
+  for (const id of CONFIG_FEATURE_IDS) {
+    watchers.push(
+      storage.watch<Record<string, unknown>>(`sync:config:${id}`, (v) => {
+        if (v) state.configs[id] = { ...state.configs[id], ...v };
         if (state.open) renderPanel();
-      },
-    ),
-  );
-  watchers.push(
-    storage.watch<FeatureConfig['volume-boost']>('sync:config:volume-boost', (v) => {
-      if (v) state.boost = v;
-      if (state.open) renderPanel();
-    }),
-  );
-  watchers.push(
-    storage.watch<FeatureConfig['customize-grid']>('sync:config:customize-grid', (v) => {
-      if (v) state.grid = v;
-      if (state.open) renderPanel();
-    }),
-  );
-  watchers.push(
-    storage.watch<FeatureConfig['save-to-playlist']>('sync:config:save-to-playlist', (v) => {
-      if (!v || v.playlistName === state.savePlaylist.playlistName) return;
-      state.savePlaylist = v;
-      if (state.open) renderPanel();
-    }),
-  );
+      }),
+    );
+  }
 
   // ---------- Button injection ----------
   const findContainer = (): HTMLElement | null => {
@@ -300,67 +234,55 @@ export function mountHeaderMenu(ctx: YTContext): () => void {
   };
 
   const wireEvents = (panel: HTMLElement) => {
-    const closeBtn = panel.querySelector<HTMLButtonElement>('[data-act="close"]');
-    closeBtn?.addEventListener('click', () => closePanel());
+    panel
+      .querySelector<HTMLButtonElement>('[data-act="close"]')
+      ?.addEventListener('click', () => closePanel());
 
     const killSwitch = panel.querySelector<HTMLInputElement>('[data-act="kill-switch"]');
     killSwitch?.addEventListener('change', async () => {
-      const next = killSwitch.checked;
-      state.enabled = next;
-      await setExtensionEnabled(next);
+      state.enabled = killSwitch.checked;
+      await setExtensionEnabled(killSwitch.checked);
       renderPanel();
     });
 
     panel.querySelectorAll<HTMLInputElement>('[data-feature]').forEach((cb) => {
       cb.addEventListener('change', async () => {
         const id = cb.dataset.feature as keyof FeatureFlags;
-        const next = cb.checked;
-        state.flags = { ...state.flags, [id]: next };
-        await setFlag(id, next);
+        state.flags = { ...state.flags, [id]: cb.checked };
+        await setFlag(id, cb.checked);
         renderPanel();
       });
     });
 
-    const speedSel = panel.querySelector<HTMLSelectElement>('[data-act="speed"]');
-    speedSel?.addEventListener('change', async () => {
-      const rate = Number(speedSel.value);
-      state.speed = { rate };
-      await setConfig('default-playback-speed', { rate });
-    });
-
-    const boostSel = panel.querySelector<HTMLSelectElement>('[data-act="boost"]');
-    boostSel?.addEventListener('change', async () => {
-      const multiplier = Number(boostSel.value);
-      state.boost = { multiplier };
-      await setConfig('volume-boost', { multiplier });
-    });
-
-    const gridColsSel = panel.querySelector<HTMLSelectElement>('[data-act="grid-cols"]');
-    gridColsSel?.addEventListener('change', async () => {
-      const columnsPerRow = Number(gridColsSel.value);
-      state.grid = { ...state.grid, columnsPerRow };
-      await setConfig('customize-grid', state.grid);
-    });
-
-    const gridHide = panel.querySelector<HTMLInputElement>('[data-act="grid-hide"]');
-    gridHide?.addEventListener('change', async () => {
-      state.grid = { ...state.grid, hideCardInfo: gridHide.checked };
-      await setConfig('customize-grid', state.grid);
-    });
-
-    const playlistInput = panel.querySelector<HTMLInputElement>('[data-act="playlist-name"]');
-    playlistInput?.addEventListener('input', async () => {
-      const playlistName = playlistInput.value;
-      state.savePlaylist = { playlistName };
-      await setConfig('save-to-playlist', { playlistName });
-    });
+    // Generic config controls — select / checkbox / text.
+    panel
+      .querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-cfg-feature]')
+      .forEach((el) => {
+        const evt =
+          el instanceof HTMLInputElement &&
+          (el.type === 'text' || el.type === 'number')
+            ? 'input'
+            : 'change';
+        el.addEventListener(evt, async () => {
+          const id = el.dataset.cfgFeature as keyof FeatureConfig;
+          const key = el.dataset.cfgKey!;
+          let value: unknown;
+          if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+            value = el.checked;
+          } else if (el.dataset.numeric === 'true') {
+            value = Number(el.value);
+          } else {
+            value = el.value;
+          }
+          const next = { ...(state.configs[id] ?? {}), [key]: value };
+          state.configs[id] = next;
+          await setConfig(id, next as FeatureConfig[typeof id]);
+        });
+      });
   };
 
   // ---------- Bootstrap ----------
-  void loadState().then(() => {
-    inject();
-  });
-  // Initial inject attempt in case state is fast
+  void loadState().then(() => inject());
   inject();
 
   return () => {
@@ -392,7 +314,10 @@ function esc(s: string): string {
 
 function panelHTML(s: PanelState): string {
   const dimmed = s.enabled ? '' : 'dimmed';
-  const sectionsHTML = SECTIONS.map((sec) => sectionHTML(sec, s)).join('');
+  const sectionsHTML = CATALOG.map((sec) => {
+    const rows = sec.features.map((f) => rowHTML(f, s)).join('');
+    return `<h3 class="section">${esc(sec.title)}</h3>${rows}`;
+  }).join('');
   return `
     <header class="hdr">
       <div class="title">YouTube Pro</div>
@@ -414,40 +339,16 @@ function panelHTML(s: PanelState): string {
   `;
 }
 
-function sectionHTML(sec: Section, s: PanelState): string {
-  return `
-    <h3 class="section">${esc(sec.title)}</h3>
-    ${sec.features.map((f) => rowHTML(f, s)).join('')}
-  `;
-}
-
-function rowHTML(f: FeatureMeta, s: PanelState): string {
+function rowHTML(
+  f: { id: keyof FeatureFlags; label: string; desc: string; config?: ConfigField[] },
+  s: PanelState,
+): string {
   const checked = s.flags[f.id] ? 'checked' : '';
-  let extra = '';
-  if (f.id === 'default-playback-speed' && s.flags['default-playback-speed']) {
-    extra = `<div class="config"><select data-act="speed">${SPEEDS.map(
-      (v) => `<option value="${v}" ${v === s.speed.rate ? 'selected' : ''}>${v}×</option>`,
-    ).join('')}</select></div>`;
-  } else if (f.id === 'volume-boost' && s.flags['volume-boost']) {
-    extra = `<div class="config"><select data-act="boost">${BOOST_LEVELS.map(
-      (v) =>
-        `<option value="${v}" ${v === s.boost.multiplier ? 'selected' : ''}>${Math.round(v * 100)}%</option>`,
-    ).join('')}</select></div>`;
-  } else if (f.id === 'customize-grid' && s.flags['customize-grid']) {
-    extra = `<div class="config">
-      <label class="cfg-row"><span>Columns:</span>
-        <select data-act="grid-cols">${GRID_COLUMNS.map(
-          (v) =>
-            `<option value="${v}" ${v === s.grid.columnsPerRow ? 'selected' : ''}>${v}</option>`,
-        ).join('')}</select>
-      </label>
-      <label class="cfg-row"><input type="checkbox" data-act="grid-hide" ${s.grid.hideCardInfo ? 'checked' : ''} /><span>Hide card info (title, channel, views)</span></label>
-    </div>`;
-  } else if (f.id === 'save-to-playlist' && s.flags['save-to-playlist']) {
-    extra = `<div class="config">
-      <label class="cfg-row"><span>Playlist:</span><input type="text" data-act="playlist-name" value="${esc(s.savePlaylist.playlistName)}" placeholder="Watch later" /></label>
-    </div>`;
-  }
+  const showConfig = f.config?.length && s.flags[f.id];
+  const cfg = s.configs[f.id] ?? {};
+  const extra = showConfig
+    ? `<div class="config">${f.config!.map((field) => fieldHTML(f.id, field, cfg)).join('')}</div>`
+    : '';
   return `
     <label class="row">
       <input type="checkbox" data-feature="${f.id}" ${checked} />
@@ -458,6 +359,37 @@ function rowHTML(f: FeatureMeta, s: PanelState): string {
       </span>
     </label>
   `;
+}
+
+function fieldHTML(
+  id: string,
+  field: ConfigField,
+  cfg: Record<string, unknown>,
+): string {
+  const attrs = `data-cfg-feature="${esc(id)}" data-cfg-key="${esc(field.key)}"`;
+  const current = cfg[field.key];
+  if (field.type === 'select') {
+    const numeric = typeof field.options[0]?.value === 'number';
+    const opts = field.options
+      .map(
+        (o) =>
+          `<option value="${esc(String(o.value))}" ${o.value === current ? 'selected' : ''}>${esc(o.label)}</option>`,
+      )
+      .join('');
+    const label = field.label ? `<span>${esc(field.label)}:</span>` : '';
+    return `<label class="cfg-row">${label}<select ${attrs} data-numeric="${numeric}">${opts}</select></label>`;
+  }
+  if (field.type === 'checkbox') {
+    return `<label class="cfg-row"><input type="checkbox" ${attrs} ${current ? 'checked' : ''} /><span>${esc(field.label)}</span></label>`;
+  }
+  if (field.type === 'number') {
+    const label = field.label ? `<span>${esc(field.label)}:</span>` : '';
+    const rng = `${field.min != null ? `min="${field.min}"` : ''} ${field.max != null ? `max="${field.max}"` : ''} ${field.step != null ? `step="${field.step}"` : ''}`;
+    return `<label class="cfg-row">${label}<input type="number" ${attrs} data-numeric="true" ${rng} value="${esc(String(current ?? ''))}" placeholder="${esc(field.placeholder ?? '')}" /></label>`;
+  }
+  // text
+  const label = field.label ? `<span>${esc(field.label)}:</span>` : '';
+  return `<label class="cfg-row">${label}<input type="text" ${attrs} value="${esc(String(current ?? ''))}" placeholder="${esc(field.placeholder ?? '')}" /></label>`;
 }
 
 const PANEL_CSS = `
@@ -539,13 +471,14 @@ const PANEL_CSS = `
   .desc { font-size: 11px; color: var(--yt-spec-text-secondary, #606060); }
   .config { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
   .cfg-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-  .config select, .config input[type="text"] {
+  .config select, .config input[type="text"], .config input[type="number"] {
     background: var(--yt-spec-general-background-a, #f9f9f9);
     color: var(--yt-spec-text-primary, #0f0f0f);
     border: 1px solid var(--yt-spec-10-percent-layer, rgba(0,0,0,0.15));
     border-radius: 4px; padding: 4px 6px; font-size: 12px;
   }
   .config input[type="text"] { flex: 1; }
+  .config input[type="number"] { width: 80px; }
   .config input[type="checkbox"] { accent-color: #c00; }
   .ftr {
     padding: 8px 16px 12px;

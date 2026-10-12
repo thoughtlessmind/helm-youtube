@@ -24,6 +24,39 @@ export interface FeatureFlags {
   'customize-grid'?: boolean;
   'save-to-playlist'?: boolean;
   'distraction-free-mode'?: boolean;
+  'thumbnail-save-button'?: boolean;
+  'theme-presets'?: boolean;
+  'per-channel-speed'?: boolean;
+  'per-channel-skip-segments'?: boolean;
+  'mute-channels'?: boolean;
+  'block-keywords'?: boolean;
+  'block-by-length'?: boolean;
+  'video-tags'?: boolean;
+  'video-notes'?: boolean;
+  'favorite-channels'?: boolean;
+  'read-later-queue'?: boolean;
+  'sticky-mini-player'?: boolean;
+  'resize-player'?: boolean;
+  'picture-in-picture'?: boolean;
+  'subscription-folders'?: boolean;
+  'custom-dashboards'?: boolean;
+  'bulk-watch-later'?: boolean;
+  'sponsorblock'?: boolean;
+  'dislike-count'?: boolean;
+  'reading-time'?: boolean;
+  'flag-watched'?: boolean;
+  'transcript-panel'?: boolean;
+  'download-transcript'?: boolean;
+  'watch-analytics'?: boolean;
+  'channel-watch-stat'?: boolean;
+  'watch-goals'?: boolean;
+  'channel-stats'?: boolean;
+  'history-search'?: boolean;
+  'multi-video-grid'?: boolean;
+  'compare-videos'?: boolean;
+  'ai-summarize'?: boolean;
+  'ai-chapters'?: boolean;
+  'ai-ask'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
@@ -45,6 +78,39 @@ export const FEATURE_DEFAULTS: FeatureFlags = {
   'customize-grid': false,
   'save-to-playlist': true,
   'distraction-free-mode': false,
+  'thumbnail-save-button': true,
+  'theme-presets': false,
+  'per-channel-speed': true,
+  'per-channel-skip-segments': false,
+  'mute-channels': false,
+  'block-keywords': false,
+  'block-by-length': false,
+  'video-tags': false,
+  'video-notes': false,
+  'favorite-channels': false,
+  'read-later-queue': false,
+  'sticky-mini-player': false,
+  'resize-player': false,
+  'picture-in-picture': true,
+  'subscription-folders': false,
+  'custom-dashboards': false,
+  'bulk-watch-later': false,
+  'sponsorblock': false,
+  'dislike-count': false,
+  'reading-time': false,
+  'flag-watched': false,
+  'transcript-panel': false,
+  'download-transcript': false,
+  'watch-analytics': false,
+  'channel-watch-stat': false,
+  'watch-goals': false,
+  'channel-stats': false,
+  'history-search': false,
+  'multi-video-grid': false,
+  'compare-videos': false,
+  'ai-summarize': false,
+  'ai-chapters': false,
+  'ai-ask': false,
 };
 
 /**
@@ -57,6 +123,14 @@ export interface FeatureConfig {
   'volume-boost': { multiplier: number };
   'customize-grid': { columnsPerRow: number; hideCardInfo: boolean };
   'save-to-playlist': { playlistName: string };
+  'theme-presets': { preset: string };
+  // Note: per-channel-skip-segments, block-keywords and block-by-length
+  // augment this interface from their own feature files (module
+  // augmentation). They appear in FEATURE_CONFIG_DEFAULTS below.
+  'sticky-mini-player': { corner: 'bottom-right' | 'bottom-left' };
+  'resize-player': { width: 'default' | 'narrow' | 'wide' | 'full' };
+  'watch-goals': { dailyLimitMinutes: number };
+  // Note: flag-watched augments this interface from its own feature file.
 }
 
 export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
@@ -64,6 +138,14 @@ export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
   'volume-boost': { multiplier: 1.5 },
   'customize-grid': { columnsPerRow: 3, hideCardInfo: false },
   'save-to-playlist': { playlistName: 'Watch later' },
+  'theme-presets': { preset: 'default' },
+  'per-channel-skip-segments': { showControl: true },
+  'block-keywords': { keywords: '' },
+  'block-by-length': { minMinutes: 0, maxMinutes: 0 },
+  'sticky-mini-player': { corner: 'bottom-right' },
+  'resize-player': { width: 'default' },
+  'watch-goals': { dailyLimitMinutes: 120 },
+  'flag-watched': { mode: 'dim' },
 };
 
 export async function getConfig<K extends keyof FeatureConfig>(

@@ -6,6 +6,33 @@ Start at the top, ship often, build up.
 
 ---
 
+## Build Status & Deferred Scope
+
+This roadmap is being worked top-to-bottom. **Done** = a feature module exists under
+`src/features/`, is wired into the registry + settings + the in-page header menu, and
+`npm run check` passes.
+
+The following items are **explicitly out of scope** for the current build pass:
+
+- ~~**Per-channel notification preferences**~~ — _Not built. YouTube exposes no stable
+  per-channel notification surface to script against; the native bell already covers it._
+- ~~**Companion mobile app**~~ — _Deferred. Separate platform (roadmap already flags it
+  "maybe never")._
+- ~~**Public preset marketplace**~~ — _Deferred. Requires a hosted backend._
+
+**Custom Dashboards** ship in **filter mode only** (no OAuth): the user assigns channels to
+a named view, and opening that view filters the homepage feed to show only videos from the
+saved channels. No YouTube Data API / OAuth custom-feed mode.
+
+**AI features** (auto-summarize, chapter generation, ask-the-video) ship using **Chrome's
+built-in on-device AI only** — Gemini Nano via the Prompt / Summarizer API. No external API
+provider is configured. They run behind `window`-level feature detection with a graceful
+"model unavailable" state when Chrome's on-device model is not present.
+
+Everything else in Phases 1–4 is in scope and being built.
+
+---
+
 ## Phase 1 — Quick Wins (MVP)
 
 These are small, self-contained features that mostly rely on DOM manipulation and `chrome.storage`. No external APIs or OAuth required. Each one can be built and shipped in a day or two.

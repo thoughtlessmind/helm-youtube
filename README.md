@@ -1,6 +1,6 @@
 # YouTube Pro — A Better YouTube Experience
 
-A Chrome extension that enhances the YouTube web experience by fixing the small UX annoyances and adding pro-level features that the native app doesn't offer.
+A Chrome (and Firefox) extension that enhances the YouTube web experience by fixing the small UX annoyances and adding pro-level features the native site doesn't offer.
 
 ## What It Is
 
@@ -9,90 +9,72 @@ YouTube Pro is a browser extension built for power users who spend a lot of time
 The goal is twofold:
 
 1. **Reduce friction** — turn multi-step native flows (like adding to Watch Later) into one click.
-2. **Add features YouTube doesn't have** — like custom dashboards that filter your homepage to specific channels, per-channel playback speed memory, focus modes, and personal analytics.
+2. **Add features YouTube doesn't have** — custom dashboards that filter your homepage to specific channels, per-channel playback speed memory, focus modes, transcripts, on-device AI summaries, and personal analytics.
 
 This is *not* an ad blocker, a downloader, or a TOS-violating tool. It works alongside YouTube and respects the platform.
 
 ## Who It's For
 
 - People who watch a lot of YouTube and feel the current UI gets in the way
-- Subscribers who want true control over their feed (folders, filters, chronological order)
+- Subscribers who want true control over their feed (folders, filters, dashboards)
 - Learners who use YouTube as a study tool and want notes, transcripts, and section looping
 - Anyone tired of clicking through three menus to do something simple
 
 ## Project Status
 
-Early planning phase. See `FEATURES.md` for the full feature roadmap, organized from quick wins (MVP candidates) to larger ambitious features.
+**Functional.** All four roadmap phases are implemented — see `features.md`. ~50 independently-toggleable features ship across Feed & Discovery, Watch Page, Player, Playback, Per-Channel, Insights, on-device AI, Analytics, Notes & Library, Video Tools, and more. Every feature is on/off from the toolbar popup and the in-page header menu.
+
+A small number of roadmap items are intentionally out of scope (companion mobile app, hosted preset marketplace, OAuth custom-feed mode) — see the "Build Status & Deferred Scope" section of `features.md`.
 
 ## Tech Stack
 
-### Core
-- **Manifest V3** — the current Chrome extension standard
-- **Vanilla JavaScript** (or **TypeScript** for type safety as the project grows)
-- **HTML + CSS** for popup and options UI
+- **[WXT](https://wxt.dev)** — MV3-aware build/dev framework on Vite (replaces hand-rolled Vite + CRXJS).
+- **Svelte 5 + TypeScript** — tiny runtime (~2 kB) so injected UI doesn't slow YouTube down.
+- Cross-browser: Chrome (MV3) and Firefox (MV2) build out of the box.
+- **On-device AI** — the AI features (summary, chapter generation, ask-the-video) use Chrome's built-in Gemini Nano (Prompt / Summarizer API). No external API, no keys, no OAuth.
+- **Public APIs** — SponsorBlock and Return YouTube Dislike, both keyless.
 
-### Recommended Tooling
-- **Vite** or **Webpack** — bundler for organizing source files into the extension build
-- **TypeScript** — strongly recommended once we move past the smallest features
-- **ESLint + Prettier** — code quality and formatting
-- **CRXJS Vite plugin** — makes Manifest V3 development much smoother with hot reload
-
-### Chrome Extension APIs We'll Use
-- **Content Scripts** — to inject UI and behavior into YouTube pages
-- **`chrome.storage.sync`** — to save user preferences and custom dashboards across devices
-- **`chrome.storage.local`** — for larger data like personal notes and analytics
-- **Service Worker** (background script) — for events that need to run outside the page context
-- **`chrome.runtime` messaging** — communication between content scripts and the service worker
-- **`chrome.commands`** — for keyboard shortcuts
-
-### YouTube-Specific Techniques
-- **`MutationObserver`** — YouTube is a single-page app with heavy lazy-loading, so we'll watch the DOM for new video cards as the user scrolls or navigates
-- **CSS injection** — for theming, hiding elements, and visual tweaks
-- **DOM automation** — for triggering native YouTube actions programmatically (e.g., the Watch Later quick-add)
-
-### Optional / For Larger Features
-- **YouTube Data API v3** — needed for the custom dashboard feature when we want true chronological feeds, and for any feature that needs to read/write playlists reliably. Requires OAuth 2.0.
-- **SponsorBlock public API** — for showing real video length minus sponsor segments
-- **Return YouTube Dislike API** — for restoring dislike counts
-- **Anthropic Claude API** — for the AI-powered video summary feature (longer-term)
-
-### Testing & Distribution
-- **Manual testing in Chrome** during development (load unpacked)
-- **Chrome Web Store** for distribution ($5 one-time developer registration fee)
-- Optionally **Firefox / Edge** support later — both accept Manifest V3 extensions with minor tweaks
-
-## Project Structure (Planned)
+## Commands
 
 ```
-youtube-pro/
-├── manifest.json            # Extension manifest (V3)
-├── src/
-│   ├── content/             # Content scripts injected into YouTube
-│   │   ├── index.ts         # Entry point
-│   │   ├── features/        # One file per feature
-│   │   └── utils/           # DOM helpers, observers, selectors
-│   ├── background/          # Service worker
-│   ├── popup/               # Toolbar popup UI
-│   ├── options/             # Settings page
-│   └── styles/              # Injected CSS
-├── public/                  # Icons and static assets
-├── dist/                    # Built extension (gitignored)
-└── package.json
+npm run dev            # watch build into .output/chrome-mv3/, hot reloads
+npm run build          # production build (Chrome)
+npm run build:firefox  # production build (Firefox)
+npm run zip            # build + zip for the Chrome Web Store
+npm run check          # svelte-check typecheck (TS + .svelte)
 ```
 
-## Development Workflow
+Load unpacked: `chrome://extensions` → Developer Mode → Load unpacked → point at `.output/chrome-mv3/`. Manifest/service-worker changes need a manual extension reload; content/UI changes hot-reload.
 
-1. Clone the repo and run `npm install`
-2. Run `npm run dev` to start the watcher
-3. In Chrome, go to `chrome://extensions`, enable Developer Mode, and click "Load unpacked"
-4. Point it at the `dist/` folder
-5. Open YouTube — the extension will be active
+## Architecture
 
-Reload the extension from `chrome://extensions` after pulling changes that affect the manifest or service worker. Content script changes hot-reload automatically with CRXJS.
+```
+src/
+├── entrypoints/
+│   ├── youtube.content.ts    # Sole content script — bootstraps the registry
+│   ├── background.ts         # Service worker
+│   └── popup/                # Toolbar popup (Svelte)
+├── features/                 # ONE FILE PER FEATURE, lazy-imported
+└── lib/
+    ├── features.ts           # Feature interface + registry
+    ├── settings.ts           # Per-feature flags + config via wxt storage
+    ├── feature-catalog.ts    # Single source of truth for the popup + header menu
+    ├── backup.ts             # Export / import all settings as JSON
+    └── yt/                   # Shared helpers (one observer, navigation bus, …)
+```
+
+Each feature is a self-contained module with a `setup(ctx)` that returns a teardown function. Disabled features pay zero runtime cost. The whole extension shares **exactly one** `MutationObserver` and one SPA-navigation listener. See `CLAUDE.md` for the full architecture and the rules for adding a feature.
+
+> **Bundle note:** with ~50 features the content script is ~260 kB minified. Feature *code* is bundled regardless of toggles (a content-script chunk-loading constraint), but disabled features run no code — no observer subscriptions, no listeners.
+
+## Distribution
+
+- **Chrome Web Store** — `npm run zip` produces the upload artifact.
+- **Firefox** — `npm run build:firefox` / `npm run zip:firefox`; MV2 output builds cleanly.
 
 ## Contributing
 
-Pick a feature from `FEATURES.md`, start with the "Quick Wins" section if you're new to the codebase. Each feature should ideally live in its own module under `src/content/features/` so they can be toggled independently from the settings page.
+Pick a feature from `features.md`. Adding one is: a module under `src/features/`, a registry line in `src/lib/features.ts`, a flag in `src/lib/settings.ts`, and an entry in `src/lib/feature-catalog.ts` — the popup and in-page menu render from the catalog automatically. Keep the [performance rules in `CLAUDE.md`](./CLAUDE.md) — they are the moat.
 
 ## License
 
