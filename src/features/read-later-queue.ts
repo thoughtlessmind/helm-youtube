@@ -43,8 +43,8 @@ const toSeconds = (t: string) => t.split(':').reduce((acc, n) => acc * 60 + Numb
 
 /** Title/channel/duration of a video from a card on the page, else from oEmbed. */
 async function lookup(videoId: string): Promise<Omit<QueueItem, 'addedAt' | 'playedAt'>> {
-  const link = document.querySelector(`a[href*="v=${videoId}"]`);
-  const card = link?.closest(CARD);
+  // The first link may be the player's end screen, not a card.
+  const card = [...document.querySelectorAll(`a[href*="v=${videoId}"]`)].map((a) => a.closest(CARD)).find(Boolean);
   if (card) {
     const h3 = card.querySelector('h3');
     const title = (h3?.getAttribute('title') || h3?.textContent || '').trim();
