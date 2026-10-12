@@ -29,7 +29,6 @@ import {
 
 const ID = 'feed-filters';
 const REASON = 'data-ytp-filtered';
-const STYLE_ID = 'ytp-feed-filters';
 
 const EYE_OFF =
   '<path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-2.16 3.19"/><path d="M6.6 6.6C3.6 8.6 2 12 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M2 2l20 20"/>';
@@ -72,7 +71,6 @@ const feature: Feature = {
     let toggle: HTMLButtonElement | null = null;
 
     const pageStyle = document.createElement('style');
-    pageStyle.id = STYLE_ID;
     pageStyle.textContent = PAGE_CSS;
     document.head.append(pageStyle);
 

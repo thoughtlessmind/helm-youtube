@@ -137,7 +137,7 @@ const dismissedBy = new WeakMap<HTMLElement, { anchor: Element; until: number }>
 export function openPopover(
   anchor: Element,
   panel: HTMLElement,
-  opts: { align?: 'start' | 'end'; side?: 'below' | 'above'; onClose?: () => void } = {},
+  opts: { align?: 'start' | 'end'; side?: 'below' | 'above' } = {},
 ): () => void {
   const d = dismissedBy.get(panel);
   dismissedBy.delete(panel);
@@ -160,7 +160,6 @@ export function openPopover(
     if (pressed) dismissedBy.set(panel, { anchor, until: performance.now() + 1000 });
     // Esc / close() with focus inside → back to the anchor. A click elsewhere keeps its focus.
     if (panel.contains(activeIn(panel))) (anchor as HTMLElement).focus();
-    opts.onClose?.();
   };
   const close = () => (panel.matches(':popover-open') ? panel.hidePopover() : end());
   const onBefore = (e: Event) => (e as ToggleEvent).newState === 'closed' && end();

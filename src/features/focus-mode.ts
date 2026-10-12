@@ -24,7 +24,6 @@ import CalmHome, { type CalmState } from './focus-mode/CalmHome.svelte';
  *   comments, metadata (view counts + upload dates).
  */
 
-const STYLE_ID = 'yt-pro-focus-mode';
 const HOME_GRID = 'ytd-browse[page-subtype="home"]:not([hidden]) ytd-rich-grid-renderer';
 const RELATED = 'ytd-watch-flexy:not([hidden]) #related';
 
@@ -99,7 +98,6 @@ const feature: Feature = {
     let recsShownFor: string | null = null;
 
     const style = document.createElement('style');
-    style.id = STYLE_ID;
     document.head.append(style);
     const applyCss = () => {
       style.textContent = [

@@ -22,7 +22,7 @@ let timer = 0;
 
 export function flashToast(
   text: string,
-  opts: { action?: { label: string; onClick: () => void }; durationMs?: number } = {},
+  opts: { action?: { label: string; onClick: () => void } } = {},
 ): void {
   if (!host) {
     let root: ShadowRoot;
@@ -42,7 +42,7 @@ export function flashToast(
   label.textContent = text;
   toast.append(label);
 
-  const ms = opts.durationMs ?? (opts.action ? 4000 : 2500);
+  const ms = opts.action ? 4000 : 2500;
   // Every handler is a no-op once a newer toast replaced this one (its timer isn't ours).
   const current = () => region.firstChild === toast;
   const dismiss = () => {
