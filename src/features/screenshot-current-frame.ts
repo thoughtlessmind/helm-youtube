@@ -1,6 +1,7 @@
 import type { Feature } from '../lib/features';
 import { onKey } from '../lib/yt/keys';
 import { flashToast } from '../lib/yt/toast';
+import { isWatchPage } from '../lib/yt/video';
 import { createHost } from '../lib/yt/ui';
 import { PLAYER_CSS, fmtTime, getPlayer, getVideo, mountInPlayer, playerVideoId, tooltip } from '../lib/yt/player';
 
@@ -25,7 +26,8 @@ function flash(): void {
 
 function capture(): void {
   const video = getVideo();
-  if (!video || !video.videoWidth) return flashToast('No video');
+  if (!isWatchPage() || !video) return; // `s` elsewhere is just a letter
+  if (!video.videoWidth) return flashToast('No video');
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
