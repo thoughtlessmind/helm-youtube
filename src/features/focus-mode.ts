@@ -13,6 +13,7 @@ import { myTabId } from '../lib/messages';
 import { createHost } from '../lib/yt/ui';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
 import { playInThisTab } from '../lib/yt/player-bridge';
+import { KEY as GROUPS_KEY, feedKey, type Group } from './channel-groups/store.svelte';
 import CalmHome, { type CalmState } from './focus-mode/CalmHome.svelte';
 
 /**
@@ -26,16 +27,8 @@ import CalmHome, { type CalmState } from './focus-mode/CalmHome.svelte';
 const STYLE_ID = 'yt-pro-focus-mode';
 const HOME_GRID = 'ytd-browse[page-subtype="home"]:not([hidden]) ytd-rich-grid-renderer';
 const RELATED = 'ytd-watch-flexy:not([hidden]) #related';
-const GROUPS_KEY = 'local:ytpro:channel-groups' as const;
-/** Read by the channel-groups switcher on /feed/subscriptions (plan D15). */
-const GROUP_PICK_KEY = 'ytpro:group:/feed/subscriptions';
 
 type Surface = keyof FeatureConfig['focus-mode'];
-interface Group {
-  id: string;
-  name: string;
-  channels: Record<string, string>;
-}
 
 const CSS: Record<Surface, string> = {
   homeFeed: `
@@ -131,7 +124,7 @@ const feature: Feature = {
         upNext: enabled.includes('read-later-queue') ? upNext(items) : [],
         groups: enabled.includes('channel-groups')
           ? groups
-              .map((g) => ({ id: g.id, name: g.name, channels: Object.keys(g.channels ?? {}).length }))
+              .map((g) => ({ id: g.id, name: g.name, channels: Object.keys(g.channels).length }))
               .filter((g) => g.channels > 0)
           : [],
       });
@@ -153,7 +146,7 @@ const feature: Feature = {
               playInThisTab(videoId);
             },
             openGroup(id) {
-              sessionStorage.setItem(GROUP_PICK_KEY, id);
+              sessionStorage.setItem(feedKey('/feed/subscriptions'), id); // read by the switcher there (D15)
               // The guide's own link navigates in-app; a page load is the fallback.
               const link = document.querySelector<HTMLElement>('ytd-app a[href="/feed/subscriptions"]');
               if (link) link.click();

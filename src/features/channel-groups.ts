@@ -7,7 +7,7 @@
  *  - Home / Subscriptions: a group switcher in the chip-bar slot ("All" + one
  *    chip per non-empty group, "New group", "Manage groups"). A chip hides
  *    cards from channels outside the group. The choice per feed lives in
- *    sessionStorage `ytpro:group:<pathname>` (focus-mode's calm home writes it too).
+ *    sessionStorage `feedKey(pathname)` (focus-mode's calm home writes it too).
  *  - Manage groups: an in-page modal (reorder, rename, edit channels,
  *    delete + Undo, new group). Also opened by the popup (`open-manage-groups`
  *    message, or `#ytp-manage-groups` on load).
@@ -43,6 +43,7 @@ import {
   FAV,
   channelCount,
   createGroup,
+  feedKey,
   loadGroups,
   memberKey,
   store,
@@ -76,8 +77,6 @@ const GUIDE_CSS = `
 
 const PILL_CSS = ':host { display: inline-flex; align-items: center; margin-left: 8px; }';
 const DIALOG_CSS = '.ytp-dialog.is-manage { height: min(538px, calc(100vh - 32px)); }';
-
-const feedKey = () => `ytpro:group:${location.pathname}`;
 
 function sameChannel(a: ChannelRef | null, b: ChannelRef | null): boolean {
   return a?.id === b?.id && a?.name === b?.name;
@@ -235,8 +234,8 @@ const feature: Feature = {
     // ── Feed switcher + filter ────────────────────────────────────────────
 
     function selectGroup(id: string): void {
-      if (id) sessionStorage.setItem(feedKey(), id);
-      else sessionStorage.removeItem(feedKey());
+      if (id) sessionStorage.setItem(feedKey(location.pathname), id);
+      else sessionStorage.removeItem(feedKey(location.pathname));
       syncFeed();
     }
 
@@ -255,7 +254,7 @@ const feature: Feature = {
         };
       }
 
-      store.selected = sessionStorage.getItem(feedKey()) ?? '';
+      store.selected = sessionStorage.getItem(feedKey(location.pathname)) ?? '';
       const group = activeGroup();
       for (const card of enumerateVideoCards(feed)) {
         // Cards whose channel we can't read (ads, not yet rendered) stay visible.

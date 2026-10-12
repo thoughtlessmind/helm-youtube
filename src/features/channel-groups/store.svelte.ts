@@ -15,6 +15,8 @@ export interface Group {
 
 export const KEY = 'local:ytpro:channel-groups';
 export const FAV = 'favorites';
+/** sessionStorage key of the group picked on a feed (focus-mode's calm home writes it too). */
+export const feedKey = (pathname: string) => `ytpro:group:${pathname}`;
 
 class Store {
   /** Always contains Favorites. Replaced (never mutated) on every change. */

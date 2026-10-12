@@ -4,6 +4,7 @@
   import { CATALOG, type CatalogEntry, type ConfigId } from '../../lib/feature-catalog';
   import { exportBackup, importBackup, isBackupData } from '../../lib/backup';
   import { sendToTab } from '../../lib/messages';
+  import { KEY as GROUPS_KEY, withFavorites, type Group } from '../../features/channel-groups/store.svelte';
   import {
     FEATURE_CONFIG_DEFAULTS,
     getConfig,
@@ -38,17 +39,16 @@
       getFlags(),
       getExtensionEnabled(),
       getLog(),
-      storage.getItem<{ id: string; channels?: Record<string, string> }[]>('local:ytpro:channel-groups'),
+      storage.getItem<Group[]>(GROUPS_KEY),
       ...CONFIG_IDS.map((id) => getConfig(id)),
     ]);
     flags = f;
     enabled = on;
     log = l;
     cfg = Object.fromEntries(CONFIG_IDS.map((id, i) => [id, configs[i] as Cfg]));
-    // channel-groups always has the built-in Favorites group, stored or not.
-    const list = groups ?? [];
-    const g = list.length + (list.some((x) => x.id === 'favorites') ? 0 : 1);
-    const c = new Set(list.flatMap((x) => Object.keys(x.channels ?? {}))).size;
+    const list = withFavorites(groups);
+    const g = list.length;
+    const c = new Set(list.flatMap((x) => Object.keys(x.channels))).size;
     groupsLine = `${g} group${g === 1 ? '' : 's'} · ${c} channel${c === 1 ? '' : 's'}`;
     ready = true;
   }
