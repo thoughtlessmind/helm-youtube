@@ -20,10 +20,7 @@ const TIMESTAMP = '.ytwTranscriptSegmentViewModelTimestamp, .segment-timestamp';
 const TEXT = '.ytAttributedStringHost, .segment-text';
 const PANEL = 'ytd-engagement-panel-section-list-renderer';
 const EXPANDED = 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED';
-const SHOW_BUTTON = [
-  'ytd-watch-metadata ytd-video-description-transcript-section-renderer button',
-  'ytd-video-description-transcript-section-renderer button',
-];
+const SHOW_BUTTON = 'ytd-video-description-transcript-section-renderer button';
 
 /** "1:02:03" / "4:10" → seconds (0 when unparseable). */
 function parseTimestamp(raw: string): number {
@@ -50,31 +47,20 @@ function readOpenPanel(): { panel: Element; segments: TranscriptSegment[] } | nu
   return null;
 }
 
-function findShowButton(): HTMLElement | null {
-  for (const sel of SHOW_BUTTON) {
-    const el = document.querySelector<HTMLElement>(sel);
-    if (el) return el;
-  }
-  return null;
-}
-
 /** True when the video offers a transcript (YouTube renders "Show transcript" in the description). */
 export function hasTranscript(): boolean {
-  return !!findShowButton() || !!readOpenPanel();
+  return !!document.querySelector(SHOW_BUTTON) || !!readOpenPanel();
 }
 
 /**
- * The current video's transcript, or null when it has none or the panel didn't fill within
- * `timeoutMs`. Waits on the shared observer, not a polling loop.
+ * The current video's transcript, or null when it has none or the panel didn't fill within 8 s.
+ * Waits on the shared observer, not a polling loop.
  */
-export async function fetchTranscript(
-  observer: PageObserver,
-  timeoutMs = 8000,
-): Promise<TranscriptSegment[] | null> {
+export async function fetchTranscript(observer: PageObserver): Promise<TranscriptSegment[] | null> {
   const open = readOpenPanel();
   if (open) return open.segments;
 
-  const btn = findShowButton();
+  const btn = document.querySelector<HTMLElement>(SHOW_BUTTON);
   if (!btn) return null;
   btn.click();
 
@@ -93,7 +79,7 @@ export async function fetchTranscript(
     // Re-opening a panel that still holds this video's segments flips an attribute only — no
     // childList mutation reaches the observer — so look once without waiting for one.
     const soon = setTimeout(check, 300);
-    const late = setTimeout(() => finish(readOpenPanel()), timeoutMs);
+    const late = setTimeout(() => finish(readOpenPanel()), 8000);
   });
   // We opened it just to read it — put the page back the way it was.
   found?.panel.querySelector<HTMLElement>('#visibility-button button')?.click();
