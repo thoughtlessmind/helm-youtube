@@ -70,8 +70,9 @@ const feature: Feature = {
   id: 'read-later-queue',
   async setup(ctx) {
     const html = document.documentElement;
-    const [tabId, initialItems, initialConfig, initialPlayerTab] = await Promise.all([
-      myTabId(),
+    // whoami answers once the SW has opened session storage to content scripts — ask it first.
+    const tabId = await myTabId();
+    const [initialItems, initialConfig, initialPlayerTab] = await Promise.all([
       getQueue(),
       getConfig('read-later-queue'),
       getPlayerTabId(),
