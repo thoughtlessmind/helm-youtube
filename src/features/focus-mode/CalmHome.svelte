@@ -294,6 +294,7 @@
     font-weight: 500;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -386,6 +387,7 @@
     font-weight: 500;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -439,6 +441,26 @@
     font-size: 12px;
     line-height: 16px;
     color: var(--yt-sys-color-baseline--text-secondary);
+  }
+  @media (max-width: 720px) {
+    .next {
+      flex-direction: column;
+      height: auto;
+    }
+    .th {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+    }
+    .acts {
+      margin-top: 12px;
+    }
+    ul {
+      grid-template-columns: 1fr;
+    }
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
   .foot {
     margin: 40px 0 0;
