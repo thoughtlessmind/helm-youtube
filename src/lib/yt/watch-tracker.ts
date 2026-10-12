@@ -1,6 +1,7 @@
 import { storage } from '#imports';
 import type { YTContext } from './context';
 import { getWatchChannel, isWatchPage, type ChannelRef } from './video';
+import { watchMetaCurrent } from './player';
 
 /**
  * Measures real watch time: wall-clock seconds while the watch page's main
@@ -39,6 +40,9 @@ let channel: ChannelRef | null = null;
 let lastTick: number | null = null;
 /** Tail of the storage write chain — writes run one at a time so none is lost. */
 let writes: Promise<void> = Promise.resolve();
+
+/** The watch page's channel, or null while its metadata still shows the previous video's (SPA nav). */
+const currentChannel = () => (watchMetaCurrent() ? getWatchChannel() : null);
 
 export function isoDate(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -129,17 +133,17 @@ export function startTracking(ctx: YTContext): () => void {
   const offNav = ctx.navigation.onNavigate(() => {
     stopCounting();
     void flush(); // time so far belongs to the previous page's channel
-    channel = getWatchChannel();
+    channel = currentChannel();
     attach();
   });
   // YouTube may swap the <video>; watch metadata (channel) renders late.
   const offChange = ctx.observer.onChange(() => {
-    channel ??= getWatchChannel();
+    channel ??= currentChannel();
     attach();
   });
   const flushTimer = setInterval(() => void flush(), FLUSH_INTERVAL_MS);
 
-  channel = getWatchChannel();
+  channel = currentChannel();
   attach();
 
   return () => {

@@ -33,6 +33,7 @@ import {
   unhideCard,
 } from '../lib/yt/feed-cards';
 import { createHost, showDialog } from '../lib/yt/ui';
+import { watchMetaCurrent } from '../lib/yt/player';
 import { channelIdFromHref, getWatchChannel, isWatchPage, type ChannelRef } from '../lib/yt/video';
 import ChipBar from './channel-groups/ChipBar.svelte';
 import Editor from './channel-groups/Editor.svelte';
@@ -84,7 +85,7 @@ function sameChannel(a: ChannelRef | null, b: ChannelRef | null): boolean {
 
 /** The channel the watch or channel page belongs to. */
 function pageChannel(): ChannelRef | null {
-  if (isWatchPage()) return getWatchChannel();
+  if (isWatchPage()) return watchMetaCurrent() ? getWatchChannel() : null; // metadata lags SPA nav
   const page = document.querySelector(CHANNEL_PAGE);
   const fromUrl = channelIdFromHref(location.pathname);
   if (!page || !fromUrl) return null;
