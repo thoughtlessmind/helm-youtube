@@ -166,16 +166,17 @@ const feature: Feature = {
 
     // ── Adding ──────────────────────────────────────────────────────────────
     const add = async (item: Omit<QueueItem, 'addedAt' | 'playedAt'>) => {
-      const prev = await getQueue();
-      const already = prev.some((i) => i.videoId === item.videoId && !i.playedAt);
+      const was = (await getQueue()).find((i) => i.videoId === item.videoId);
       const { upNext: n } = await addToQueue(item);
       // The player tab's watch page shows the panel instead of a toast.
       if (isPlayerTab() && isWatchPage()) return;
-      if (already) flashToast('Already in queue');
-      else flashToast(`Added to queue · ${n} up next`, { action: { label: 'Undo', onClick: () => void setQueue(prev) } });
+      if (was && !was.playedAt) return flashToast('Already in queue');
+      // Undo only this add — other tabs may have changed the queue since. A re-queued played video gets its ✓ back.
+      const undo = () => void (was ? markPlayed(item.videoId) : removeFromQueue(item.videoId));
+      flashToast(`Added to queue · ${n} up next`, { action: { label: 'Undo', onClick: undo } });
     };
 
-    const offQ = onKey('q', () => {
+    const offQ = onKey('q', async () => {
       const videoId = getVideoId();
       if (!videoId) return;
       const v = mainVideo();
