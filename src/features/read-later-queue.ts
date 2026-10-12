@@ -21,8 +21,8 @@ import { onKey } from '../lib/yt/keys';
 import { flashToast } from '../lib/yt/toast';
 import { createHost } from '../lib/yt/ui';
 import { getVideoId, getWatchChannel, isWatchPage } from '../lib/yt/video';
-import { adShowing, mainVideo, playInThisTab, watchTitle } from '../lib/yt/player-bridge';
-import { watchMetaCurrent } from '../lib/yt/player';
+import { playInThisTab, watchTitle } from '../lib/yt/player-bridge';
+import { getVideo, isAdShowing, onVideoEvent, watchMetaCurrent } from '../lib/yt/player';
 import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelte';
 
 /**
@@ -148,22 +148,15 @@ const feature: Feature = {
     };
 
     // ── Played ✓ + auto-advance (main <video> only; ads and previews ignored) ──
-    const isMain = (t: EventTarget | null) => t instanceof HTMLVideoElement && t === mainVideo();
-
     const notePlaying = () => {
       const id = getVideoId();
-      if (id && !adShowing() && items.some((i) => i.videoId === id && !i.playedAt)) void markPlayed(id);
+      if (id && !isAdShowing() && items.some((i) => i.videoId === id && !i.playedAt)) void markPlayed(id);
     };
-
-    // Media events don't bubble, but capture on document sees them; YouTube reuses the <video>.
-    const onPlaying = (e: Event) => isMain(e.target) && notePlaying();
-    const onEnded = (e: Event) => {
-      if (!isMain(e.target) || adShowing() || !isPlayerTab() || !config.autoAdvance) return;
+    const onEnded = () => {
+      if (isAdShowing() || !isPlayerTab() || !config.autoAdvance) return;
       const next = upNext(items).find((i) => i.videoId !== getVideoId());
       if (next) playInThisTab(next.videoId); // beats YouTube's autoplay countdown
     };
-    document.addEventListener('playing', onPlaying, true);
-    document.addEventListener('ended', onEnded, true);
 
     // ── Adding ──────────────────────────────────────────────────────────────
     const add = async (item: Omit<QueueItem, 'addedAt' | 'playedAt'>) => {
@@ -182,12 +175,12 @@ const feature: Feature = {
       if (!videoId) return;
       // Right after SPA navigation the page still shows the previous video's metadata.
       if (!watchMetaCurrent()) return void add(await lookup(videoId));
-      const v = mainVideo();
+      const v = getVideo();
       void add({
         videoId,
         title: watchTitle(),
         channelName: getWatchChannel()?.name ?? '',
-        duration: v && !adShowing() && Number.isFinite(v.duration) ? Math.round(v.duration) : 0,
+        duration: v && !isAdShowing() && Number.isFinite(v.duration) ? Math.round(v.duration) : 0,
       });
     });
 
@@ -206,6 +199,8 @@ const feature: Feature = {
 
     const offs = [
       offQ,
+      onVideoEvent('playing', notePlaying),
+      onVideoEvent('ended', onEnded),
       watchQueue((v) => {
         items = v;
         render();
@@ -220,8 +215,7 @@ const feature: Feature = {
         render();
       }),
       ctx.navigation.onNavigate(() => {
-        const v = mainVideo();
-        if (v && !v.paused) notePlaying();
+        if (getVideo()?.paused === false) notePlaying();
         render();
       }),
     ];
@@ -229,8 +223,6 @@ const feature: Feature = {
 
     return () => {
       for (const off of offs) off();
-      document.removeEventListener('playing', onPlaying, true);
-      document.removeEventListener('ended', onEnded, true);
       window.removeEventListener('message', onMessage);
       delete html.dataset.ytpNativeAdd;
       unmountPanel();

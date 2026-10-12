@@ -1,7 +1,7 @@
 import { storage } from '#imports';
 import type { YTContext } from './context';
 import { getWatchChannel, isWatchPage, type ChannelRef } from './video';
-import { watchMetaCurrent } from './player';
+import { getVideo, onVideoEvent, watchMetaCurrent } from './player';
 
 /**
  * Measures real watch time: wall-clock seconds while the watch page's main
@@ -30,8 +30,6 @@ export const LOG_KEY = 'local:ytpro:watch-tracker:log' as const;
 export const CHANNELS_KEY = 'local:ytpro:watch-tracker:channels' as const;
 const FLUSH_INTERVAL_MS = 15_000;
 const MAX_DAYS = 90;
-/** YouTube's main player video; preview players live outside ytd-watch-flexy. */
-const MAIN_VIDEO = 'ytd-watch-flexy video.html5-main-video';
 
 let pendingSeconds = 0;
 /** Channel of the video being watched — may arrive after playback starts. */
@@ -102,25 +100,12 @@ function flush(): Promise<void> {
 
 /** Starts tracking; returns stop (flushes and removes every listener). */
 export function startTracking(ctx: YTContext): () => void {
-  let video: HTMLVideoElement | null = null;
-
-  /** Count exactly while the main watch-page video plays in a visible tab. */
+  /** Count exactly while the main watch-page video (never a hover preview) plays in a visible tab. */
   const sync = () => {
-    const counting = !!video && !video.paused && !document.hidden && isWatchPage();
+    const video = isWatchPage() ? getVideo() : null;
+    const counting = !!video && !video.paused && !document.hidden;
     if (counting && lastTick === null) lastTick = Date.now();
     else if (!counting) stopCounting();
-  };
-
-  const attach = () => {
-    const v = isWatchPage() ? document.querySelector<HTMLVideoElement>(MAIN_VIDEO) : null;
-    if (v !== video) {
-      video?.removeEventListener('play', sync);
-      video?.removeEventListener('pause', sync);
-      v?.addEventListener('play', sync);
-      v?.addEventListener('pause', sync);
-      video = v;
-    }
-    sync();
   };
 
   const onPageHide = () => {
@@ -134,22 +119,23 @@ export function startTracking(ctx: YTContext): () => void {
     stopCounting();
     void flush(); // time so far belongs to the previous page's channel
     channel = currentChannel();
-    attach();
+    sync();
   });
   // YouTube may swap the <video>; watch metadata (channel) renders late.
   const offChange = ctx.observer.onChange(() => {
     channel ??= currentChannel();
-    attach();
+    sync();
   });
+  const offPlay = onVideoEvent('play', sync);
+  const offPause = onVideoEvent('pause', sync);
   const flushTimer = setInterval(() => void flush(), FLUSH_INTERVAL_MS);
 
   channel = currentChannel();
-  attach();
+  sync();
 
   return () => {
-    video?.removeEventListener('play', sync);
-    video?.removeEventListener('pause', sync);
-    video = null;
+    offPlay();
+    offPause();
     stopCounting();
     void flush();
     channel = null;
