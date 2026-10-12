@@ -2,7 +2,7 @@
   "name": "youtube-pro",
   "description": "A better YouTube experience — power-user features layered on top of youtube.com.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -15,6 +15,7 @@
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tsconfig/svelte": "^5.0.8",
     "@wxt-dev/module-svelte": "^2.0.4",
