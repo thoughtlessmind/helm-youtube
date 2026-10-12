@@ -1,208 +1,238 @@
 /**
- * feed-cards.ts
+ * Video cards across YouTube's surfaces, plus the feed chip row that
+ * channel-groups and feed-filters share. All card selectors live here so a
+ * YouTube redesign is a one-file fix.
  *
- * Shared helpers for enumerating and manipulating YouTube video cards
- * across the home feed (ytd-rich-item-renderer), search results
- * (ytd-video-renderer), watch-page sidebar (ytd-compact-video-renderer),
- * and grid pages (ytd-grid-video-renderer).
+ * Card shapes (checked against the live site, 2026-10):
+ *  - Home / channel Videos tab: `ytd-rich-item-renderer` wrapping a
+ *    `yt-lockup-view-model` (older builds: `ytd-rich-grid-media`).
+ *  - Search: `ytd-video-renderer`.
+ *  - Watch sidebar / channel shelves: a bare `yt-lockup-view-model`
+ *    (older builds: `ytd-compact-video-renderer`, `ytd-grid-video-renderer`).
  *
- * Multi-feature hide coordination
- * ────────────────────────────────
- * A card can be hidden by MULTIPLE features simultaneously (e.g. "feed-filters"
- * AND "channel-groups"). We track which features have hidden a card via the
- * attribute  data-yt-pro-hidden-by  (space-separated feature-id set).
- *
- * hideCard(card, featureId)  — adds featureId to the set; sets display:none
- * unhideCard(card, featureId) — removes featureId; clears display only when set is empty
- *
- * On feature teardown, iterate querySelectorAll('[data-yt-pro-hidden-by~="<id>"]')
- * and call unhideCard(card, id) on each to fully restore visibility.
+ * Multi-feature hiding: a card can be hidden by several features at once.
+ * `data-yt-pro-hidden-by` holds the space-separated set of feature ids;
+ * `display:none` is cleared only when the set is empty.
  */
 
 import { channelIdFromHref } from './video';
+import { createHost } from './ui';
 
-// ─── Selectors ───────────────────────────────────────────────────────────────
+const CARD_SELECTOR = [
+  'ytd-rich-item-renderer',
+  'ytd-video-renderer',
+  'ytd-compact-video-renderer',
+  'ytd-grid-video-renderer',
+  'yt-lockup-view-model:not(ytd-rich-item-renderer yt-lockup-view-model)',
+].join(', ');
 
-/** All four renderer types that represent a video card. */
-const CARD_SELECTOR =
-  'ytd-rich-item-renderer, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer';
+/** Tried in order; the first with text wins. */
+const TITLE_SELECTORS = ['#video-title', '.ytLockupMetadataViewModelTitle', 'h3'];
 
-/** Selectors tried in order for the video title text. */
-const TITLE_SELECTORS = [
-  '#video-title-link',
-  '#video-title',
-  'yt-formatted-string#video-title',
-  'a#video-title',
-  '.title',
-];
+/** Any link to a channel; the byline is the first one with text (the avatar link has none). */
+const CHANNEL_LINK = 'a[href^="/@"], a[href^="/channel/"], a[href^="/c/"], a[href^="/user/"]';
 
-/** Selectors tried in order for the channel byline anchor. */
-const CHANNEL_LINK_SELECTORS = [
-  'ytd-channel-name a',
-  '#channel-name a',
-  '.ytd-channel-name a',
-  'yt-formatted-string.ytd-channel-name',
-];
+/** Lockup metadata rows: [channel, views · age] when the card names its channel. */
+const LOCKUP_ROWS = '.ytContentMetadataViewModelMetadataRow';
 
-/**
- * Selectors for the thumbnail duration badge.
- * YouTube uses multiple overlay renderers depending on the surface.
- */
-const DURATION_SELECTORS = [
-  'ytd-thumbnail-overlay-time-status-renderer #text',
-  'ytd-thumbnail-overlay-time-status-renderer span#text',
-  '#time-status',
-  'ytd-thumbnail-overlay-time-status-renderer',
-  '.ytd-thumbnail-overlay-time-status-renderer',
-];
+/** Thumbnail badges (new badge-shape, old overlay); the one that parses as a time is the length. */
+const BADGE_SELECTORS = '.ytBadgeShapeText, ytd-thumbnail-overlay-time-status-renderer #text';
+const TIME = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/;
 
-/** Attribute used to coordinate multi-feature card hiding. */
+/** Resume bar on a thumbnail = the signed-in user has watched (some of) it. */
+const WATCHED = 'ytd-thumbnail-overlay-resume-playback-renderer, yt-thumbnail-overlay-progress-bar-view-model';
+
 const HIDDEN_BY_ATTR = 'data-yt-pro-hidden-by';
 
-// ─── Public API ──────────────────────────────────────────────────────────────
-
-/**
- * Returns every video card currently in the document across all supported
- * surfaces. Cheap — single querySelectorAll call.
- */
-export function enumerateVideoCards(): HTMLElement[] {
-  return Array.from(document.querySelectorAll<HTMLElement>(CARD_SELECTOR));
+export function enumerateVideoCards(root: ParentNode = document): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(CARD_SELECTOR));
 }
 
-/**
- * Returns the display title of a video card.
- * Falls back to empty string if title cannot be located.
- */
 export function cardTitle(card: HTMLElement): string {
   for (const sel of TITLE_SELECTORS) {
-    const el = card.querySelector(sel);
-    if (el?.textContent?.trim()) {
-      return el.textContent.trim();
-    }
+    const text = card.querySelector(sel)?.textContent?.trim();
+    if (text) return text;
   }
   return '';
 }
 
 /**
- * Returns the channel identity from the byline of a video card.
- * `id` is null when the href cannot be parsed (e.g. not yet rendered).
+ * The card's channel. `id` is null when the card doesn't link its channel
+ * (watch-sidebar lockups); `name` may still be set from the byline text.
  */
 export function cardChannel(card: HTMLElement): { id: string | null; name: string } {
-  for (const sel of CHANNEL_LINK_SELECTORS) {
-    const el = card.querySelector<HTMLAnchorElement>(sel);
-    if (!el) continue;
-    const name = el.textContent?.trim() ?? '';
-    const id = channelIdFromHref(el.getAttribute('href'));
-    if (name || id) {
-      return { id, name };
-    }
+  let id: string | null = null;
+  for (const a of card.querySelectorAll<HTMLAnchorElement>(CHANNEL_LINK)) {
+    const linkId = channelIdFromHref(a.getAttribute('href'));
+    const name = a.textContent?.trim() ?? '';
+    if (name) return { id: linkId ?? id, name };
+    id ??= linkId;
   }
-  return { id: null, name: '' };
+  // Lockups that name their channel without linking it: the first of two metadata rows.
+  const rows = card.querySelectorAll(LOCKUP_ROWS);
+  const name = rows.length >= 2 ? (rows[0].textContent?.trim() ?? '') : '';
+  return { id, name };
 }
 
-/**
- * Parses the thumbnail time badge and returns duration in seconds.
- *
- * Returns `null` (leave visible) when:
- *  - No badge exists
- *  - Badge text is "LIVE", "PREMIERES", "UPCOMING", or similar non-duration text
- *  - The card links to a /shorts/ URL
- *  - The badge text cannot be parsed as a time
- *
- * Supported formats: `m:ss`, `mm:ss`, `h:mm:ss`, `hh:mm:ss`
- */
+/** Length in seconds; null for Shorts, live, premieres or no badge (leave those visible). */
 export function cardDurationSeconds(card: HTMLElement): number | null {
-  // Shorts are identified by their thumbnail href — skip duration parsing entirely.
-  const thumbLink = card.querySelector<HTMLAnchorElement>('a#thumbnail, a.ytd-thumbnail');
-  if (thumbLink?.href && thumbLink.href.includes('/shorts/')) return null;
-
-  for (const sel of DURATION_SELECTORS) {
-    const el = card.querySelector<HTMLElement>(sel);
-    if (!el) continue;
-
-    // Check aria-label first (more reliable than text content which may include icons)
-    const raw = (el.getAttribute('aria-label') || el.textContent || '').trim().toUpperCase();
-
-    if (!raw) continue;
-
-    // Non-duration badges — leave card visible
-    if (
-      raw === 'LIVE' ||
-      raw.startsWith('LIVE') ||
-      raw === 'PREMIERES' ||
-      raw.startsWith('PREMIERES') ||
-      raw === 'UPCOMING' ||
-      raw.startsWith('UPCOMING') ||
-      raw === 'NEW' ||
-      raw === 'SHORTS'
-    ) {
-      return null;
-    }
-
-    // Parse hh:mm:ss / h:mm:ss / mm:ss / m:ss
-    const timeRaw = (el.textContent || '').trim();
-    const parts = timeRaw.split(':').map((p) => parseInt(p, 10));
-    if (parts.some(isNaN)) continue;
-
-    if (parts.length === 3) {
-      const [h, m, s] = parts;
-      return h * 3600 + m * 60 + s;
-    }
-    if (parts.length === 2) {
-      const [m, s] = parts;
-      return m * 60 + s;
-    }
+  if (card.querySelector('a[href^="/shorts/"]')) return null;
+  for (const el of card.querySelectorAll(BADGE_SELECTORS)) {
+    const m = TIME.exec(el.textContent?.trim() ?? '');
+    if (m) return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
   }
-
   return null;
 }
 
-/**
- * Marks a card as hidden by `featureId` and sets `display:none`.
- * Safe to call multiple times from different features — each feature id
- * is stored independently so unhiding by one feature doesn't reveal a
- * card hidden by another.
- *
- * @param card      The video card element to hide.
- * @param featureId The calling feature's id string (e.g. `'feed-filters'`).
- */
-export function hideCard(card: HTMLElement, featureId: string): void {
-  const existing = card.getAttribute(HIDDEN_BY_ATTR) ?? '';
-  const ids = new Set(existing ? existing.split(' ') : []);
-  ids.add(featureId);
-  card.setAttribute(HIDDEN_BY_ATTR, Array.from(ids).join(' '));
-  (card as HTMLElement & { style: CSSStyleDeclaration }).style.display = 'none';
+export function cardWatched(card: HTMLElement): boolean {
+  return card.querySelector(WATCHED) !== null;
 }
 
-/**
- * Removes `featureId` from the card's hidden-by set.
- * Only clears `display:none` when no other feature is still hiding the card.
- *
- * @param card      The video card element to (potentially) unhide.
- * @param featureId The calling feature's id string.
- */
-export function unhideCard(card: HTMLElement, featureId: string): void {
-  const existing = card.getAttribute(HIDDEN_BY_ATTR) ?? '';
-  const ids = new Set(existing ? existing.split(' ') : []);
-  ids.delete(featureId);
+function hiddenBy(card: HTMLElement): Set<string> {
+  return new Set((card.getAttribute(HIDDEN_BY_ATTR) ?? '').split(' ').filter(Boolean));
+}
 
-  if (ids.size === 0) {
+// Hiding sets attributes only, which the shared (childList) observer doesn't
+// see — so counts that depend on another feature's hiding listen here.
+const cardListeners = new Set<() => void>();
+let notifyQueued = false;
+function cardsChanged(): void {
+  if (notifyQueued) return;
+  notifyQueued = true;
+  queueMicrotask(() => {
+    notifyQueued = false;
+    cardListeners.forEach((cb) => cb());
+  });
+}
+
+/** `cb` runs (batched) after any feature hid or revealed a card. Don't hide/unhide from it. */
+export function onCardsChanged(cb: () => void): () => void {
+  cardListeners.add(cb);
+  return () => cardListeners.delete(cb);
+}
+
+export function hideCard(card: HTMLElement, featureId: string): void {
+  const ids = hiddenBy(card);
+  if (ids.has(featureId)) return;
+  ids.add(featureId);
+  card.setAttribute(HIDDEN_BY_ATTR, [...ids].join(' '));
+  card.style.display = 'none';
+  cardsChanged();
+}
+
+export function unhideCard(card: HTMLElement, featureId: string): void {
+  const ids = hiddenBy(card);
+  if (!ids.delete(featureId)) return;
+  if (ids.size) {
+    card.setAttribute(HIDDEN_BY_ATTR, [...ids].join(' '));
+  } else {
     card.removeAttribute(HIDDEN_BY_ATTR);
     card.style.display = '';
-  } else {
-    card.setAttribute(HIDDEN_BY_ATTR, Array.from(ids).join(' '));
   }
+  cardsChanged();
+}
+
+/** Hidden by some feature other than `featureId`. */
+export function hiddenByOther(card: HTMLElement, featureId: string): boolean {
+  const ids = hiddenBy(card);
+  ids.delete(featureId);
+  return ids.size > 0;
+}
+
+export function isCardHidden(card: HTMLElement): boolean {
+  return card.hasAttribute(HIDDEN_BY_ATTR);
+}
+
+export function unhideAllCards(featureId: string): void {
+  document
+    .querySelectorAll<HTMLElement>(`[${HIDDEN_BY_ATTR}~="${featureId}"]`)
+    .forEach((card) => unhideCard(card, featureId));
+}
+
+// ─── Feed chip row (shared by channel-groups and feed-filters) ───────────────
+
+/** Feed routes that get the chip row → their `ytd-browse` page-subtype. */
+const FEEDS: Record<string, string> = { '/': 'home', '/feed/subscriptions': 'subscriptions' };
+
+/** YouTube's own chip bar (new view-model, older Polymer renderer). */
+const YT_CHIP_BAR = 'chip-bar-view-model, ytd-feed-filter-chip-bar-renderer';
+
+/** The Home / Subscriptions page element, or null on any other route. */
+export function currentFeed(): HTMLElement | null {
+  const subtype = FEEDS[location.pathname];
+  return subtype ? document.querySelector(`ytd-browse[page-subtype="${subtype}"]`) : null;
+}
+
+export type FeedBarPart = 'groups' | 'filters';
+
+const BAR_ID = 'ytp-feed-bar';
+const BAR_CSS = `
+  :host { display: block; }
+  .row { display: flex; align-items: flex-start; gap: 12px; }
+  .row:has(> :not([hidden])) { padding: 12px 0; }
+  [data-part][hidden] { display: none; }
+  [data-part="groups"] { order: 0; flex: 1 1 auto; min-width: 0; }
+  [data-part="filters"] { order: 1; flex: none; margin-left: auto; }
+`;
+
+let bar: { host: HTMLElement; row: HTMLElement } | null = null;
+/** YouTube's chip bar we hid to put the group switcher in its slot. */
+let hiddenChipBar: HTMLElement | null = null;
+
+function restoreChipBar(): void {
+  if (hiddenChipBar) hiddenChipBar.style.display = '';
+  hiddenChipBar = null;
 }
 
 /**
- * Restores all cards that were hidden by `featureId` — call on teardown.
- * Unhides each card via `unhideCard` so multi-feature hiding is respected.
- *
- * @param featureId The feature id to clean up for.
+ * The element `part` renders into, inside the feed's chip-bar slot: the
+ * group switcher replaces YouTube's chip bar (one row, as on the boards);
+ * without a chip bar (Subscriptions) the row sits right above the grid.
+ * Null off Home/Subscriptions or before the grid renders. Idempotent and
+ * cheap — call it on every DOM change; it re-inserts the row if YouTube
+ * re-rendered the slot. Set `hidden` on the part while it has nothing to show.
  */
-export function unhideAllCards(featureId: string): void {
-  const selector = `[${HIDDEN_BY_ATTR}~="${featureId}"]`;
-  document.querySelectorAll<HTMLElement>(selector).forEach((card) => {
-    unhideCard(card, featureId);
-  });
+export function feedBarPart(part: FeedBarPart): HTMLElement | null {
+  const feed = currentFeed();
+  const grid = feed?.querySelector('ytd-rich-grid-renderer');
+  const chips = feed?.querySelector<HTMLElement>(YT_CHIP_BAR) ?? null;
+  const anchor = chips ?? grid?.querySelector(':scope > #contents');
+  if (!anchor?.parentElement) return null;
+
+  if (!bar) {
+    const { host, root } = createHost(BAR_ID, BAR_CSS);
+    const row = document.createElement('div');
+    row.className = 'row';
+    root.append(row);
+    bar = { host, row };
+  }
+  if (bar.host.nextElementSibling !== anchor) anchor.before(bar.host);
+
+  let el = bar.row.querySelector<HTMLElement>(`:scope > [data-part="${part}"]`);
+  if (!el) {
+    el = document.createElement('div');
+    el.dataset.part = part;
+    bar.row.append(el);
+  }
+
+  const replaceChips = !!chips && !!bar.row.querySelector(':scope > [data-part="groups"]');
+  if (hiddenChipBar !== (replaceChips ? chips : null)) {
+    restoreChipBar();
+    if (replaceChips && chips) {
+      chips.style.display = 'none';
+      hiddenChipBar = chips;
+    }
+  }
+  return el;
+}
+
+/** Removes `part`; the row goes away with its last part. Caller unmounts its UI first. */
+export function dropFeedBarPart(part: FeedBarPart): void {
+  if (!bar) return;
+  bar.row.querySelector(`:scope > [data-part="${part}"]`)?.remove();
+  if (part === 'groups') restoreChipBar();
+  if (!bar.row.children.length) {
+    bar.host.remove();
+    bar = null;
+  }
 }
