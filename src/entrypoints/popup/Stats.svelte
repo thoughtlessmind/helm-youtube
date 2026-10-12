@@ -121,7 +121,7 @@
         <h2 class="label">Today</h2>
         <span class="small">{fmtDate(new Date(), { weekday: 'short', month: 'short', day: 'numeric' })}</span>
       </div>
-      <div class="card today">
+      <div class="card today-card">
         <div class="today-row">
           <span class="big">{fmtMin(todayMin)}</span>
           {#if limit}
@@ -256,7 +256,7 @@
       <div class="card chans">
         {#if channels.top.length}
           <ol>
-            {#each channels.top as c (c.name)}
+            {#each channels.top as c, i (i)}
               <li>
                 <span class="av" aria-hidden="true">{initials(c.name)}</span>
                 <span class="ctext">
@@ -322,7 +322,7 @@
     border-radius: 16px;
     background: var(--surface);
   }
-  .today {
+  .today-card {
     padding: 14px;
     display: flex;
     flex-direction: column;
