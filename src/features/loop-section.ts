@@ -2,10 +2,10 @@ import type { Feature } from '../lib/features';
 import { onKey } from '../lib/yt/keys';
 import { flashToast } from '../lib/yt/toast';
 import { createHost } from '../lib/yt/ui';
+import { fmtClock } from '../lib/format';
 import {
   CLOSE_ICON,
   PLAYER_CSS,
-  fmtTime,
   getVideo,
   isAdShowing,
   mountInPlayer,
@@ -65,7 +65,7 @@ const feature: Feature = {
       chip.host.hidden = a == null;
       bar.root.querySelectorAll('span').forEach((n) => n.remove());
       if (a == null) return;
-      range.textContent = `Loop ${fmtTime(a)}–${b == null ? '…' : fmtTime(b)}`;
+      range.textContent = `Loop ${fmtClock(a)}–${b == null ? '…' : fmtClock(b)}`;
       const d = getVideo()?.duration;
       if (!d || !Number.isFinite(d)) return;
       const pct = (t: number) => `${(t / d) * 100}%`;
@@ -112,7 +112,7 @@ const feature: Feature = {
         a = v.currentTime;
         if (b != null && b <= a) b = null;
         render();
-        flashToast(`Loop A set at ${fmtTime(a)}`);
+        flashToast(`Loop A set at ${fmtClock(a)}`);
       }),
       onKey(']', () => {
         const v = getVideo();
@@ -121,7 +121,7 @@ const feature: Feature = {
         if (v.currentTime <= a) return flashToast('B must be after A');
         b = v.currentTime;
         render();
-        flashToast(`Loop ${fmtTime(a)} → ${fmtTime(b)}`);
+        flashToast(`Loop ${fmtClock(a)} → ${fmtClock(b)}`);
       }),
       onKey('\\', () => {
         if (a == null) return;

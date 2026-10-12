@@ -3,7 +3,9 @@ import { onKey } from '../lib/yt/keys';
 import { flashToast } from '../lib/yt/toast';
 import { isWatchPage } from '../lib/yt/video';
 import { createHost } from '../lib/yt/ui';
-import { PLAYER_CSS, fmtTime, getPlayer, getVideo, mountInPlayer, playerVideoId, tooltip } from '../lib/yt/player';
+import { fmtClock } from '../lib/format';
+import { saveFile } from '../lib/download';
+import { PLAYER_CSS, getPlayer, getVideo, mountInPlayer, playerVideoId, tooltip } from '../lib/yt/player';
 
 /**
  * Frame screenshot: `S` or the camera button in the player controls (board WatchPlayer) saves
@@ -33,18 +35,13 @@ function capture(): void {
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   if (!ctx) return flashToast('Canvas unavailable');
-  const name = `${playerVideoId() ?? 'youtube'} ${fmtTime(video.currentTime).replaceAll(':', '-')}.png`;
+  const name = `${playerVideoId() ?? 'youtube'} ${fmtClock(video.currentTime).replaceAll(':', '-')}.png`;
   try {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     flash();
     canvas.toBlob((blob) => {
       if (!blob) return flashToast('Capture failed');
-      const a = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = name;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      saveFile(blob, name);
       flashToast(`Frame saved · ${name}`);
     }, 'image/png');
   } catch {

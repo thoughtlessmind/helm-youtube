@@ -2,10 +2,10 @@ import type { Feature } from '../lib/features';
 import { fetchJson } from '../lib/fetch-json';
 import { getConfig, watchConfig, type FeatureConfig } from '../lib/settings';
 import { createHost } from '../lib/yt/ui';
+import { fmtClock } from '../lib/format';
 import {
   CLOSE_ICON,
   PLAYER_CSS,
-  fmtTime,
   getVideo,
   isAdShowing,
   mountInPlayer,
@@ -113,7 +113,7 @@ const feature: Feature = {
         el.className = 'seg';
         el.tabIndex = 0;
         el.setAttribute('role', 'img');
-        el.setAttribute('aria-label', `${label} segment, ${fmtTime(a)} to ${fmtTime(b)}, ${NOTE}`);
+        el.setAttribute('aria-label', `${label} segment, ${fmtClock(a)} to ${fmtClock(b)}, ${NOTE}`);
         el.style.left = `${(a / d) * 100}%`;
         el.style.width = `${((b - a) / d) * 100}%`;
         const fill = document.createElement('span');
@@ -138,7 +138,7 @@ const feature: Feature = {
       el.className = 'toast';
       const text = document.createElement('span');
       text.className = 'text';
-      text.textContent = undone ? `Back at the ${label} segment` : `Skipped ${label} (${fmtTime(b - a)})`;
+      text.textContent = undone ? `Back at the ${label} segment` : `Skipped ${label} (${fmtClock(b - a)})`;
       el.append(dot(COLOR[s.category]), text);
       if (!undone) {
         const undo = document.createElement('button');

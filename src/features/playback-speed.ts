@@ -21,6 +21,7 @@ import { storage } from '#imports';
 import { getConfig, setConfig, watchConfig } from '../lib/settings';
 import { getWatchChannel, isWatchPage, type ChannelRef } from '../lib/yt/video';
 import { createHost, openPopover } from '../lib/yt/ui';
+import { initials } from '../lib/format';
 import {
   PLAYER_CSS,
   getPlayer,
@@ -167,7 +168,7 @@ const feature: Feature = {
             img.alt = '';
             av.replaceWith(img);
           } else {
-            av.textContent = ch.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+            av.textContent = initials(ch.name);
           }
         }
         const img = $('.av');

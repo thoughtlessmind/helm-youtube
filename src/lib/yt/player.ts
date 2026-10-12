@@ -36,15 +36,6 @@ export const watchMetaCurrent = () => {
   return !!id && flexyVideoId() === id;
 };
 
-/** 412 → "6:52", 3725 → "1:02:05". */
-export function fmtTime(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const ss = String(s % 60).padStart(2, '0');
-  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
-}
-
 /**
  * Media event of the main player's <video>. Media events don't bubble but do capture, so a
  * capture listener on document survives YouTube swapping the element. Returns detach.

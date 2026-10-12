@@ -9,8 +9,10 @@
 
 import { storage } from '#imports';
 import type { Feature } from '../lib/features';
+import { fmtClock } from '../lib/format';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
 import { createHost } from '../lib/yt/ui';
+import { getVideo, onVideoEvent } from '../lib/yt/player';
 import { actionCss, placeAboveDescription, placeInActionRow } from '../lib/yt/action-row';
 
 type Notes = Record<string, string>;
@@ -48,13 +50,6 @@ textarea.ytp-input{display:block;height:65px;margin-top:4px;padding:2px 0 4px;re
 // append, not innerHTML: a createHost root already holds its <style>.
 const html = (s: string) => document.createRange().createContextualFragment(s);
 
-/** 412 → "6:52", 3725 → "1:02:05". */
-const clock = (s: number) => {
-  const t = Math.floor(s);
-  const mmss = `${Math.floor((t % 3600) / 60)}:${String(t % 60).padStart(2, '0')}`;
-  return t >= 3600 ? `${Math.floor(t / 3600)}:${mmss.padStart(5, '0')}` : mmss;
-};
-
 const feature: Feature = {
   id: 'video-notes',
 
@@ -65,7 +60,7 @@ const feature: Feature = {
     let dirty = false;
     let timer = 0;
     let writes = Promise.resolve();
-    let player: HTMLVideoElement | null = null;
+    let offTime = () => {};
 
     const btnHost = createHost('ytp-notes', BTN_CSS);
     btnHost.root.append(html(`<button class="ytp-btn" type="button" aria-pressed="false" aria-label="Notes" title="Private note for this video">${NOTE_ICON}<span>Notes</span></button>`));
@@ -126,15 +121,14 @@ const feature: Feature = {
     };
 
     const showTime = () => {
-      const t = clock(player?.currentTime ?? 0);
+      const t = fmtClock(getVideo()?.currentTime ?? 0);
       if (stampText.textContent === `Add ${t}`) return;
       stampText.textContent = `Add ${t}`;
       stamp.setAttribute('aria-label', `Add ${t} timestamp to note`);
     };
     const watchPlayer = () => {
-      player?.removeEventListener('timeupdate', showTime);
-      player = open ? document.querySelector<HTMLVideoElement>('video.html5-main-video') : null;
-      player?.addEventListener('timeupdate', showTime);
+      offTime();
+      offTime = open ? onVideoEvent('timeupdate', showTime) : () => {};
       showTime();
     };
 
@@ -174,7 +168,7 @@ const feature: Feature = {
       const s = ta.selectionStart;
       const gap = s > 0 && !/\s/.test(ta.value[s - 1]) ? ' ' : '';
       ta.focus();
-      ta.setRangeText(`${gap}[${clock(player?.currentTime ?? 0)}] `, s, ta.selectionEnd, 'end');
+      ta.setRangeText(`${gap}[${fmtClock(getVideo()?.currentTime ?? 0)}] `, s, ta.selectionEnd, 'end');
       onInput();
     });
 

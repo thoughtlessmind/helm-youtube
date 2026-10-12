@@ -5,6 +5,8 @@
  */
 
 import type { Feature } from '../lib/features';
+import { fmtClock } from '../lib/format';
+import { saveFile } from '../lib/download';
 import { flashToast } from '../lib/yt/toast';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
 import { createHost, menuKeys, openPopover } from '../lib/yt/ui';
@@ -25,32 +27,19 @@ const CSS = `${actionCss(122)}
 .ytp-menu p{margin:0;padding:2px 16px 8px;font-size:12px;line-height:18px;color:var(--yt-sys-color-baseline--text-secondary)}
 `;
 
-const clock = (s: number) => {
-  const t = Math.floor(s);
-  const mmss = `${Math.floor((t % 3600) / 60)}:${String(t % 60).padStart(2, '0')}`;
-  return t >= 3600 ? `${Math.floor(t / 3600)}:${mmss.padStart(5, '0')}` : mmss;
-};
-
 const srtTime = (s: number) => {
   const ms = Math.round(s * 1000);
   const p = (n: number, d = 2) => String(n).padStart(d, '0');
   return `${p(Math.floor(ms / 3_600_000))}:${p(Math.floor(ms / 60_000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`;
 };
 
-const toTxt = (segs: TranscriptSegment[]) => segs.map((s) => `${clock(s.start)}  ${s.text}`).join('\n');
+const toTxt = (segs: TranscriptSegment[]) => segs.map((s) => `${fmtClock(s.start)}  ${s.text}`).join('\n');
 
 /** SubRip: each cue ends where the next starts; the last one gets 3 s. */
 const toSrt = (segs: TranscriptSegment[]) =>
   segs
     .map((s, i) => `${i + 1}\n${srtTime(s.start)} --> ${srtTime(segs[i + 1]?.start ?? s.start + 3)}\n${s.text}`)
     .join('\n\n') + '\n';
-
-function save(content: string, filename: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
 
 const fileBase = () => watchTitle().replace(/[/\\:*?"<>|]+/g, '-') || getVideoId() || 'transcript';
 
@@ -104,7 +93,8 @@ const feature: Feature = {
         }
         return;
       }
-      save(act === 'srt' ? toSrt(segs) : toTxt(segs), `${fileBase()}.${act}`);
+      const text = act === 'srt' ? toSrt(segs) : toTxt(segs);
+      saveFile(new Blob([text], { type: 'text/plain;charset=utf-8' }), `${fileBase()}.${act}`);
       flashToast(`Transcript saved as .${act}`);
     };
 

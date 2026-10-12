@@ -1,14 +1,7 @@
 import type { YTContext } from './context';
 import type { PlayerState, TabMessage } from '../messages';
 import { getVideoId, getWatchChannel } from './video';
-import { watchMetaCurrent } from './player';
-
-/** The watch page's main <video> (not hover previews). */
-export const mainVideo = () =>
-  document.querySelector<HTMLVideoElement>('#movie_player video.html5-main-video');
-
-/** True while YouTube plays an ad in the main player (its <video> is the ad's then). */
-export const adShowing = () => !!document.querySelector('#movie_player.ad-showing');
+import { getVideo, watchMetaCurrent } from './player';
 
 /** The watch page's title, or '' while the page still shows the previous video's metadata. */
 export const watchTitle = () =>
@@ -34,7 +27,7 @@ export function playInThisTab(videoId: string): void {
 
 function playerState(): PlayerState | null {
   const videoId = getVideoId();
-  const v = mainVideo();
+  const v = getVideo();
   if (!videoId || !v) return null;
   return {
     videoId,
@@ -49,7 +42,7 @@ function playerState(): PlayerState | null {
 
 /** Answers `msg` and returns true, or returns false for messages that aren't ours. */
 function handle(msg: TabMessage, reply: (r: unknown) => void): boolean {
-  const v = mainVideo();
+  const v = getVideo();
   switch (msg?.type) {
     case 'player-state':
       reply(playerState());
