@@ -15,19 +15,19 @@ P3 = small utility.
 | # | Feature | What it does | Why YouTube doesn't cover it | Built from (today) | Work left | P |
 |---|---|---|---|---|---|---|
 | 1 | **Hide Shorts** | Removes Shorts from feed, sidebar, search, channel pages | Native only offers a temporary "Show fewer Shorts" | `hide-shorts` | — | P1 |
-| 2 | **Focus mode** | One feature, per-surface options: hide home feed, watch-page recommendations, comments, view counts/dates | Cinema mode enlarges the player; recommendations and the home feed are always shown | `focus-mode` | Add **hide home feed** option (new) | P1 |
+| 2 | **Focus mode** | One feature, per-surface options: hide home feed, watch-page recommendations, comments, view counts/dates | Cinema mode enlarges the player; recommendations and the home feed are always shown | `focus-mode` | — | P1 |
 | 3 | **Feed filters** | Hide videos by title keyword, by length, and already-watched ones | Native filtering is per-video "Not interested" only | `feed-filters` | — | P1 |
 | 4 | **Grid density** | Choose videos per row on the homepage | Column count is fixed by window width | `customize-grid` | — | P1 |
 | 5 | **Playback speed** | A default speed, plus per-channel overrides that are remembered | Speed resets; no per-channel memory | `playback-speed` | — | P1 |
-| 6 | **SponsorBlock auto-skip** | Auto-skips crowd-sourced sponsor / self-promo / intro / outro segments; shows sponsor-free length | Not native (Premium "Jump ahead" is not sponsor skipping) | `sponsorblock` (badge only) | Add auto-skip + category choice; also replaces per-channel intro/outro skipping | P1 |
-| 7 | **Global queue** | One persistent queue shared by every YouTube tab/window in the profile | Native queue is per-tab and lost on reload | `read-later-queue` (persistence + cross-tab sync exist) | Rework per spec below | P1 |
+| 6 | **SponsorBlock auto-skip** | Auto-skips crowd-sourced sponsor / self-promo / interaction / intro / outro segments, shown on the progress bar, with Undo | Not native (Premium "Jump ahead" is not sponsor skipping) | `sponsorblock` | — | P1 |
+| 7 | **Global queue** | One persistent queue shared by every YouTube tab/window in the profile | Native queue is per-tab and lost on reload | `read-later-queue` | — | P1 |
 | 8 | **Channel groups** | Group channels (favorites = a group), filter Subscriptions/home by group | Subscriptions are one flat list | `channel-groups` | — | P2 |
 | 9 | **Hide end-screen cards** | Removes the suggested-video overlay in the last ~20 s | No native off switch | `hide-end-screen-cards` | — | P2 |
 | 10 | **Auto-dismiss "Still watching?"** | Auto-confirms the pause prompt | Not native | `auto-dismiss-still-watching` | — | P2 |
-| 11 | **Volume boost** | Amplify above 100% for quiet videos | Native caps at 100%; Stable volume only normalizes | `volume-boost` | Add a limiter (stops clipping); resume a suspended AudioContext on first play (else silent video) | P2 |
+| 11 | **Volume boost** | Amplify above 100% for quiet videos | Native caps at 100%; Stable volume only normalizes | `volume-boost` | — | P2 |
 | 12 | **Video notes** | Private auto-saved note per video | Not native | `video-notes` | — (persistence verified 2026-10-12) | P2 |
 | 13 | **Watch time** | Daily/weekly watch-time stats, hours per channel, soft daily limit | No watch-time stats or limits on desktop | `watch-time` | — | P2 |
-| 14 | **Transcript download** | Export the transcript as `.txt` / `.srt` | Native shows the transcript, can't export it | `download-transcript` | Browser test | P3 |
+| 14 | **Transcript download** | Export the transcript as `.txt` / `.srt` | Native shows the transcript, can't export it | `download-transcript` | — | P3 |
 | 15 | **A→B loop** | Loop a section with `[` `]` `\` | Native Loop is whole-video only | `loop-section` | — | P3 |
 | 16 | **Frame screenshot** | `S` saves the current frame as PNG | Not native | `screenshot-current-frame` | — | P3 |
 | 17 | **True black** | `#000` backgrounds for OLED | Native dark is `#0f0f0f` | `true-black-dark-mode` | — | P3 |
@@ -48,8 +48,8 @@ short "Skipped sponsor · Undo" toast. API calls go through the service worker
 ### Global queue
 - **Scope:** every tab and window of the Chrome profile; survives reload and restart
   (`chrome.storage.local`). Adding from any tab appears live in all others.
-- **Adding:** YouTube's own ⋮ → **Add to queue** is redirected to this queue; plus `Q` and a
-  watch-page button. Redirect matching must not depend on menu text (locales); if matching
+- **Adding:** YouTube's own ⋮ → **Add to queue** is redirected to this queue; plus `Q` (the boards
+  have no separate watch-page button). Redirect matching must not depend on menu text (locales); if matching
   fails, YouTube's native behavior runs and `Q`/button still work.
 - **One player tab:** queued videos only ever play in a single *player tab* — the tab that
   last started a queued video (store its tab id in `chrome.storage.session`). Starting the

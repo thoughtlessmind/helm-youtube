@@ -57,7 +57,10 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 - `observer.ts` — single batched MutationObserver. Use `ctx.observer.onChange(cb)` (debounced 100 ms re-scan) or `ctx.observer.subscribe(mutations => …)` for raw access
 - `navigation.ts` — `ctx.navigation.onNavigate(url => …)` for SPA route changes (`yt-navigate-finish`)
 - `keys.ts` — `onKey('y', handler)` page-level keyboard shortcut helper that auto-skips when the user is typing in an input/textarea/contenteditable
-- `toast.ts` — `flashToast('Link copied')` for action feedback
+- `toast.ts` — `flashToast('Added to queue', { action: { label: 'Undo', onClick } })` — YouTube-style bottom-left toast
+- `ui.ts` — YouTube-native kit: `createHost(id)` (shadow host + `NATIVE_CSS` classes `.ytp-btn`, `.ytp-chip`, `.ytp-menu`, `.ytp-dialog`, …), `openPopover`, `menuKeys`, `showDialog`. Every on-page surface uses it
+- `player.ts` — `mountInPlayer(ctx, host, slot, order)` for the player's controls row / progress bar / overlay; `action-row.ts` — slots left of Like and above the description
+- `player-bridge.ts` — answers the popup's messages (`lib/messages.ts`) in every YouTube tab, flags or not
 - `theme.ts` — aliases YouTube's retired `--yt-spec-*` color tokens to the live `--yt-sys-color-baseline--*` ones; write new theme overrides against the `--yt-sys-*` tokens
 
 ### Performance rules — these are the moat
@@ -68,7 +71,7 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 - For SPA route changes use `ctx.navigation.onNavigate(cb)`. Do NOT poll `location.href` or hook `popstate` — YouTube fires `yt-navigate-finish`.
 - Centralize selectors in `lib/yt/` so a YouTube redesign is a one-file fix. Prefer feature detection over class names.
 - No polyfills, no lodash, no moment. Modern Chrome only.
-- Keep injected UI in **shadow DOM** when added (TBD — first feature to need overlay UI sets the pattern). YouTube's stylesheet will clobber un-scoped styles.
+- Injected UI lives in a **shadow root** from `createHost()` (YouTube's stylesheet clobbers un-scoped styles), placed in a YouTube slot — **no floating `position: fixed` buttons/panels, no extension branding on youtube.com**. Colors only from `--yt-sys-color-baseline--*` tokens so light/dark/true-black just work. Stateful UI may be a Svelte component with `<svelte:options css="injected" />` mounted into that root (see the top of `ui.ts`); unmount it in the teardown.
 
 ### Storage split
 
