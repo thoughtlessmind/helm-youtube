@@ -1,6 +1,7 @@
 import type { YTContext } from './context';
 import type { PlayerState, TabMessage } from '../messages';
 import { getVideoId, getWatchChannel } from './video';
+import { watchMetaCurrent } from './player';
 
 /** The watch page's main <video> (not hover previews). */
 export const mainVideo = () =>
@@ -9,9 +10,12 @@ export const mainVideo = () =>
 /** True while YouTube plays an ad in the main player (its <video> is the ad's then). */
 export const adShowing = () => !!document.querySelector('#movie_player.ad-showing');
 
+/** The watch page's title, or '' while the page still shows the previous video's metadata. */
 export const watchTitle = () =>
-  document.querySelector('ytd-watch-metadata h1')?.textContent?.trim() ||
-  document.title.replace(/ - YouTube$/, '');
+  !watchMetaCurrent()
+    ? ''
+    : document.querySelector('ytd-watch-metadata h1')?.textContent?.trim() ||
+      document.title.replace(/ - YouTube$/, '');
 
 const VIDEO_ID = /^[\w-]{11}$/;
 
@@ -35,7 +39,7 @@ function playerState(): PlayerState | null {
   return {
     videoId,
     title: watchTitle(),
-    channelName: getWatchChannel()?.name ?? '',
+    channelName: (watchMetaCurrent() && getWatchChannel()?.name) || '',
     currentTime: v.currentTime,
     duration: Number.isFinite(v.duration) ? v.duration : 0,
     paused: v.paused,

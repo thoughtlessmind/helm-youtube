@@ -1,4 +1,5 @@
 import type { YTContext } from './context';
+import { getVideoId } from './video';
 
 /**
  * The watch player's chrome, shared by the player features (speed chip, screenshot, A→B loop,
@@ -20,15 +21,20 @@ export const getVideo = () => document.querySelector<HTMLVideoElement>(VIDEO_SEL
 export const isAdShowing = () => !!getPlayer()?.classList.contains('ad-showing');
 
 /**
- * Video of the watch player. On /watch the URL leads (it changes at yt-navigate-start, before the
- * new video loads; ytd-watch-flexy[video-id] lags until after yt-navigate-finish). Elsewhere
- * (miniplayer) the flexy attribute still names the playing video.
+ * On /watch the URL leads: it changes at yt-navigate-start, before the new video loads, while
+ * ytd-watch-flexy[video-id] — and the title/owner/length under it — lags until after
+ * yt-navigate-finish. Elsewhere (miniplayer) the flexy attribute still names the playing video.
  */
-export function playerVideoId(): string | null {
-  return location.pathname === '/watch'
-    ? new URLSearchParams(location.search).get('v')
-    : document.querySelector('ytd-watch-flexy')?.getAttribute('video-id') || null;
-}
+const flexyVideoId = () => document.querySelector('ytd-watch-flexy')?.getAttribute('video-id') || null;
+
+/** Video of the watch player (the URL's on /watch, else the miniplayer's). */
+export const playerVideoId = () => getVideoId() ?? flexyVideoId();
+
+/** Watch metadata (title, channel, length) has caught up with the URL's video. */
+export const watchMetaCurrent = () => {
+  const id = getVideoId();
+  return !!id && flexyVideoId() === id;
+};
 
 /** 412 → "6:52", 3725 → "1:02:05". */
 export function fmtTime(sec: number): string {

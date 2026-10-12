@@ -9,6 +9,7 @@ import { flashToast } from '../lib/yt/toast';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
 import { createHost, menuKeys, openPopover } from '../lib/yt/ui';
 import { actionCss, placeInActionRow } from '../lib/yt/action-row';
+import { watchTitle } from '../lib/yt/player-bridge';
 import { fetchTranscript, hasTranscript, type TranscriptSegment } from '../lib/yt/transcript';
 
 const ICON = (d: string) =>
@@ -51,11 +52,7 @@ function save(content: string, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-const fileBase = () =>
-  document
-    .querySelector('ytd-watch-metadata h1')
-    ?.textContent?.trim()
-    .replace(/[/\\:*?"<>|]+/g, '-') || getVideoId() || 'transcript';
+const fileBase = () => watchTitle().replace(/[/\\:*?"<>|]+/g, '-') || getVideoId() || 'transcript';
 
 const feature: Feature = {
   id: 'download-transcript',
