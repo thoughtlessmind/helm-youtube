@@ -278,10 +278,19 @@ const feature: Feature = {
       const cards = feed ? enumerateVideoCards(feed) : [];
       const shown = cards.filter((c) => !isCardHidden(c) && c.checkVisibility());
       // ponytail: a fully hidden Home grid keeps YouTube loading more pages until a match shows up.
-      store.empty = !!activeGroup() && cards.length > 0 && cards.every(isCardHidden);
+      store.empty =
+        !!activeGroup() &&
+        shown.length < cards.length &&
+        shown.every((c) => {
+          const ch = cardChannel(c);
+          return !ch.id && !ch.name;
+        });
     }
 
     // ── Guide: Favorites pinned first ─────────────────────────────────────
+
+    /** Each pinned guide entry's original [parent, next sibling], for teardown. */
+    const moved = new Map<Element, [ParentNode, Node | null]>();
 
     function syncGuide(): void {
       const items = guideSubscriptions();
@@ -295,8 +304,19 @@ const feature: Feature = {
         if (on) pinned.push(entry);
       }
       // Move only when out of place: each move is a mutation that re-runs this.
-      // Unpinned entries keep their spot until YouTube re-renders the guide.
-      if (pinned.some((entry, i) => items.children[i] !== entry)) items.prepend(...pinned);
+      // Unpinned entries keep their spot until YouTube re-renders the guide (or teardown).
+      if (pinned.some((entry, i) => items.children[i] !== entry)) {
+        for (const e of pinned) if (!moved.has(e)) moved.set(e, [e.parentNode!, e.nextSibling]);
+        items.prepend(...pinned);
+      }
+    }
+
+    /** Puts moved guide entries back, last first so each one's old next sibling is already home. */
+    function restoreGuide(): void {
+      for (const [el, [parent, next]] of [...moved].reverse()) {
+        if (el.isConnected && (next ? next.parentNode === parent : parent.isConnected)) parent.insertBefore(el, next);
+      }
+      moved.clear();
     }
 
     // ── Wiring ────────────────────────────────────────────────────────────
