@@ -39,7 +39,6 @@ tp-yt-paper-tab:has(> .tab-content:is([href*="/shorts"])) {
 `;
 
 const feature: Feature = {
-  id: 'hide-shorts',
   setup() {
     if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement('style');

@@ -51,7 +51,6 @@ textarea.ytp-input{display:block;height:65px;margin-top:4px;padding:2px 0 4px;re
 const html = (s: string) => document.createRange().createContextualFragment(s);
 
 const feature: Feature = {
-  id: 'video-notes',
 
   setup(ctx) {
     let notes: Notes = {};

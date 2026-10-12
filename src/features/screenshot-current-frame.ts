@@ -50,7 +50,6 @@ function capture(): void {
 }
 
 const feature: Feature = {
-  id: 'screenshot-current-frame',
   setup(ctx) {
     const { host, root } = createHost('ytp-screenshot-btn', PLAYER_CSS + ':host{display:flex}.shot{width:48px}');
     const btn = document.createElement('button');

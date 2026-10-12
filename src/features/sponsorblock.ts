@@ -80,7 +80,6 @@ function dot(color: string): HTMLElement {
 }
 
 const feature: Feature = {
-  id: 'sponsorblock',
 
   async setup(ctx) {
     let cfg = await getConfig('sponsorblock');

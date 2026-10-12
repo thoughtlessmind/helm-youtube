@@ -85,7 +85,6 @@ const ownerAvatar = () =>
   document.querySelector<HTMLImageElement>('ytd-watch-metadata ytd-video-owner-renderer #avatar img')?.src || null;
 
 const feature: Feature = {
-  id: 'playback-speed',
 
   async setup(ctx) {
     let cfg = await getConfig('playback-speed');

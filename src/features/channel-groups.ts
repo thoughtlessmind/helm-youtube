@@ -128,7 +128,6 @@ function guideSubscriptions(): HTMLElement | null {
 }
 
 const feature: Feature = {
-  id: ID,
 
   async setup(ctx) {
     let pill: { host: HTMLElement; app: ReturnType<typeof mount> } | null = null;

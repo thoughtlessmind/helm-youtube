@@ -1,4 +1,3 @@
-import type { YTContext } from './context';
 import type { PlayerState, TabMessage } from '../messages';
 import { getVideoId, getWatchChannel } from './video';
 import { getVideo, watchMetaCurrent } from './player';
@@ -76,7 +75,7 @@ function handle(msg: TabMessage, reply: (r: unknown) => void): boolean {
  * play/pause, seek, play a video. Installed once by the content script regardless of feature
  * flags. Handled messages reply truthy (the popup reads `undefined` as "no receiver").
  */
-export function installPlayerBridge(_ctx: YTContext): () => void {
+export function installPlayerBridge(): () => void {
   const onMessage = (msg: TabMessage, _sender: unknown, sendResponse: (r: unknown) => void) =>
     handle(msg, sendResponse) || undefined;
   browser.runtime.onMessage.addListener(onMessage);

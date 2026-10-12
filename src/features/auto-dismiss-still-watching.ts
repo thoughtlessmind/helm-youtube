@@ -14,7 +14,6 @@ import type { Feature } from '../lib/features';
 const IDLE_MS = 10_000;
 
 const feature: Feature = {
-  id: 'auto-dismiss-still-watching',
   setup(ctx) {
     let lastInput = Date.now();
     const mark = () => (lastInput = Date.now());

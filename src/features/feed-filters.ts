@@ -59,7 +59,6 @@ const TOGGLE_CSS = `
 type Config = FeatureConfig['feed-filters'];
 
 const feature: Feature = {
-  id: ID,
 
   async setup(ctx) {
     let keywords: string[] = [];

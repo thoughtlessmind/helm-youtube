@@ -30,7 +30,6 @@ html[dark] ytd-watch-flexy {
 `;
 
 const feature: Feature = {
-  id: 'true-black-dark-mode',
   setup() {
     if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement('style');

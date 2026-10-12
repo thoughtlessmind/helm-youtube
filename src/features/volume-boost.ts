@@ -60,7 +60,6 @@ const CSS = `
 `;
 
 const feature: Feature = {
-  id: 'volume-boost',
   async setup(ctx) {
     let multiplier = (await getConfig('volume-boost')).multiplier;
 

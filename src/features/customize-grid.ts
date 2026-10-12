@@ -2,11 +2,8 @@ import type { Feature } from '../lib/features';
 import { getConfig, watchConfig } from '../lib/settings';
 
 const STYLE_ID = 'yt-pro-customize-grid';
-const MIN_COLS = 3;
-const MAX_COLS = 12;
 
-function buildCSS(columns: number): string {
-  const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, columns));
+function buildCSS(cols: number): string {
 
   // YouTube's media queries override its own items-per-row var at narrow
   // viewports, so we set grid-template-columns explicitly. The CSS vars
@@ -68,7 +65,6 @@ function applyStyle(css: string): void {
 }
 
 const feature: Feature = {
-  id: 'customize-grid',
   async setup() {
     const cfg = await getConfig('customize-grid');
     applyStyle(buildCSS(cfg.columnsPerRow));

@@ -27,7 +27,7 @@ export default defineContentScript({
 
     // The popup's now-playing card talks to every YouTube tab, even with
     // every feature (or the whole extension) switched off.
-    installPlayerBridge(ctx);
+    installPlayerBridge();
 
     const apply = async (enabledIds: string[]) => {
       if (wxt.isInvalid) return;

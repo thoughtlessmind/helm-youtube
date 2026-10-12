@@ -55,7 +55,6 @@ async function lookup(videoId: string): Promise<Omit<QueueItem, 'addedAt' | 'pla
 }
 
 const feature: Feature = {
-  id: 'read-later-queue',
   async setup(ctx) {
     const html = document.documentElement;
     // whoami answers once the SW has opened session storage to content scripts — ask it first.

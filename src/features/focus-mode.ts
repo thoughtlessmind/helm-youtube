@@ -89,7 +89,6 @@ svg{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:
 `;
 
 const feature: Feature = {
-  id: 'focus-mode',
   async setup(ctx) {
     let cfg = await getConfig('focus-mode');
     /** "Show it once" on home — reset when we leave home. */

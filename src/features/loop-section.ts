@@ -44,7 +44,6 @@ const BAR_CSS = `
 `;
 
 const feature: Feature = {
-  id: 'loop-section',
   setup(ctx) {
     let a: number | null = null;
     let b: number | null = null;

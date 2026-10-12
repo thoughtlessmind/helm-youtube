@@ -73,7 +73,6 @@ button{margin:0;padding:0;border:0;border-radius:2px;font:inherit;color:inherit;
 `;
 
 const feature: Feature = {
-  id: 'watch-time',
 
   async setup(ctx) {
     const stopTracking = startTracking(ctx);

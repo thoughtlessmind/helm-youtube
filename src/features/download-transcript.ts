@@ -44,7 +44,6 @@ const toSrt = (segs: TranscriptSegment[]) =>
 const fileBase = () => watchTitle().replace(/[/\\:*?"<>|]+/g, '-') || getVideoId() || 'transcript';
 
 const feature: Feature = {
-  id: 'download-transcript',
 
   setup(ctx) {
     const { host, root } = createHost('ytp-transcript', CSS);

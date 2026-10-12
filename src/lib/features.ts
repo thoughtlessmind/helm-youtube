@@ -5,7 +5,6 @@ import type { YTContext } from './yt/context';
  * disabled features cost zero on the YouTube page.
  */
 export interface Feature {
-  id: string;
   /** Called once when the feature is enabled. Return a teardown fn. */
   setup(ctx: YTContext): void | (() => void) | Promise<void | (() => void)>;
 }
