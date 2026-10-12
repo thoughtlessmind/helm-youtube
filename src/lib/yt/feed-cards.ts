@@ -167,7 +167,7 @@ export type FeedBarPart = 'groups' | 'filters';
 
 const BAR_ID = 'ytp-feed-bar';
 const BAR_CSS = `
-  :host { display: block; }
+  :host { display: block; width: 100%; } /* the grid is a centered flex column */
   .row { display: flex; align-items: flex-start; gap: 12px; }
   .row:has(> :not([hidden])) { padding: 12px 0; }
   [data-part][hidden] { display: none; }
