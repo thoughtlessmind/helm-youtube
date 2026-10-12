@@ -1,4 +1,5 @@
 import type { Feature } from '../lib/features';
+import { fetchJson } from '../lib/fetch-json';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
 
 /**
@@ -112,11 +113,11 @@ const feature: Feature = {
 
       let data: RYDResponse;
       try {
-        const res = await fetch(`${API_BASE}?videoId=${encodeURIComponent(videoId)}`, { signal });
-        if (!res.ok) return; // Non-2xx — silent.
-        data = (await res.json()) as RYDResponse;
+        const res = await fetchJson<RYDResponse>(`${API_BASE}?videoId=${encodeURIComponent(videoId)}`);
+        if (!res.data) return; // Non-2xx — silent.
+        data = res.data;
       } catch {
-        return; // Network error or abort — silent.
+        return; // Extension context gone — silent.
       }
 
       // Guard: stale response from a previous navigation.

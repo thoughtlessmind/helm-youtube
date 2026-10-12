@@ -1,4 +1,5 @@
 import type { Feature } from '../lib/features';
+import { fetchJson } from '../lib/fetch-json';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
 
 /**
@@ -117,12 +118,12 @@ const feature: Feature = {
 
       let segments: SponsorSegment[];
       try {
-        const res = await fetch(url, { signal });
-        if (res.status === 404) return; // No sponsor data for this video — silent.
-        if (!res.ok) return;            // Other errors — silent.
-        segments = (await res.json()) as SponsorSegment[];
+        // 404 = no sponsor data for this video; any non-2xx comes back as null — silent.
+        const { data } = await fetchJson<SponsorSegment[]>(url);
+        if (!data) return;
+        segments = data;
       } catch {
-        // Network error or abort — silent.
+        // Extension context gone — silent.
         return;
       }
 

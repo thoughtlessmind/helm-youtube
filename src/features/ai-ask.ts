@@ -257,9 +257,10 @@ const PANEL_CSS = `
 
 /**
  * Regex that matches `[m:ss]`, `[mm:ss]`, or `[h:mm:ss]` citation patterns
- * embedded in model output text.
+ * embedded in model output text. Gemini Nano often markdown-escapes the
+ * brackets (`\[0:06\]`), so the backslashes are swallowed too.
  */
-const TS_CITE_RE = /\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g;
+const TS_CITE_RE = /\\?\[(\d{1,2}:\d{2}(?::\d{2})?)\\?\]/g;
 
 const escHtml = (s: string): string =>
   s.replace(/[&<>"']/g, (c) =>

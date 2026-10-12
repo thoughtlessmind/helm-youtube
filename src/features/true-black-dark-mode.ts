@@ -13,10 +13,9 @@ const STYLE_ID = 'yt-pro-true-black-dark-mode';
  */
 const CSS = `
 html[dark] {
-  --yt-spec-base-background: #000 !important;
-  --yt-spec-raised-background: #000 !important;
-  --yt-spec-menu-background: #0a0a0a !important;
-  --yt-spec-additive-background: rgba(255, 255, 255, 0.04) !important;
+  --yt-sys-color-baseline--base-background: #000 !important;
+  --yt-sys-color-baseline--raised-background: #000 !important;
+  --yt-sys-color-baseline--menu-background: #0a0a0a !important;
 }
 html[dark] body,
 html[dark] ytd-app,

@@ -3,13 +3,13 @@ import type { Feature } from '../lib/features';
 
 /**
  * Theme Presets — recolor YouTube by overriding its CSS custom property
- * (`--yt-spec-*`) family on the `html` element. Each preset is a
+ * (`--yt-sys-color-baseline--*`) family on the `html` element. Each preset is a
  * self-contained palette: base/raised/menu backgrounds, primary/secondary
  * text, and an accent color. We derive every YT spec token from those five
  * values so presets stay readable without per-token micro-tuning.
  *
  * Why CSS custom properties rather than class/attribute toggling?
- * YouTube already ships `--yt-spec-*` tokens as its theming layer. Patching
+ * YouTube already ships `--yt-sys-*` tokens as its theming layer. Patching
  * them at the `html` level is the lightest possible override — no selectors
  * need to name individual components, and the tokens cascade everywhere YT
  * already uses them, including dynamically inserted nodes.
@@ -151,44 +151,26 @@ function buildCSS(presetId: string): string {
   const palette = PALETTES[presetId] ?? null;
   if (!palette) return ''; // 'default' — no override
 
-  const {
-    base, raised, menu, overlay,
-    textPrimary, textSecondary,
-    accent, accentText,
-  } = palette;
+  const { base, raised, menu, textPrimary, textSecondary, accent } = palette;
 
-  // Derive additional YT spec variables from the core five values.
-  // `--yt-spec-general-background-{a,b,c}` are intermediate surface steps;
-  // we interpolate them between base and raised.
+  // YouTube's live tokens are `--yt-sys-color-baseline--*`; the legacy
+  // `--yt-spec-*` names our own panels read are aliased to these in
+  // lib/yt/theme.ts, so they follow the preset automatically.
+  const t = '--yt-sys-color-baseline-';
   return `
 html {
-  /* ── Backgrounds ── */
-  --yt-spec-base-background:            ${base}    !important;
-  --yt-spec-raised-background:          ${raised}  !important;
-  --yt-spec-menu-background:            ${menu}    !important;
-  --yt-spec-general-background-a:       ${base}    !important;
-  --yt-spec-general-background-b:       ${raised}  !important;
-  --yt-spec-general-background-c:       ${menu}    !important;
-  --yt-spec-additive-background:        ${overlay} !important;
-  --yt-spec-brand-background-solid:     ${accent}  !important;
-  --yt-spec-brand-background-primary:   ${accent}  !important;
-  --yt-spec-brand-background-secondary: ${raised}  !important;
-
-  /* ── Text ── */
-  --yt-spec-text-primary:               ${textPrimary}   !important;
-  --yt-spec-text-secondary:             ${textSecondary} !important;
-  --yt-spec-text-disabled:              ${textSecondary} !important;
-
-  /* ── Accent / CTA ── */
-  --yt-spec-call-to-action:             ${accent}     !important;
-  --yt-spec-static-brand-red:           ${accent}     !important;
-  --yt-spec-brand-button-text:          ${accentText} !important;
-
-  /* ── Misc ── */
-  --yt-spec-icon-active-other:          ${textPrimary}   !important;
-  --yt-spec-icon-inactive:              ${textSecondary} !important;
-  --yt-spec-outline:                    ${textSecondary} !important;
-  --yt-spec-10-percent-layer:           rgba(128,128,128,0.1) !important;
+  ${t}-base-background:   ${base}    !important;
+  ${t}-raised-background: ${raised}  !important;
+  ${t}-menu-background:   ${menu}    !important;
+  ${t}-text-primary:      ${textPrimary}   !important;
+  ${t}-text-secondary:    ${textSecondary} !important;
+  ${t}-text-disabled:     ${textSecondary} !important;
+  ${t}-call-to-action:    ${accent}  !important;
+  ${t}-static-brand-red:  ${accent}  !important;
+}
+html body, html ytd-app, html #masthead-container, html ytd-mini-guide-renderer,
+html ytd-guide-renderer, html ytd-watch-flexy, html ytd-browse {
+  background-color: ${base} !important;
 }
 `;
 }
