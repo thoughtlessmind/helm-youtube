@@ -1,4 +1,8 @@
-# Features Roadmap
+# Features Roadmap (DEPRECATED)
+
+> **Deprecated 2026-10-12.** Superseded by [`features-v2.md`](./features-v2.md); cut items
+> and reasons are in [`features-removed.md`](./features-removed.md). Kept for history only —
+> do not pick work from this file.
 
 Features are organized from **Quick Wins** (small, high-impact, MVP candidates) to **Large Features** (more ambitious, often requiring APIs, OAuth, or significant UI work).
 

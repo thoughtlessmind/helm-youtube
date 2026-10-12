@@ -3,7 +3,7 @@ import type { FetchJsonResult } from '../lib/fetch-json';
 // Content-script fetches run with youtube.com's origin and are blocked
 // cross-origin; the SW holds host_permissions, so third-party API calls
 // are proxied here. Allowlisted so it can't become an open proxy.
-const ALLOWED_HOSTS = new Set(['sponsor.ajay.app', 'returnyoutubedislikeapi.com']);
+const ALLOWED_HOSTS = new Set(['sponsor.ajay.app']);
 
 export default defineBackground(() => {
   browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

@@ -16,8 +16,6 @@ export default defineConfig({
       '*://*.youtube.com/*',
       // SponsorBlock feature — crowd-sourced sponsor segment lookups.
       'https://sponsor.ajay.app/*',
-      // Dislike-count feature — Return YouTube Dislike community API.
-      'https://returnyoutubedislikeapi.com/*',
     ],
   },
 });

@@ -8,7 +8,7 @@
  *
  * Multi-feature hide coordination
  * ────────────────────────────────
- * A card can be hidden by MULTIPLE features simultaneously (e.g. "mute-channels"
+ * A card can be hidden by MULTIPLE features simultaneously (e.g. "block-by-length"
  * AND "block-keywords"). We track which features have hidden a card via the
  * attribute  data-yt-pro-hidden-by  (space-separated feature-id set).
  *
@@ -164,7 +164,7 @@ export function cardDurationSeconds(card: HTMLElement): number | null {
  * card hidden by another.
  *
  * @param card      The video card element to hide.
- * @param featureId The calling feature's id string (e.g. `'mute-channels'`).
+ * @param featureId The calling feature's id string (e.g. `'block-keywords'`).
  */
 export function hideCard(card: HTMLElement, featureId: string): void {
   const existing = card.getAttribute(HIDDEN_BY_ATTR) ?? '';

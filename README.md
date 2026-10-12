@@ -8,31 +8,30 @@ YouTube Pro is a browser extension built for power users who spend a lot of time
 
 The goal is twofold:
 
-1. **Reduce friction** — turn multi-step native flows (like adding to Watch Later) into one click.
-2. **Add features YouTube doesn't have** — custom dashboards that filter your homepage to specific channels, per-channel playback speed memory, focus modes, transcripts, on-device AI summaries, and personal analytics.
+1. **Remove friction and noise** — hide Shorts and recommendations, filter the feed, skip sponsor segments.
+2. **Add features YouTube doesn't have** — a persistent queue shared across tabs, channel groups, per-channel playback speed, video notes, and watch-time tracking.
+
+Every feature passes one rule: youtube.com doesn't already do it. See [`features-v2.md`](./features-v2.md).
 
 This is *not* an ad blocker, a downloader, or a TOS-violating tool. It works alongside YouTube and respects the platform.
 
 ## Who It's For
 
 - People who watch a lot of YouTube and feel the current UI gets in the way
-- Subscribers who want true control over their feed (folders, filters, dashboards)
-- Learners who use YouTube as a study tool and want notes, transcripts, and section looping
+- Subscribers who want true control over their feed (channel groups, filters)
+- Learners who use YouTube as a study tool and want notes, transcript export, and section looping
 - Anyone tired of clicking through three menus to do something simple
 
 ## Project Status
 
-**Functional.** All four roadmap phases are implemented — see `features.md`. ~50 independently-toggleable features ship across Feed & Discovery, Watch Page, Player, Playback, Per-Channel, Insights, on-device AI, Analytics, Notes & Library, Video Tools, and more. Every feature is on/off from the toolbar popup and the in-page header menu.
-
-A small number of roadmap items are intentionally out of scope (companion mobile app, hosted preset marketplace, OAuth custom-feed mode) — see the "Build Status & Deferred Scope" section of `features.md`.
+**In progress.** The feature set was cut to 17 features on 2026-10-12 — see [`features-v2.md`](./features-v2.md) for the list and the work left on each, and [`features-removed.md`](./features-removed.md) for what was dropped and why (mostly things YouTube now does natively). Every feature is on/off from the toolbar popup and the in-page header menu.
 
 ## Tech Stack
 
 - **[WXT](https://wxt.dev)** — MV3-aware build/dev framework on Vite (replaces hand-rolled Vite + CRXJS).
 - **Svelte 5 + TypeScript** — tiny runtime (~2 kB) so injected UI doesn't slow YouTube down.
 - Cross-browser: Chrome (MV3) and Firefox (MV2) build out of the box.
-- **On-device AI** — the AI features (summary, chapter generation, ask-the-video) use Chrome's built-in Gemini Nano (Prompt / Summarizer API). No external API, no keys, no OAuth.
-- **Public APIs** — SponsorBlock and Return YouTube Dislike, both keyless.
+- **Public API** — SponsorBlock (keyless), called via the service worker. No OAuth.
 
 ## Commands
 
@@ -65,7 +64,7 @@ src/
 
 Each feature is a self-contained module with a `setup(ctx)` that returns a teardown function. Disabled features pay zero runtime cost. The whole extension shares **exactly one** `MutationObserver` and one SPA-navigation listener. See `CLAUDE.md` for the full architecture and the rules for adding a feature.
 
-> **Bundle note:** with ~50 features the content script is ~260 kB minified. Feature *code* is bundled regardless of toggles (a content-script chunk-loading constraint), but disabled features run no code — no observer subscriptions, no listeners.
+> **Bundle note:** the content script is ~140 kB minified. Feature *code* is bundled regardless of toggles (a content-script chunk-loading constraint), but disabled features run no code — no observer subscriptions, no listeners.
 
 ## Distribution
 
@@ -74,7 +73,7 @@ Each feature is a self-contained module with a `setup(ctx)` that returns a teard
 
 ## Contributing
 
-Pick a feature from `features.md`. Adding one is: a module under `src/features/`, a registry line in `src/lib/features.ts`, a flag in `src/lib/settings.ts`, and an entry in `src/lib/feature-catalog.ts` — the popup and in-page menu render from the catalog automatically. Keep the [performance rules in `CLAUDE.md`](./CLAUDE.md) — they are the moat.
+Pick work from `features-v2.md` (P1 first). Adding one is: a module under `src/features/`, a registry line in `src/lib/features.ts`, a flag in `src/lib/settings.ts`, and an entry in `src/lib/feature-catalog.ts` — the popup and in-page menu render from the catalog automatically. Keep the [performance rules in `CLAUDE.md`](./CLAUDE.md) — they are the moat.
 
 ## License
 

@@ -4,8 +4,8 @@
  * (with light-theme fallbacks, so dark mode broke silently). Alias them
  * once here so the next rename is a one-file fix.
  *
- * Theme features (true-black, theme-presets) write the NEW tokens; these
- * aliases resolve against them, so injected panels follow the theme too.
+ * True-black writes the NEW tokens; these aliases resolve against them,
+ * so injected panels follow it too.
  */
 const STYLE_ID = 'yt-pro-theme-aliases';
 

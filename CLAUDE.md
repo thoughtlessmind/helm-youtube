@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-YouTube Pro — a Manifest V3 Chrome extension that layers UX improvements and power-user features on top of youtube.com. Not an ad blocker, downloader, or TOS-violating tool. See `README.md` for the pitch and `features.md` for the roadmap (organized Phase 1 → 4, MVP-first).
+YouTube Pro — a Manifest V3 Chrome extension that layers UX improvements and power-user features on top of youtube.com. Not an ad blocker, downloader, or TOS-violating tool. See `README.md` for the pitch and `features-v2.md` for the feature list (`features.md` is deprecated; cuts are recorded in `features-removed.md`).
 
 ## Stack
 
@@ -46,7 +46,7 @@ src/
 1. Author a `Feature` object in `src/features/<id>.ts` exporting `default`. Its `setup(ctx)` returns an optional teardown.
 2. Add `'<id>': () => import('../features/<id>')` to `featureRegistry` in `src/lib/features.ts`.
 3. Add the flag to `FeatureFlags` + a default in `FEATURE_DEFAULTS` in `src/lib/settings.ts`.
-4. Add an entry to the `features` array in `src/entrypoints/popup/App.svelte` for the toggle.
+4. Add a `CatalogEntry` in `src/lib/feature-catalog.ts` — the popup and the in-page header menu both render from it.
 5. If the feature needs config beyond on/off (e.g. a chosen speed): add a key to `FeatureConfig` + default, then use `getConfig(id)` / `watchConfig(id, cb)` inside `setup()` to react reactively.
 
 The content script reads enabled flags from `chrome.storage.sync`, dynamic-imports only those modules, and tears them down when the user disables them. **Disabled features pay zero runtime cost** — `setup()` never runs, no observer subscriptions, no listeners. (Note: due to content-script chunk-loading constraints, the bundle still includes all feature code; runtime cost is the part we control.)
@@ -58,6 +58,7 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 - `navigation.ts` — `ctx.navigation.onNavigate(url => …)` for SPA route changes (`yt-navigate-finish`)
 - `keys.ts` — `onKey('y', handler)` page-level keyboard shortcut helper that auto-skips when the user is typing in an input/textarea/contenteditable
 - `toast.ts` — `flashToast('Link copied')` for action feedback
+- `theme.ts` — aliases YouTube's retired `--yt-spec-*` color tokens to the live `--yt-sys-color-baseline--*` ones; write new theme overrides against the `--yt-sys-*` tokens
 
 ### Performance rules — these are the moat
 
@@ -72,13 +73,15 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 ### Storage split
 
 - `chrome.storage.sync` → user prefs, feature flags, dashboards (small, roams across devices)
-- `chrome.storage.local` → bulky data: notes, tags, watch analytics
+- `chrome.storage.local` → bulky data: notes, queue, watch analytics
 - Always use the wxt `storage` helper (`storage.getItem('sync:key')` / `storage.watch(...)`), not raw `chrome.storage`.
 
 ### Service worker
 
 MV3 SWs get terminated. Keep state in `chrome.storage`, not module-level vars. Talk to it from content scripts via `browser.runtime.sendMessage`.
 
-## Feature prioritization (from `features.md`)
+Content-script `fetch` to a third-party origin is cross-origin blocked in MV3 (host permissions don't apply there). Use `fetchJson()` from `lib/fetch-json.ts`, which proxies through the SW; add the host to `ALLOWED_HOSTS` in `background.ts` and to `host_permissions`.
 
-When picking work, order by: works without OAuth → survives YouTube UI changes → visible value <5s of install → stands alone. Phase 1 is the MVP target before touching mid/large features. External APIs (YouTube Data API, SponsorBlock, Return YT Dislike, Anthropic Claude) are Phase 3+ only.
+## Feature scope (from `features-v2.md`)
+
+A feature ships only if youtube.com doesn't already offer it and it removes a real pain point — check the live site before building. No OAuth. The only external service is SponsorBlock. Work in the P1 → P3 order in `features-v2.md`.

@@ -66,16 +66,6 @@ const GRID_COLUMN_OPTIONS: SelectOption[] = [3, 4, 5, 6, 7, 8].map((v) => ({
   label: String(v),
 }));
 
-const THEME_OPTIONS: SelectOption[] = [
-  { value: 'default', label: 'Default (YouTube)' },
-  { value: 'dim', label: 'Dim' },
-  { value: 'midnight-blue', label: 'Midnight Blue' },
-  { value: 'nord', label: 'Nord' },
-  { value: 'dracula', label: 'Dracula' },
-  { value: 'sepia', label: 'Sepia' },
-  { value: 'rose', label: 'Rose' },
-];
-
 // ─── Catalog ──────────────────────────────────────────────────────────────────
 
 export const CATALOG: CatalogSection[] = [
@@ -100,16 +90,6 @@ export const CATALOG: CatalogSection[] = [
           { key: 'columnsPerRow', type: 'select', label: 'Columns', options: GRID_COLUMN_OPTIONS },
           { key: 'hideCardInfo', type: 'checkbox', label: 'Hide card info (title, channel, views)' },
         ],
-      },
-      {
-        id: 'thumbnail-save-button',
-        label: 'Always-visible Watch Later',
-        desc: 'Shows the Watch Later button on every thumbnail without needing to hover.',
-      },
-      {
-        id: 'mute-channels',
-        label: 'Mute channels',
-        desc: 'Hide videos from specific channels in the feed and search without unsubscribing.',
       },
       {
         id: 'block-keywords',
@@ -190,58 +170,9 @@ export const CATALOG: CatalogSection[] = [
         desc: 'Hide the comments section on watch pages.',
       },
       {
-        id: 'disable-autoplay',
-        label: 'Disable autoplay',
-        desc: 'Turns off the autoplay toggle on every watch page.',
-      },
-      {
         id: 'distraction-free-mode',
         label: 'Distraction-free mode',
         desc: 'On watch pages, hide everything except the player and title.',
-      },
-    ],
-  },
-  {
-    title: 'Player',
-    features: [
-      {
-        id: 'sticky-mini-player',
-        label: 'Sticky mini-player',
-        desc: 'Keep the video docked in a corner while you scroll through comments.',
-        config: [
-          {
-            key: 'corner',
-            type: 'select',
-            label: 'Corner',
-            options: [
-              { value: 'bottom-right', label: 'Bottom-right' },
-              { value: 'bottom-left', label: 'Bottom-left' },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'resize-player',
-        label: 'Resize player',
-        desc: 'Set the watch-page player to a preferred width.',
-        config: [
-          {
-            key: 'width',
-            type: 'select',
-            label: 'Player width',
-            options: [
-              { value: 'default', label: 'Default' },
-              { value: 'narrow', label: 'Narrow' },
-              { value: 'wide', label: 'Wide' },
-              { value: 'full', label: 'Full width' },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'picture-in-picture',
-        label: 'Picture-in-picture (P)',
-        desc: 'Press P to pop the video into a floating Picture-in-Picture window.',
       },
     ],
   },
@@ -255,9 +186,14 @@ export const CATALOG: CatalogSection[] = [
         config: [{ key: 'rate', type: 'select', options: SPEED_OPTIONS }],
       },
       {
-        id: 'persistent-volume',
-        label: 'Persistent volume',
-        desc: 'Restore your last volume on every video.',
+        id: 'per-channel-speed',
+        label: 'Per-channel playback speed',
+        desc: 'Remembers your playback speed for each channel and applies it automatically.',
+      },
+      {
+        id: 'sponsorblock',
+        label: 'SponsorBlock segments',
+        desc: 'Shows the real watch time with crowd-sourced sponsor segments subtracted.',
       },
       {
         id: 'volume-boost',
@@ -278,75 +214,7 @@ export const CATALOG: CatalogSection[] = [
     ],
   },
   {
-    title: 'Per-Channel',
-    features: [
-      {
-        id: 'per-channel-speed',
-        label: 'Per-channel playback speed',
-        desc: 'Remembers your playback speed for each channel and applies it automatically.',
-      },
-      {
-        id: 'per-channel-skip-segments',
-        label: 'Per-channel skip segments',
-        desc: 'Auto-skip intros and outros per channel. Set durations from the in-page control.',
-        config: [
-          { key: 'showControl', type: 'checkbox', label: 'Show in-page editor on watch pages' },
-        ],
-      },
-    ],
-  },
-  {
-    title: 'Insights',
-    features: [
-      {
-        id: 'sponsorblock',
-        label: 'SponsorBlock segments',
-        desc: 'Shows the real watch time with crowd-sourced sponsor segments subtracted.',
-      },
-      {
-        id: 'dislike-count',
-        label: 'Dislike count',
-        desc: 'Restores the dislike count using the Return YouTube Dislike community API.',
-      },
-      {
-        id: 'reading-time',
-        label: 'Reading-time equivalent',
-        desc: 'Shows how long the video would take to read — a quick sense of density.',
-      },
-      {
-        id: 'transcript-panel',
-        label: 'Transcript panel (T)',
-        desc: 'A clickable, searchable transcript side panel that follows playback.',
-      },
-      {
-        id: 'download-transcript',
-        label: 'Download transcript',
-        desc: "Download the current video's transcript as .txt or .srt.",
-      },
-    ],
-  },
-  {
-    title: 'AI (on-device)',
-    features: [
-      {
-        id: 'ai-summarize',
-        label: 'AI summary',
-        desc: 'Summarize any video with Chrome on-device AI — no internet or API key needed.',
-      },
-      {
-        id: 'ai-chapters',
-        label: 'AI chapters',
-        desc: 'Auto-detect clickable chapter markers in any video using on-device AI.',
-      },
-      {
-        id: 'ai-ask',
-        label: 'Ask the video',
-        desc: 'Chat with the current video — answers cite jump-to timestamps. On-device AI.',
-      },
-    ],
-  },
-  {
-    title: 'Analytics',
+    title: 'Watch Time',
     features: [
       {
         id: 'watch-analytics',
@@ -357,11 +225,6 @@ export const CATALOG: CatalogSection[] = [
         id: 'channel-watch-stat',
         label: 'Channel watch time',
         desc: "Shows how much time you've watched on each channel's page.",
-      },
-      {
-        id: 'channel-stats',
-        label: 'Channel stats',
-        desc: 'Upload frequency, average length, and video count on channel pages.',
       },
       {
         id: 'watch-goals',
@@ -384,36 +247,11 @@ export const CATALOG: CatalogSection[] = [
           },
         ],
       },
-      {
-        id: 'history-search',
-        label: 'History search & filter',
-        desc: 'Filter watch history by title, channel, length, and upload date.',
-      },
-    ],
-  },
-  {
-    title: 'Video Tools',
-    features: [
-      {
-        id: 'multi-video-grid',
-        label: 'Multi-video grid (G)',
-        desc: 'Watch up to 4 videos at once in a 1×1 / 2×1 / 2×2 grid; focus a cell to mute the rest.',
-      },
-      {
-        id: 'compare-videos',
-        label: 'Compare videos (V)',
-        desc: 'Two videos side-by-side with synced Play / Pause / Restart.',
-      },
     ],
   },
   {
     title: 'Notes & Library',
     features: [
-      {
-        id: 'video-tags',
-        label: 'Video tags',
-        desc: 'Attach custom text tags to any video and browse your personal tag library.',
-      },
       {
         id: 'video-notes',
         label: 'Video notes',
@@ -424,33 +262,20 @@ export const CATALOG: CatalogSection[] = [
         label: 'Watch queue (Q)',
         desc: 'A read-later queue separate from Watch Later. Press Q to add, Shift+Q to open.',
       },
-      {
-        id: 'bulk-watch-later',
-        label: 'Bulk Watch Later',
-        desc: 'Sort, filter, bulk-delete, and export your Watch Later playlist.',
-      },
     ],
   },
   {
-    title: 'Shortcuts',
+    title: 'Tools',
     features: [
       {
-        id: 'copy-timestamped-link',
-        label: 'Copy timestamped link (Y)',
-        desc: 'Press Y on a video to copy a link to the current playback position.',
+        id: 'download-transcript',
+        label: 'Download transcript',
+        desc: "Download the current video's transcript as .txt or .srt.",
       },
       {
         id: 'screenshot-current-frame',
         label: 'Screenshot frame (S)',
         desc: 'Press S to download a PNG of the current frame, no overlay.',
-      },
-      {
-        id: 'save-to-playlist',
-        label: 'Save to playlist (W)',
-        desc: 'Press W on a watch page to toggle the video into the named playlist.',
-        config: [
-          { key: 'playlistName', type: 'text', label: 'Playlist', placeholder: 'Watch later' },
-        ],
       },
     ],
   },
@@ -461,12 +286,6 @@ export const CATALOG: CatalogSection[] = [
         id: 'true-black-dark-mode',
         label: 'True black dark mode',
         desc: "Replaces YouTube's dark grey backgrounds with #000 for OLED.",
-      },
-      {
-        id: 'theme-presets',
-        label: 'Theme presets',
-        desc: 'Recolor YouTube with a curated palette (Dim, Nord, Dracula, Sepia, Rose…).',
-        config: [{ key: 'preset', type: 'select', label: 'Preset', options: THEME_OPTIONS }],
       },
     ],
   },

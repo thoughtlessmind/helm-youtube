@@ -1,4 +1,7 @@
-# Tasks
+# Tasks (DEPRECATED)
+
+> **Deprecated 2026-10-12.** Tracks the old [`features.md`](./features.md) roadmap. Status of
+> the current feature set lives in the "Work left" column of [`features-v2.md`](./features-v2.md).
 
 Implementation status for everything in `features.md`. Mirrors that file's structure. Update this list whenever a feature ships or its scope changes.
 
