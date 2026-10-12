@@ -22,6 +22,7 @@ import { flashToast } from '../lib/yt/toast';
 import { createHost } from '../lib/yt/ui';
 import { getVideoId, getWatchChannel, isWatchPage } from '../lib/yt/video';
 import { adShowing, mainVideo, playInThisTab, watchTitle } from '../lib/yt/player-bridge';
+import { watchMetaCurrent } from '../lib/yt/player';
 import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelte';
 
 /**
@@ -179,6 +180,8 @@ const feature: Feature = {
     const offQ = onKey('q', async () => {
       const videoId = getVideoId();
       if (!videoId) return;
+      // Right after SPA navigation the page still shows the previous video's metadata.
+      if (!watchMetaCurrent()) return void add(await lookup(videoId));
       const v = mainVideo();
       void add({
         videoId,
