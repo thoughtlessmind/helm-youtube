@@ -21,7 +21,15 @@ import { storage } from '#imports';
 import { getConfig, setConfig, watchConfig } from '../lib/settings';
 import { getWatchChannel, isWatchPage, type ChannelRef } from '../lib/yt/video';
 import { createHost, openPopover } from '../lib/yt/ui';
-import { PLAYER_CSS, getPlayer, getVideo, mountInPlayer, onVideoEvent, tooltip } from '../lib/yt/player';
+import {
+  PLAYER_CSS,
+  getPlayer,
+  getVideo,
+  isAdShowing,
+  mountInPlayer,
+  onVideoEvent,
+  tooltip,
+} from '../lib/yt/player';
 
 const STORAGE_KEY = 'local:ytpro:per-channel-speed';
 /** The Settings board's speed choices; the popover steps through them. */
@@ -141,7 +149,8 @@ const feature: Feature = {
 
     const render = () => {
       const ch = perChannel();
-      const rate = getVideo()?.playbackRate ?? chanRate();
+      // The live rate (YouTube's own menu may differ), except during ads, which YouTube plays at 1×.
+      const rate = (!isAdShowing() && getVideo()?.playbackRate) || chanRate();
       chip.textContent = sp(rate);
       chip.setAttribute('aria-label', `${sp(rate)} playback speed${ch ? ` for ${ch.name}` : ''}`);
 
