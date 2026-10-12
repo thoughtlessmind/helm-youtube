@@ -20,6 +20,7 @@ import { getConfig, setConfig, watchConfig, type FeatureConfig } from '../lib/se
 import { onKey } from '../lib/yt/keys';
 import { flashToast } from '../lib/yt/toast';
 import { createHost } from '../lib/yt/ui';
+import { VIDEO_CARD, cardChannel, cardDurationSeconds, cardTitle } from '../lib/yt/feed-cards';
 import { getVideoId, getWatchChannel, isWatchPage } from '../lib/yt/video';
 import { playInThisTab, watchTitle } from '../lib/yt/player-bridge';
 import { getVideo, isAdShowing, onVideoEvent, watchMetaCurrent } from '../lib/yt/player';
@@ -35,29 +36,15 @@ import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelt
 /** Agent T7's Focus-mode CSS keeps #secondary visible while it contains this id. */
 const HOST_ID = 'ytp-queue-panel';
 const VIDEO_ID = /^[\w-]{11}$/;
-const CARD =
-  'yt-lockup-view-model, ytd-video-renderer, ytd-rich-item-renderer, ytd-compact-video-renderer, ' +
-  'ytd-grid-video-renderer, ytd-playlist-video-renderer, ytd-playlist-panel-video-renderer';
-const TIME = /^(\d+:)?\d{1,2}:\d{2}$/;
-
-const toSeconds = (t: string) => t.split(':').reduce((acc, n) => acc * 60 + Number(n), 0);
 
 /** Title/channel/duration of a video from a card on the page, else from oEmbed. */
 async function lookup(videoId: string): Promise<Omit<QueueItem, 'addedAt' | 'playedAt'>> {
   // The first link may be the player's end screen, not a card.
-  const card = [...document.querySelectorAll(`a[href*="v=${videoId}"]`)].map((a) => a.closest(CARD)).find(Boolean);
-  if (card) {
-    const h3 = card.querySelector('h3');
-    const title = (h3?.getAttribute('title') || h3?.textContent || '').trim();
-    const channelName = (
-      card.querySelector('ytd-channel-name a, ytd-channel-name #text, #byline') ??
-      card.querySelector('[class*="MetadataRow"], [class*="metadata-row"]')
-    )?.textContent?.trim() ?? '';
-    const badge = [...card.querySelectorAll('badge-shape, #time-status #text')]
-      .map((b) => b.textContent?.trim() ?? '')
-      .find((t) => TIME.test(t));
-    if (title) return { videoId, title, channelName, duration: badge ? toSeconds(badge) : 0 };
-  }
+  const card = [...document.querySelectorAll(`a[href*="v=${videoId}"]`)]
+    .map((a) => a.closest<HTMLElement>(VIDEO_CARD))
+    .find(Boolean);
+  const title = card ? cardTitle(card) : '';
+  if (card && title) return { videoId, title, channelName: cardChannel(card).name, duration: cardDurationSeconds(card) ?? 0 };
   try {
     const res = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(watchUrl(videoId))}`);
     const o = res.ok ? await res.json() : null;

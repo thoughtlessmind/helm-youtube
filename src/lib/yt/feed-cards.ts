@@ -26,6 +26,9 @@ const CARD_SELECTOR = [
   'yt-lockup-view-model:not(ytd-rich-item-renderer yt-lockup-view-model)',
 ].join(', ');
 
+/** Also playlist rows — for reading one video's metadata, not for filtering feeds. */
+export const VIDEO_CARD = `${CARD_SELECTOR}, ytd-playlist-video-renderer, ytd-playlist-panel-video-renderer`;
+
 /** Tried in order; the first with text wins. */
 const TITLE_SELECTORS = ['#video-title', '.ytLockupMetadataViewModelTitle', 'h3'];
 
@@ -36,7 +39,7 @@ const CHANNEL_LINK = 'a[href^="/@"], a[href^="/channel/"], a[href^="/c/"], a[hre
 const LOCKUP_ROWS = '.ytContentMetadataViewModelMetadataRow';
 
 /** Thumbnail badges (new badge-shape, old overlay); the one that parses as a time is the length. */
-const BADGE_SELECTORS = '.ytBadgeShapeText, ytd-thumbnail-overlay-time-status-renderer #text';
+const BADGE_SELECTORS = '.ytBadgeShapeText, ytd-thumbnail-overlay-time-status-renderer #text, #time-status #text';
 const TIME = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/;
 
 /** Resume bar on a thumbnail = the signed-in user has watched (some of) it. */
@@ -69,8 +72,9 @@ export function cardChannel(card: HTMLElement): { id: string | null; name: strin
     id ??= linkId;
   }
   // Lockups that name their channel without linking it: the first of two metadata rows.
+  // Playlist-panel rows: a plain-text #byline.
   const rows = card.querySelectorAll(LOCKUP_ROWS);
-  const name = rows.length >= 2 ? (rows[0].textContent?.trim() ?? '') : '';
+  const name = (rows.length >= 2 ? rows[0] : card.querySelector('#byline'))?.textContent?.trim() ?? '';
   return { id, name };
 }
 
