@@ -70,7 +70,7 @@ const GRID_COLUMN_OPTIONS: SelectOption[] = [3, 4, 5, 6, 7, 8].map((v) => ({
 
 export const CATALOG: CatalogSection[] = [
   {
-    title: 'Feed & Discovery',
+    title: 'Feed',
     features: [
       {
         id: 'hide-shorts',
@@ -78,13 +78,38 @@ export const CATALOG: CatalogSection[] = [
         desc: 'Removes Shorts from feed, sidebar, search, and channel pages.',
       },
       {
-        id: 'hide-metadata',
-        label: 'Hide view counts & dates',
-        desc: 'Reduce clickbait pull by hiding view counts and upload dates on thumbnails.',
+        id: 'focus-mode',
+        label: 'Focus mode',
+        desc: 'Hide the parts of YouTube that pull you into the next video.',
+        config: [
+          { key: 'recommendations', type: 'checkbox', label: 'Watch-page recommendations' },
+          { key: 'comments', type: 'checkbox', label: 'Comments' },
+          { key: 'metadata', type: 'checkbox', label: 'View counts & upload dates' },
+        ],
+      },
+      {
+        id: 'feed-filters',
+        label: 'Feed filters',
+        desc: 'Hide videos by title keyword, by length, or that you already watched.',
+        config: [
+          { key: 'keywords', type: 'text', label: 'Keywords', placeholder: 'clickbait, react, drama' },
+          { key: 'minMinutes', type: 'number', label: 'Min minutes', placeholder: '0', min: 0, step: 1 },
+          { key: 'maxMinutes', type: 'number', label: 'Max minutes', placeholder: '0', min: 0, step: 1 },
+          {
+            key: 'watched',
+            type: 'select',
+            label: 'Watched',
+            options: [
+              { value: 'show', label: 'Show' },
+              { value: 'dim', label: 'Dim' },
+              { value: 'hide', label: 'Hide' },
+            ],
+          },
+        ],
       },
       {
         id: 'customize-grid',
-        label: 'Customize grid',
+        label: 'Grid density',
         desc: 'Pack more videos per row on the homepage and hide card info for a denser feed.',
         config: [
           { key: 'columnsPerRow', type: 'select', label: 'Columns', options: GRID_COLUMN_OPTIONS },
@@ -92,87 +117,9 @@ export const CATALOG: CatalogSection[] = [
         ],
       },
       {
-        id: 'block-keywords',
-        label: 'Block by keyword',
-        desc: 'Hide videos whose title contains any blocked keyword.',
-        config: [
-          { key: 'keywords', type: 'text', label: 'Keywords', placeholder: 'clickbait, react, drama' },
-        ],
-      },
-      {
-        id: 'block-by-length',
-        label: 'Block by length',
-        desc: 'Hide videos shorter or longer than your preferred length. Live & Shorts are kept.',
-        config: [
-          { key: 'minMinutes', type: 'number', label: 'Min minutes', placeholder: '0', min: 0, step: 1 },
-          { key: 'maxMinutes', type: 'number', label: 'Max minutes', placeholder: '0', min: 0, step: 1 },
-        ],
-      },
-      {
-        id: 'flag-watched',
-        label: 'Flag watched videos',
-        desc: 'Dim (or hide) videos you have already watched across feed, search, and sidebar.',
-        config: [
-          {
-            key: 'mode',
-            type: 'select',
-            label: 'Mode',
-            options: [
-              { value: 'dim', label: 'Dim watched videos' },
-              { value: 'hide', label: 'Hide watched videos' },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'custom-dashboards',
-        label: 'Custom dashboards',
-        desc: 'Group channels into named dashboards and filter the homepage to one at a time.',
-      },
-    ],
-  },
-  {
-    title: 'Subscriptions',
-    features: [
-      {
-        id: 'favorite-channels',
-        label: 'Favorite channels',
-        desc: 'Star channels to pin them to the top of the subscriptions sidebar.',
-      },
-      {
-        id: 'subscription-folders',
-        label: 'Subscription folders',
-        desc: 'Group channels into folders and filter the Subscriptions feed by folder.',
-      },
-    ],
-  },
-  {
-    title: 'Watch Page',
-    features: [
-      {
-        id: 'hide-end-screen-cards',
-        label: 'Hide end-screen cards',
-        desc: 'Removes the suggested-video overlay from the last 20s of videos.',
-      },
-      {
-        id: 'hide-watch-page-sidebar',
-        label: 'Hide watch-page sidebar',
-        desc: 'Removes the right-rail recommendations while watching a video.',
-      },
-      {
-        id: 'hide-up-next-panel',
-        label: 'Hide "Up next" panel',
-        desc: 'Removes the in-player autoplay countdown overlay.',
-      },
-      {
-        id: 'hide-comments-by-default',
-        label: 'Hide comments',
-        desc: 'Hide the comments section on watch pages.',
-      },
-      {
-        id: 'distraction-free-mode',
-        label: 'Distraction-free mode',
-        desc: 'On watch pages, hide everything except the player and title.',
+        id: 'channel-groups',
+        label: 'Channel groups',
+        desc: 'Group channels (Favorites is a group) and filter Home and Subscriptions by group.',
       },
     ],
   },
@@ -180,20 +127,33 @@ export const CATALOG: CatalogSection[] = [
     title: 'Playback',
     features: [
       {
-        id: 'default-playback-speed',
-        label: 'Default playback speed',
-        desc: 'Force every video to start at your preferred speed.',
-        config: [{ key: 'rate', type: 'select', options: SPEED_OPTIONS }],
-      },
-      {
-        id: 'per-channel-speed',
-        label: 'Per-channel playback speed',
-        desc: 'Remembers your playback speed for each channel and applies it automatically.',
+        id: 'playback-speed',
+        label: 'Playback speed',
+        desc: 'A default speed for every video, plus a remembered speed per channel.',
+        config: [
+          { key: 'rate', type: 'select', label: 'Default', options: SPEED_OPTIONS },
+          { key: 'perChannel', type: 'checkbox', label: 'Remember speed per channel' },
+        ],
       },
       {
         id: 'sponsorblock',
         label: 'SponsorBlock segments',
         desc: 'Shows the real watch time with crowd-sourced sponsor segments subtracted.',
+      },
+      {
+        id: 'read-later-queue',
+        label: 'Watch queue (Q)',
+        desc: 'A read-later queue separate from Watch Later. Press Q to add, Shift+Q to open.',
+      },
+      {
+        id: 'hide-end-screen-cards',
+        label: 'Hide end-screen cards',
+        desc: 'Removes the suggested-video overlay from the last 20s of videos.',
+      },
+      {
+        id: 'auto-dismiss-still-watching',
+        label: 'Auto-dismiss "Still watching?"',
+        desc: "Auto-confirms YouTube's periodic playback-paused prompt.",
       },
       {
         id: 'volume-boost',
@@ -203,54 +163,13 @@ export const CATALOG: CatalogSection[] = [
       },
       {
         id: 'loop-section',
-        label: 'Loop section ([ ] \\)',
+        label: 'A→B loop ([ ] \\)',
         desc: 'Press [ to set A, ] to set B, \\ to clear. Video loops between A→B.',
       },
-      {
-        id: 'auto-dismiss-still-watching',
-        label: 'Auto-dismiss "Still watching?"',
-        desc: "Auto-confirms YouTube's periodic playback-paused prompt.",
-      },
     ],
   },
   {
-    title: 'Watch Time',
-    features: [
-      {
-        id: 'watch-analytics',
-        label: 'Watch analytics',
-        desc: 'Dashboard with daily/weekly watch time, a 7-day chart, and most-watched channels.',
-      },
-      {
-        id: 'channel-watch-stat',
-        label: 'Channel watch time',
-        desc: "Shows how much time you've watched on each channel's page.",
-      },
-      {
-        id: 'watch-goals',
-        label: 'Daily watch limit',
-        desc: 'A soft, non-blocking reminder when today exceeds your daily watch limit.',
-        config: [
-          {
-            key: 'dailyLimitMinutes',
-            type: 'select',
-            label: 'Daily limit',
-            options: [
-              { value: 30, label: '30 min' },
-              { value: 60, label: '1h' },
-              { value: 90, label: '1h 30m' },
-              { value: 120, label: '2h' },
-              { value: 180, label: '3h' },
-              { value: 240, label: '4h' },
-              { value: 0, label: 'Off' },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    title: 'Notes & Library',
+    title: 'Notes & Stats',
     features: [
       {
         id: 'video-notes',
@@ -258,9 +177,25 @@ export const CATALOG: CatalogSection[] = [
         desc: 'Write and auto-save a private note for each video in a floating panel.',
       },
       {
-        id: 'read-later-queue',
-        label: 'Watch queue (Q)',
-        desc: 'A read-later queue separate from Watch Later. Press Q to add, Shift+Q to open.',
+        id: 'watch-time',
+        label: 'Watch time',
+        desc: 'Daily and weekly watch time, hours per channel, and an optional soft daily limit.',
+        config: [
+          {
+            key: 'dailyLimitMinutes',
+            type: 'select',
+            label: 'Daily limit',
+            options: [
+              { value: 0, label: 'Off' },
+              { value: 30, label: '30 min' },
+              { value: 60, label: '1h' },
+              { value: 90, label: '1h 30m' },
+              { value: 120, label: '2h' },
+              { value: 180, label: '3h' },
+              { value: 240, label: '4h' },
+            ],
+          },
+        ],
       },
     ],
   },
@@ -269,22 +204,17 @@ export const CATALOG: CatalogSection[] = [
     features: [
       {
         id: 'download-transcript',
-        label: 'Download transcript',
+        label: 'Transcript download',
         desc: "Download the current video's transcript as .txt or .srt.",
       },
       {
         id: 'screenshot-current-frame',
-        label: 'Screenshot frame (S)',
+        label: 'Frame screenshot (S)',
         desc: 'Press S to download a PNG of the current frame, no overlay.',
       },
-    ],
-  },
-  {
-    title: 'Appearance',
-    features: [
       {
         id: 'true-black-dark-mode',
-        label: 'True black dark mode',
+        label: 'True black',
         desc: "Replaces YouTube's dark grey backgrounds with #000 for OLED.",
       },
     ],

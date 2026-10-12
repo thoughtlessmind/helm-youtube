@@ -1,23 +1,24 @@
 import { storage } from '#imports';
 import type { YTContext } from './context';
-import { getVideoId, getWatchChannel, isWatchPage } from './video';
+import { getWatchChannel, type ChannelRef } from './video';
 
 /**
  * watch-tracker.ts
  *
- * Singleton watch-time tracker. Measures REAL watch time — wall-clock
- * seconds while <video> is actually playing AND document is visible.
+ * Measures REAL watch time — wall-clock seconds while <video> is actually
+ * playing AND document is visible.
  *
  * Measurement model (wall-clock delta, not timeupdate count):
  *   - On play / visibilitychange→visible: record lastTick = Date.now()
- *   - On pause / visibilitychange→hidden / timeupdate (periodic flush):
- *       accumulate (Date.now() - lastTick) / 1000 into session buffer, reset lastTick
+ *   - On pause / visibilitychange→hidden / flush:
+ *       accumulate (Date.now() - lastTick) / 1000 into pendingSeconds
  *
  * Data shape in chrome.storage.local:
  *   "local:ytpro:watch-tracker:log" →
  *     { [dateISO: string]: DayStats }
  *
- * At most 90 days retained. Flushed every ~15 s and on pause/navigate/unload.
+ * At most 90 days retained. Flushed every 15 s, on navigate/unload, and
+ * before every query.
  */
 
 // ---------------------------------------------------------------------------
@@ -54,40 +55,26 @@ const FLUSH_INTERVAL_MS = 15_000;
 const MAX_DAYS = 90;
 
 // ---------------------------------------------------------------------------
-// Module-level singleton state (content script — not service worker)
+// Module-level state (content script — not service worker)
 // ---------------------------------------------------------------------------
-
-/** Number of features currently using the tracker */
-let refCount = 0;
 
 /** Accumulated seconds not yet flushed to storage */
 let pendingSeconds = 0;
 
-/** The context passed by the first caller — used for subscriptions */
-let sharedCtx: YTContext | null = null;
-
-/** Video id for the current session accumulation */
-let sessionVideoId: string | null = null;
-
-/** Channel info for the current session — may arrive late */
-let sessionChannelId: string | null = null;
-let sessionChannelName: string = '';
+/** Channel of the video being watched — may arrive after playback starts */
+let channel: ChannelRef | null = null;
 
 /** Timestamp of last play tick start (null when paused/hidden) */
 let lastTick: number | null = null;
 
-/** Timer for periodic flush */
-let flushTimer: ReturnType<typeof setInterval> | null = null;
-
-/** Teardown functions registered when first started */
-const teardowns: Array<() => void> = [];
+/** Tail of the storage write chain — writes run one at a time so none is lost */
+let writes: Promise<void> = Promise.resolve();
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function todayISO(): string {
-  const d = new Date();
+function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -95,40 +82,29 @@ function getVideo(): HTMLVideoElement | null {
   return document.querySelector<HTMLVideoElement>('video.html5-main-video');
 }
 
-/** Tick: compute elapsed since lastTick, accumulate, reset. */
+/** Accumulate seconds elapsed since lastTick. */
 function tick(): void {
   if (lastTick === null) return;
   const now = Date.now();
-  const elapsed = (now - lastTick) / 1000;
-  if (elapsed > 0) {
-    pendingSeconds += elapsed;
-  }
+  pendingSeconds += Math.max(0, now - lastTick) / 1000;
   lastTick = now;
 }
 
-/** Stop accumulation without updating lastTick. */
 function pause(): void {
-  tick(); // flush elapsed
+  tick();
   lastTick = null;
 }
 
-/** Resume accumulation. */
 function resume(): void {
-  if (document.hidden) return; // stay paused when hidden
-  lastTick = Date.now();
+  if (lastTick === null && !document.hidden) lastTick = Date.now();
 }
 
-/**
- * Flush pendingSeconds into storage under the current session's video/channel.
- * Called periodically and on every stop trigger.
- */
-async function flush(): Promise<void> {
-  if (pendingSeconds <= 0) return;
-  const seconds = pendingSeconds;
-  pendingSeconds = 0;
+async function loadLog(): Promise<WatchLog> {
+  return (await storage.getItem<WatchLog>(LOG_KEY)) ?? {};
+}
 
-  const date = todayISO();
-  const log: WatchLog = (await storage.getItem<WatchLog>(LOG_KEY)) ?? {};
+async function record(seconds: number, ch: ChannelRef | null): Promise<void> {
+  const log = await loadLog();
 
   // Prune entries older than MAX_DAYS
   const cutoff = new Date();
@@ -137,95 +113,35 @@ async function flush(): Promise<void> {
     if (new Date(key) < cutoff) delete log[key];
   }
 
-  if (!log[date]) {
-    log[date] = { date, totalSeconds: 0, perChannel: {} };
-  }
-
-  const day = log[date];
+  const date = isoDate(new Date());
+  const day = (log[date] ??= { date, totalSeconds: 0, perChannel: {} });
   day.totalSeconds += seconds;
 
-  // Attribute to channel if known
-  if (sessionChannelId) {
-    if (!day.perChannel[sessionChannelId]) {
-      day.perChannel[sessionChannelId] = { name: sessionChannelName, seconds: 0 };
-    }
-    day.perChannel[sessionChannelId].seconds += seconds;
+  if (ch) {
+    const entry = (day.perChannel[ch.id] ??= { name: ch.name, seconds: 0 });
+    entry.seconds += seconds;
     // Always keep the latest known name
-    if (sessionChannelName) {
-      day.perChannel[sessionChannelId].name = sessionChannelName;
-    }
+    if (ch.name) entry.name = ch.name;
   }
 
   await storage.setItem(LOG_KEY, log);
 }
 
-/** Re-detect channel info for the current watch page. */
-function refreshChannelInfo(): void {
-  if (!isWatchPage()) return;
-  const ch = getWatchChannel();
-  if (ch && ch.id) {
-    sessionChannelId = ch.id;
-    if (ch.name) sessionChannelName = ch.name;
+/**
+ * Write pending seconds to storage. Seconds and channel are captured
+ * synchronously, so callers may switch `channel` right after.
+ */
+function flush(): Promise<void> {
+  tick();
+  if (pendingSeconds > 0) {
+    const seconds = pendingSeconds;
+    const ch = channel;
+    pendingSeconds = 0;
+    writes = writes
+      .then(() => record(seconds, ch))
+      .catch((err) => console.error('[youtube-pro] watch-tracker: write failed', err));
   }
-}
-
-/** Called on navigation — flush and reset session. */
-async function onNavigate(url: string): Promise<void> {
-  // Flush accumulated time before switching sessions
-  pause();
-  await flush();
-
-  // Reset session
-  sessionVideoId = null;
-  sessionChannelId = null;
-  sessionChannelName = '';
-  pendingSeconds = 0;
-  lastTick = null;
-
-  // Detect new session if still on a watch page
-  if (isWatchPage()) {
-    sessionVideoId = getVideoId();
-    refreshChannelInfo();
-    // Video may not be playing yet — wait for play event
-  }
-}
-
-/** Wire up video element event listeners. Returns cleanup fn. */
-function attachVideoListeners(video: HTMLVideoElement): () => void {
-  const onPlay = () => {
-    sessionVideoId = getVideoId();
-    refreshChannelInfo();
-    resume();
-  };
-  const onPause = () => pause();
-  const onTimeUpdate = () => {
-    if (lastTick !== null && Date.now() - lastTick >= FLUSH_INTERVAL_MS) {
-      tick();
-      void flush();
-    }
-    // Also try to fill in late-arriving channel info
-    if (!sessionChannelId) refreshChannelInfo();
-  };
-  const onEnded = () => pause();
-
-  video.addEventListener('play', onPlay);
-  video.addEventListener('pause', onPause);
-  video.addEventListener('timeupdate', onTimeUpdate);
-  video.addEventListener('ended', onEnded);
-
-  // If already playing when attached
-  if (!video.paused && !document.hidden) {
-    sessionVideoId = getVideoId();
-    refreshChannelInfo();
-    resume();
-  }
-
-  return () => {
-    video.removeEventListener('play', onPlay);
-    video.removeEventListener('pause', onPause);
-    video.removeEventListener('timeupdate', onTimeUpdate);
-    video.removeEventListener('ended', onEnded);
-  };
+  return writes;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,173 +149,93 @@ function attachVideoListeners(video: HTMLVideoElement): () => void {
 // ---------------------------------------------------------------------------
 
 /**
- * Start tracking. Idempotent — multiple features may call this; tracking
- * begins only on the first call and the refcount is incremented.
- *
- * @param ctx - Shared YTContext from the feature's setup().
+ * Start tracking. Returns the stop function, which flushes pending time and
+ * removes every listener.
  */
-export function startTracking(ctx: YTContext): void {
-  refCount++;
-  if (refCount > 1) return; // already running
+export function startTracking(ctx: YTContext): () => void {
+  let video: HTMLVideoElement | null = null;
 
-  sharedCtx = ctx;
+  const detachVideo = () => {
+    video?.removeEventListener('play', resume);
+    video?.removeEventListener('pause', pause);
+    video = null;
+  };
 
-  // --- Page visibility ---
+  const attachVideo = (v: HTMLVideoElement | null) => {
+    if (!v || v === video) return;
+    detachVideo();
+    pause();
+    video = v;
+    v.addEventListener('play', resume);
+    v.addEventListener('pause', pause);
+    if (!v.paused) resume();
+  };
+
   const onVisibility = () => {
-    if (document.hidden) {
-      pause();
-    } else {
-      const v = getVideo();
-      if (v && !v.paused) resume();
-    }
+    if (document.hidden) pause();
+    else if (video && !video.paused) resume();
   };
   document.addEventListener('visibilitychange', onVisibility);
 
-  // --- Unload flush ---
-  const onUnload = () => {
+  // Best-effort async flush; storage.setItem will usually complete.
+  const onPageHide = () => {
     pause();
-    // Synchronous flush not possible in MV3 (no sendBeacon for local storage);
-    // use best-effort async; storage.setItem will usually complete.
     void flush();
   };
-  window.addEventListener('pagehide', onUnload);
+  window.addEventListener('pagehide', onPageHide);
 
-  // --- Video element management ---
-  let detachVideo: (() => void) | null = null;
-
-  const attachCurrentVideo = () => {
-    const v = getVideo();
-    if (!v) return;
-    detachVideo?.();
-    detachVideo = attachVideoListeners(v);
-  };
-
-  attachCurrentVideo();
-
+  // YouTube may swap the <video> element
   const offMutation = ctx.observer.subscribe((mutations) => {
     for (const m of mutations) {
       m.addedNodes.forEach((node) => {
-        if (node instanceof HTMLVideoElement) {
-          detachVideo?.();
-          detachVideo = attachVideoListeners(node);
-        }
+        if (node instanceof HTMLVideoElement) attachVideo(node);
       });
     }
   });
 
-  // --- Navigation ---
-  const offNav = ctx.navigation.onNavigate((url) => {
-    void onNavigate(url);
-    // Re-attach video on new page
-    requestAnimationFrame(() => attachCurrentVideo());
+  const offNav = ctx.navigation.onNavigate(() => {
+    void flush(); // time so far belongs to the previous page's channel
+    channel = getWatchChannel();
+    attachVideo(getVideo());
   });
 
-  // --- Channel info refresh (late rendering) ---
+  // Watch metadata renders late — fill in the channel once it appears
   const offChange = ctx.observer.onChange(() => {
-    if (!sessionChannelId && isWatchPage()) refreshChannelInfo();
+    channel ??= getWatchChannel();
   });
 
-  // --- Periodic flush interval ---
-  flushTimer = setInterval(() => {
-    if (lastTick !== null) {
-      tick();
-      void flush();
-    }
-  }, FLUSH_INTERVAL_MS);
+  const flushTimer = setInterval(() => void flush(), FLUSH_INTERVAL_MS);
 
-  // --- Seed current session if on watch page ---
-  if (isWatchPage()) {
-    sessionVideoId = getVideoId();
-    refreshChannelInfo();
-  }
+  channel = getWatchChannel();
+  attachVideo(getVideo());
 
-  teardowns.push(
-    () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', onUnload);
-    },
-    offMutation,
-    offNav,
-    offChange,
-    () => {
-      detachVideo?.();
-      detachVideo = null;
-    },
-    () => {
-      if (flushTimer !== null) {
-        clearInterval(flushTimer);
-        flushTimer = null;
-      }
-    },
-  );
+  return () => {
+    detachVideo();
+    pause();
+    void flush();
+    channel = null;
+    document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('pagehide', onPageHide);
+    offMutation();
+    offNav();
+    offChange();
+    clearInterval(flushTimer);
+  };
 }
 
 /**
- * Stop tracking. Decrements refcount; actually tears down only when count
- * reaches zero.
- */
-export async function stopTracking(): Promise<void> {
-  if (refCount <= 0) return;
-  refCount--;
-  if (refCount > 0) return; // other features still active
-
-  // Final flush
-  pause();
-  await flush();
-
-  // Run teardowns
-  for (const fn of teardowns.splice(0)) fn();
-
-  // Reset state
-  sharedCtx = null;
-  sessionVideoId = null;
-  sessionChannelId = null;
-  sessionChannelName = '';
-  pendingSeconds = 0;
-  lastTick = null;
-}
-
-// ---------------------------------------------------------------------------
-// Query API
-// ---------------------------------------------------------------------------
-
-/** Load the full log from storage. */
-async function loadLog(): Promise<WatchLog> {
-  return (await storage.getItem<WatchLog>(LOG_KEY)) ?? {};
-}
-
-/**
- * Stats for today (combined with any in-memory pending seconds for an
- * accurate live reading).
- */
-export async function getToday(): Promise<DayStats> {
-  // Flush pending first to get an accurate snapshot
-  if (lastTick !== null) {
-    tick();
-    await flush();
-    if (lastTick === null && sharedCtx) {
-      // Resume tick after query
-      const v = getVideo();
-      if (v && !v.paused && !document.hidden) resume();
-    }
-  }
-
-  const log = await loadLog();
-  const date = todayISO();
-  return log[date] ?? { date, totalSeconds: 0, perChannel: {} };
-}
-
-/**
- * Stats for the last `days` days (today first).
+ * Stats for the last `days` days (today first). Flushes pending time first
+ * so today's figure is live.
  */
 export async function getRange(days: number): Promise<DayStats[]> {
+  await flush();
   const log = await loadLog();
   const result: DayStats[] = [];
   for (let i = 0; i < days; i++) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    result.push(log[iso] ?? { date: iso, totalSeconds: 0, perChannel: {} });
+    const date = isoDate(d);
+    result.push(log[date] ?? { date, totalSeconds: 0, perChannel: {} });
   }
   return result;
 }

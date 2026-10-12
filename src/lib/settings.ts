@@ -7,90 +7,76 @@ import { storage } from '#imports';
  */
 export interface FeatureFlags {
   'hide-shorts'?: boolean;
-  'auto-dismiss-still-watching'?: boolean;
-  'hide-end-screen-cards'?: boolean;
-  'default-playback-speed'?: boolean;
-  'hide-watch-page-sidebar'?: boolean;
-  'true-black-dark-mode'?: boolean;
-  'screenshot-current-frame'?: boolean;
-  'hide-up-next-panel'?: boolean;
-  'volume-boost'?: boolean;
-  'hide-comments-by-default'?: boolean;
-  'hide-metadata'?: boolean;
-  'loop-section'?: boolean;
+  'focus-mode'?: boolean;
+  'feed-filters'?: boolean;
   'customize-grid'?: boolean;
-  'distraction-free-mode'?: boolean;
-  'per-channel-speed'?: boolean;
-  'block-keywords'?: boolean;
-  'block-by-length'?: boolean;
-  'video-notes'?: boolean;
-  'favorite-channels'?: boolean;
-  'read-later-queue'?: boolean;
-  'subscription-folders'?: boolean;
-  'custom-dashboards'?: boolean;
+  'channel-groups'?: boolean;
+  'playback-speed'?: boolean;
   'sponsorblock'?: boolean;
-  'flag-watched'?: boolean;
+  'read-later-queue'?: boolean;
+  'hide-end-screen-cards'?: boolean;
+  'auto-dismiss-still-watching'?: boolean;
+  'volume-boost'?: boolean;
+  'loop-section'?: boolean;
+  'video-notes'?: boolean;
+  'watch-time'?: boolean;
   'download-transcript'?: boolean;
-  'watch-analytics'?: boolean;
-  'channel-watch-stat'?: boolean;
-  'watch-goals'?: boolean;
+  'screenshot-current-frame'?: boolean;
+  'true-black-dark-mode'?: boolean;
 }
 
 export const FEATURE_DEFAULTS: FeatureFlags = {
   'hide-shorts': true,
-  'auto-dismiss-still-watching': true,
-  'hide-end-screen-cards': true,
-  'default-playback-speed': false,
-  'hide-watch-page-sidebar': false,
-  'true-black-dark-mode': false,
-  'screenshot-current-frame': true,
-  'hide-up-next-panel': true,
-  'volume-boost': false,
-  'hide-comments-by-default': false,
-  'hide-metadata': false,
-  'loop-section': true,
+  'focus-mode': false,
+  'feed-filters': false,
   'customize-grid': false,
-  'distraction-free-mode': false,
-  'per-channel-speed': true,
-  'block-keywords': false,
-  'block-by-length': false,
-  'video-notes': false,
-  'favorite-channels': false,
-  'read-later-queue': false,
-  'subscription-folders': false,
-  'custom-dashboards': false,
+  'channel-groups': false,
+  'playback-speed': true,
   'sponsorblock': false,
-  'flag-watched': false,
+  'read-later-queue': false,
+  'hide-end-screen-cards': true,
+  'auto-dismiss-still-watching': true,
+  'volume-boost': false,
+  'loop-section': true,
+  'video-notes': false,
+  'watch-time': false,
   'download-transcript': false,
-  'watch-analytics': false,
-  'channel-watch-stat': false,
-  'watch-goals': false,
+  'screenshot-current-frame': true,
+  'true-black-dark-mode': false,
 };
 
 /**
  * Per-feature config blobs (separate from on/off flag). Each feature
- * owns its own key under `sync:config:<id>`. Use TypeScript module
- * augmentation in feature files to type the value.
+ * owns its own key under `sync:config:<id>`.
  */
 export interface FeatureConfig {
-  'default-playback-speed': { rate: number };
-  'volume-boost': { multiplier: number };
+  'focus-mode': {
+    recommendations: boolean;
+    comments: boolean;
+    metadata: boolean;
+  };
+  'feed-filters': {
+    /** Comma-separated, case-insensitive title substrings. */
+    keywords: string;
+    /** 0 = no limit. */
+    minMinutes: number;
+    maxMinutes: number;
+    watched: 'show' | 'dim' | 'hide';
+  };
   'customize-grid': { columnsPerRow: number; hideCardInfo: boolean };
-  // Note: block-keywords and block-by-length augment this interface from
-  // their own feature files (module augmentation). They appear in
-  // FEATURE_CONFIG_DEFAULTS below.
-  'watch-goals': { dailyLimitMinutes: number };
-  // Note: flag-watched augments this interface from its own feature file.
+  'playback-speed': { rate: number; perChannel: boolean };
+  'volume-boost': { multiplier: number };
+  /** 0 = no limit. */
+  'watch-time': { dailyLimitMinutes: number };
 }
 
 export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
-  'default-playback-speed': { rate: 1 },
-  'volume-boost': { multiplier: 1.5 },
+  'focus-mode': { recommendations: true, comments: true, metadata: false },
+  'feed-filters': { keywords: '', minMinutes: 0, maxMinutes: 0, watched: 'show' },
   'customize-grid': { columnsPerRow: 3, hideCardInfo: false },
-  'block-keywords': { keywords: '' },
-  'block-by-length': { minMinutes: 0, maxMinutes: 0 },
-  'watch-goals': { dailyLimitMinutes: 120 },
-  'flag-watched': { mode: 'dim' },
+  'playback-speed': { rate: 1, perChannel: true },
+  'volume-boost': { multiplier: 1.5 },
+  'watch-time': { dailyLimitMinutes: 0 },
 };
 
 export async function getConfig<K extends keyof FeatureConfig>(
