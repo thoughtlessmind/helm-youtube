@@ -1,88 +1,49 @@
 import { storage } from '#imports';
 import type { YTContext } from './context';
-import { getWatchChannel, type ChannelRef } from './video';
+import { getWatchChannel, isWatchPage, type ChannelRef } from './video';
 
 /**
- * watch-tracker.ts
+ * Measures real watch time: wall-clock seconds while the watch page's main
+ * player is playing AND the tab is visible. Hover/inline previews (home,
+ * search) never count — only `/watch` and only YouTube's main player video.
  *
- * Measures REAL watch time — wall-clock seconds while <video> is actually
- * playing AND document is visible.
+ *   local:ytpro:watch-tracker:log      { [YYYY-MM-DD]: DayStats } — last 90 days (the popup reads it)
+ *   local:ytpro:watch-tracker:channels { [channelId]: { name, seconds } } — all time, no cap
  *
- * Measurement model (wall-clock delta, not timeupdate count):
- *   - On play / visibilitychange→visible: record lastTick = Date.now()
- *   - On pause / visibilitychange→hidden / flush:
- *       accumulate (Date.now() - lastTick) / 1000 into pendingSeconds
- *
- * Data shape in chrome.storage.local:
- *   "local:ytpro:watch-tracker:log" →
- *     { [dateISO: string]: DayStats }
- *
- * At most 90 days retained. Flushed every 15 s, on navigate/unload, and
- * before every query.
+ * Flushed every 15 s, on navigation and on pagehide.
  */
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface ChannelStats {
-  /** Channel id (UC… or @handle) */
-  channelId: string;
-  /** Human-readable channel name */
-  name: string;
-  /** Accumulated seconds */
-  seconds: number;
-}
-
 export interface DayStats {
-  /** ISO date string YYYY-MM-DD */
+  /** YYYY-MM-DD (local time) */
   date: string;
-  /** Total seconds watched that day */
   totalSeconds: number;
-  /** Per-channel breakdown */
   perChannel: Record<string, { name: string; seconds: number }>;
 }
 
-/** Full log keyed by ISO date string */
-type WatchLog = Record<string, DayStats>;
+/** Full log keyed by YYYY-MM-DD. */
+export type WatchLog = Record<string, DayStats>;
+/** All-time seconds per channel id (`UC…` or `@handle`, see lib/yt/video.ts). */
+export type ChannelTotals = Record<string, { name: string; seconds: number }>;
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const LOG_KEY = 'local:ytpro:watch-tracker:log' as const;
+export const LOG_KEY = 'local:ytpro:watch-tracker:log' as const;
+export const CHANNELS_KEY = 'local:ytpro:watch-tracker:channels' as const;
 const FLUSH_INTERVAL_MS = 15_000;
 const MAX_DAYS = 90;
+/** YouTube's main player video; preview players live outside ytd-watch-flexy. */
+const MAIN_VIDEO = 'ytd-watch-flexy video.html5-main-video';
 
-// ---------------------------------------------------------------------------
-// Module-level state (content script — not service worker)
-// ---------------------------------------------------------------------------
-
-/** Accumulated seconds not yet flushed to storage */
 let pendingSeconds = 0;
-
-/** Channel of the video being watched — may arrive after playback starts */
+/** Channel of the video being watched — may arrive after playback starts. */
 let channel: ChannelRef | null = null;
-
-/** Timestamp of last play tick start (null when paused/hidden) */
+/** Start of the current counting stretch; null while not counting. */
 let lastTick: number | null = null;
-
-/** Tail of the storage write chain — writes run one at a time so none is lost */
+/** Tail of the storage write chain — writes run one at a time so none is lost. */
 let writes: Promise<void> = Promise.resolve();
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-function isoDate(d: Date): string {
+export function isoDate(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function getVideo(): HTMLVideoElement | null {
-  return document.querySelector<HTMLVideoElement>('video.html5-main-video');
-}
-
-/** Accumulate seconds elapsed since lastTick. */
 function tick(): void {
   if (lastTick === null) return;
   const now = Date.now();
@@ -90,47 +51,38 @@ function tick(): void {
   lastTick = now;
 }
 
-function pause(): void {
+function stopCounting(): void {
   tick();
   lastTick = null;
 }
 
-function resume(): void {
-  if (lastTick === null && !document.hidden) lastTick = Date.now();
-}
-
-async function loadLog(): Promise<WatchLog> {
-  return (await storage.getItem<WatchLog>(LOG_KEY)) ?? {};
-}
-
 async function record(seconds: number, ch: ChannelRef | null): Promise<void> {
-  const log = await loadLog();
+  const [logItem, chItem] = await storage.getItems([LOG_KEY, CHANNELS_KEY]);
+  const log: WatchLog = logItem.value ?? {};
+  const totals: ChannelTotals = chItem.value ?? {};
 
-  // Prune entries older than MAX_DAYS
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - MAX_DAYS);
-  for (const key of Object.keys(log)) {
-    if (new Date(key) < cutoff) delete log[key];
-  }
+  const oldest = isoDate(cutoff);
+  for (const key of Object.keys(log)) if (key < oldest) delete log[key];
 
-  const date = isoDate(new Date());
+  const date = isoDate();
   const day = (log[date] ??= { date, totalSeconds: 0, perChannel: {} });
   day.totalSeconds += seconds;
-
   if (ch) {
-    const entry = (day.perChannel[ch.id] ??= { name: ch.name, seconds: 0 });
-    entry.seconds += seconds;
-    // Always keep the latest known name
-    if (ch.name) entry.name = ch.name;
+    for (const map of [day.perChannel, totals]) {
+      const entry = (map[ch.id] ??= { name: ch.name, seconds: 0 });
+      entry.seconds += seconds;
+      if (ch.name) entry.name = ch.name;
+    }
   }
-
-  await storage.setItem(LOG_KEY, log);
+  await storage.setItems([
+    { key: LOG_KEY, value: log },
+    { key: CHANNELS_KEY, value: totals },
+  ]);
 }
 
-/**
- * Write pending seconds to storage. Seconds and channel are captured
- * synchronously, so callers may switch `channel` right after.
- */
+/** Writes pending seconds. Seconds and channel are captured synchronously. */
 function flush(): Promise<void> {
   tick();
   if (pendingSeconds > 0) {
@@ -144,128 +96,73 @@ function flush(): Promise<void> {
   return writes;
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-/**
- * Start tracking. Returns the stop function, which flushes pending time and
- * removes every listener.
- */
+/** Starts tracking; returns stop (flushes and removes every listener). */
 export function startTracking(ctx: YTContext): () => void {
   let video: HTMLVideoElement | null = null;
 
-  const detachVideo = () => {
-    video?.removeEventListener('play', resume);
-    video?.removeEventListener('pause', pause);
-    video = null;
+  /** Count exactly while the main watch-page video plays in a visible tab. */
+  const sync = () => {
+    const counting = !!video && !video.paused && !document.hidden && isWatchPage();
+    if (counting && lastTick === null) lastTick = Date.now();
+    else if (!counting) stopCounting();
   };
 
-  const attachVideo = (v: HTMLVideoElement | null) => {
-    if (!v || v === video) return;
-    detachVideo();
-    pause();
-    video = v;
-    v.addEventListener('play', resume);
-    v.addEventListener('pause', pause);
-    if (!v.paused) resume();
+  const attach = () => {
+    const v = isWatchPage() ? document.querySelector<HTMLVideoElement>(MAIN_VIDEO) : null;
+    if (v !== video) {
+      video?.removeEventListener('play', sync);
+      video?.removeEventListener('pause', sync);
+      v?.addEventListener('play', sync);
+      v?.addEventListener('pause', sync);
+      video = v;
+    }
+    sync();
   };
 
-  const onVisibility = () => {
-    if (document.hidden) pause();
-    else if (video && !video.paused) resume();
-  };
-  document.addEventListener('visibilitychange', onVisibility);
-
-  // Best-effort async flush; storage.setItem will usually complete.
   const onPageHide = () => {
-    pause();
+    stopCounting();
     void flush();
   };
+
+  document.addEventListener('visibilitychange', sync);
   window.addEventListener('pagehide', onPageHide);
-
-  // YouTube may swap the <video> element
-  const offMutation = ctx.observer.subscribe((mutations) => {
-    for (const m of mutations) {
-      m.addedNodes.forEach((node) => {
-        if (node instanceof HTMLVideoElement) attachVideo(node);
-      });
-    }
-  });
-
   const offNav = ctx.navigation.onNavigate(() => {
+    stopCounting();
     void flush(); // time so far belongs to the previous page's channel
     channel = getWatchChannel();
-    attachVideo(getVideo());
+    attach();
   });
-
-  // Watch metadata renders late — fill in the channel once it appears
+  // YouTube may swap the <video>; watch metadata (channel) renders late.
   const offChange = ctx.observer.onChange(() => {
     channel ??= getWatchChannel();
+    attach();
   });
-
   const flushTimer = setInterval(() => void flush(), FLUSH_INTERVAL_MS);
 
   channel = getWatchChannel();
-  attachVideo(getVideo());
+  attach();
 
   return () => {
-    detachVideo();
-    pause();
+    video?.removeEventListener('play', sync);
+    video?.removeEventListener('pause', sync);
+    video = null;
+    stopCounting();
     void flush();
     channel = null;
-    document.removeEventListener('visibilitychange', onVisibility);
+    document.removeEventListener('visibilitychange', sync);
     window.removeEventListener('pagehide', onPageHide);
-    offMutation();
     offNav();
     offChange();
     clearInterval(flushTimer);
   };
 }
 
-/**
- * Stats for the last `days` days (today first). Flushes pending time first
- * so today's figure is live.
- */
-export async function getRange(days: number): Promise<DayStats[]> {
-  await flush();
-  const log = await loadLog();
-  const result: DayStats[] = [];
-  for (let i = 0; i < days; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const date = isoDate(d);
-    result.push(log[date] ?? { date, totalSeconds: 0, perChannel: {} });
-  }
-  return result;
+// Readers don't flush: a reader reacting to LOG_KEY changes would otherwise write on every
+// change it sees. Up to 15 s of this tab's time may be missing — fine for stats.
+export async function getLog(): Promise<WatchLog> {
+  return (await storage.getItem<WatchLog>(LOG_KEY)) ?? {};
 }
 
-/**
- * All channels watched over the last `days` days, sorted by seconds desc.
- */
-export async function getChannelTotals(days: number): Promise<ChannelStats[]> {
-  const range = await getRange(days);
-  const totals: Record<string, ChannelStats> = {};
-  for (const day of range) {
-    for (const [id, data] of Object.entries(day.perChannel)) {
-      if (!totals[id]) {
-        totals[id] = { channelId: id, name: data.name, seconds: 0 };
-      }
-      totals[id].seconds += data.seconds;
-      if (data.name) totals[id].name = data.name;
-    }
-  }
-  return Object.values(totals).sort((a, b) => b.seconds - a.seconds);
-}
-
-/**
- * Total seconds watched for a specific channel across all stored history.
- */
-export async function getChannelTotal(channelId: string): Promise<number> {
-  const log = await loadLog();
-  let total = 0;
-  for (const day of Object.values(log)) {
-    total += day.perChannel[channelId]?.seconds ?? 0;
-  }
-  return total;
+export async function getChannelTotals(): Promise<ChannelTotals> {
+  return (await storage.getItem<ChannelTotals>(CHANNELS_KEY)) ?? {};
 }

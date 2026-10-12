@@ -1,497 +1,258 @@
+import { storage } from '#imports';
 import type { Feature } from '../lib/features';
-import { getConfig, watchConfig, type FeatureConfig } from '../lib/settings';
-import { onKey } from '../lib/yt/keys';
+import { getConfig, getFlags, watchConfig } from '../lib/settings';
+import { createHost } from '../lib/yt/ui';
 import { flashToast } from '../lib/yt/toast';
 import { channelIdFromHref } from '../lib/yt/video';
 import {
   startTracking,
-  getRange,
+  getLog,
   getChannelTotals,
-  getChannelTotal,
-  type DayStats,
-  type ChannelStats,
+  isoDate,
+  LOG_KEY,
+  type WatchLog,
 } from '../lib/yt/watch-tracker';
 
 /**
- * watch-time.ts
- *
- * Watch-time stats on top of the shared tracker (lib/yt/watch-tracker.ts):
- *   - Dashboard: a floating button (bottom-right) opens a shadow-DOM panel
- *     with today / last-7-days totals, a 7-day bar chart and the most-watched
- *     channels (7 or 30 days). Click outside, ✕ or Esc closes it.
- *   - Channel pages: a badge in the header with your total time on that channel.
- *   - Soft daily limit (config `dailyLimitMinutes`, 0 = off): a toast once a
- *     day when today's total crosses it. Never pauses or blocks anything.
+ * Watch time: tracking (lib/yt/watch-tracker.ts; stats live in the popup) plus two on-page bits:
+ *   - Daily-limit banner at the top of the page content once today's total reaches
+ *     `dailyLimitMinutes` (0 = off). Snooze 15 min / Dismiss for today, shared by every tab
+ *     through `local:ytpro:watch-time-reminder`. Never pauses or blocks anything.
+ *   - Channel pages: "• You've watched 6h 10m" in the header's meta line, with a tooltip.
  */
 
-const LIMIT_CHECK_MS = 30_000;
+const REMINDER_KEY = 'local:ytpro:watch-time-reminder' as const;
+const SPEED_KEY = 'local:ytpro:per-channel-speed' as const;
+const SNOOZE_MS = 15 * 60_000;
 
-/** Channel-header anchors for the badge, most specific first; first match wins. */
-const HEADER_SELECTORS = [
-  'ytd-c4-tabbed-header-renderer #channel-header-container',
-  'ytd-c4-tabbed-header-renderer #inner-header-container',
-  'ytd-page-header-renderer .page-header-view-model-wiz__page-header-headline-info',
-  'ytd-page-header-renderer .page-header-view-model-wiz__page-header-headline',
-  '#channel-header #inner-header-container',
-  '#channel-header',
-  'ytd-channel-name.ytd-c4-tabbed-header-renderer',
-];
+interface Reminder {
+  snoozeUntil?: number;
+  /** YYYY-MM-DD the reminder was dismissed for. */
+  dismissedOn?: string;
+}
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+/** The page YouTube is showing (ytd-browse / ytd-watch-flexy / ytd-search …). */
+const ACTIVE_PAGE = 'ytd-page-manager > :not([hidden])';
+/** The channel header's meta line (@handle • subscribers • videos). Its rows clip overflow, so
+ * the stat goes after the last row, not inside it. */
+const CHANNEL_META =
+  'ytd-browse[page-subtype="channels"]:not([hidden]) yt-page-header-renderer yt-content-metadata-view-model';
 
-/** Format seconds as "Xh Ym" or "Ym" (floored). */
-function fmtTime(seconds: number): string {
+/** 7440 → "2h 04m", 7200 → "2h", 2700 → "45m". */
+export function fmtDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  return !h ? `${m}m` : !m ? `${h}h` : `${h}h ${String(m).padStart(2, '0')}m`;
 }
 
-function escHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;',
-  );
+function appendHtml(root: ShadowRoot, html: string): void {
+  const t = document.createElement('template');
+  t.innerHTML = html;
+  root.append(t.content);
 }
 
-// ---------------------------------------------------------------------------
-// CSS (shadow DOM, themed via --yt-sys-color-baseline--* tokens)
-// ---------------------------------------------------------------------------
+const CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
 
-const DASHBOARD_CSS = `
-  :host { all: initial; font-family: Roboto, Arial, sans-serif; }
-
-  .fab {
-    position: fixed;
-    bottom: 260px;
-    right: 16px;
-    z-index: 2147483645;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: var(--yt-sys-color-baseline--static-brand-red);
-    color: #fff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-    transition: transform 0.15s;
-  }
-  .fab:hover { transform: scale(1.1); }
-
-  .overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 2147483646;
-    background: rgba(0,0,0,0.4);
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding: 72px 16px 0 0;
-  }
-  .overlay[hidden] { display: none; }
-
-  .panel {
-    width: 360px;
-    max-height: calc(100vh - 96px);
-    overflow-y: auto;
-    border-radius: 12px;
-    background: var(--yt-sys-color-baseline--menu-background);
-    color: var(--yt-sys-color-baseline--text-primary);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--yt-sys-color-baseline--outline);
-    position: sticky;
-    top: 0;
-    background: inherit;
-  }
-  .header h2 { margin: 0; font-size: 16px; font-weight: 600; }
-
-  .close-btn {
-    background: none;
-    border: none;
-    color: var(--yt-sys-color-baseline--text-secondary);
-    cursor: pointer;
-    font-size: 20px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    line-height: 1;
-  }
-  .close-btn:hover {
-    color: var(--yt-sys-color-baseline--text-primary);
-    background: var(--yt-sys-color-baseline--additive-background);
-  }
-
-  .section {
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--yt-sys-color-baseline--outline);
-  }
-  .section:last-child { border-bottom: none; }
-
-  .section-title {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--yt-sys-color-baseline--text-secondary);
-    margin: 0 0 12px;
-  }
-
-  .stat-row { display: flex; gap: 12px; }
-  .stat-box {
-    flex: 1;
-    background: var(--yt-sys-color-baseline--additive-background);
-    border-radius: 8px;
-    padding: 12px;
-    text-align: center;
-  }
-  .stat-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--yt-sys-color-baseline--static-brand-red);
-  }
-  .stat-label {
-    font-size: 11px;
-    color: var(--yt-sys-color-baseline--text-secondary);
-    margin-top: 4px;
-  }
-
-  /* 7-day bar chart */
-  .chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 6px;
-    height: 80px;
-    padding-top: 8px;
-  }
-  .bar-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    height: 100%;
-  }
-  .bar {
-    width: 100%;
-    min-height: 2px;
-    border-radius: 3px 3px 0 0;
-    background: var(--yt-sys-color-baseline--static-brand-red);
-    opacity: 0.55;
-  }
-  .today .bar { opacity: 1; }
-  .bar-day {
-    font-size: 9px;
-    color: var(--yt-sys-color-baseline--text-secondary);
-    white-space: nowrap;
-  }
-
-  /* Channel list */
-  .tab-row { display: flex; gap: 8px; margin-bottom: 12px; }
-  .tab-btn {
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    border: 1px solid var(--yt-sys-color-baseline--outline);
-    background: none;
-    color: var(--yt-sys-color-baseline--text-secondary);
-    cursor: pointer;
-  }
-  .tab-btn.active {
-    background: var(--yt-sys-color-baseline--static-brand-red);
-    border-color: transparent;
-    color: #fff;
-  }
-
-  .channel-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .channel-item { display: flex; align-items: center; gap: 10px; }
-  .channel-rank {
-    font-size: 12px;
-    color: var(--yt-sys-color-baseline--text-secondary);
-    width: 18px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-  .channel-bar-wrap {
-    flex: 1;
-    min-width: 0;
-    position: relative;
-    height: 20px;
-    border-radius: 4px;
-    overflow: hidden;
-    background: var(--yt-sys-color-baseline--additive-background);
-  }
-  .channel-bar-fill {
-    position: absolute;
-    inset: 0 auto 0 0;
-    background: var(--yt-sys-color-baseline--additive-background);
-  }
-  .channel-name {
-    position: relative;
-    display: block;
-    padding: 0 8px;
-    font-size: 12px;
-    line-height: 20px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .channel-time {
-    font-size: 12px;
-    color: var(--yt-sys-color-baseline--text-secondary);
-    flex-shrink: 0;
-  }
-
-  .empty {
-    font-size: 13px;
-    color: var(--yt-sys-color-baseline--text-disabled);
-    text-align: center;
-    padding: 8px 0;
-  }
+const BANNER_CSS = `
+/* YouTube's reset (div{margin:0}) beats :host, so spacing lives on the section. */
+:host{align-self:stretch}
+:host(.off) section{display:none}
+:host(:focus){outline:none}
+section{display:flex;align-items:center;gap:12px;height:54px;box-sizing:border-box;margin:12px 24px 0;padding:0 8px 0 16px;border-radius:12px;background:var(--yt-sys-color-baseline--additive-background)}
+section>svg{width:24px;height:24px;flex:none}
+p{flex:1;min-width:0;margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+b{font-weight:500}
+.muted{color:var(--yt-sys-color-baseline--text-secondary)}
 `;
 
-const BADGE_CSS = `
-  :host { all: initial; display: block; }
-  .badge {
-    display: inline-block;
-    margin-top: 8px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    background: var(--yt-sys-color-baseline--additive-background);
-    border: 1px solid var(--yt-sys-color-baseline--outline);
-    color: var(--yt-sys-color-baseline--text-secondary);
-    font: 500 13px Roboto, Arial, sans-serif;
-  }
-  strong { color: var(--yt-sys-color-baseline--text-primary); }
+const STAT_CSS = `
+/* Same box as YouTube's meta rows (10px inline-flex, middle, 2px top) so they line up. */
+:host{display:inline-flex;align-items:center;vertical-align:middle;margin-top:2px;font-size:10px;line-height:normal;color:var(--yt-sys-color-baseline--text-secondary)}
+.dot,.stat{font-size:14px;line-height:20px}
+.dot{margin:0 4px}
+button{margin:0;padding:0;border:0;border-radius:2px;font:inherit;color:inherit;background:none;cursor:default;transition:color .1s}
+.stat:hover button,button:focus-visible{color:var(--yt-sys-color-baseline--text-primary)}
+.stat>.ytp-tooltip{top:calc(100% + 8px);bottom:auto;left:-8px;translate:none;font-weight:400}
+.ytp-tooltip span{display:block}
+.stat:hover>.ytp-tooltip,.stat:focus-within>.ytp-tooltip{opacity:1}
+.stat.esc>.ytp-tooltip{opacity:0}
 `;
-
-// ---------------------------------------------------------------------------
-// Dashboard rendering
-// ---------------------------------------------------------------------------
-
-/** `week` is today first, as returned by getRange. */
-function renderBarChart(week: DayStats[]): string {
-  const max = Math.max(...week.map((d) => d.totalSeconds), 1);
-  const bars = [...week]
-    .reverse() // oldest first
-    .map(
-      (d) => `
-        <div class="bar-col${d === week[0] ? ' today' : ''}">
-          <div class="bar" style="height:${(d.totalSeconds / max) * 100}%" title="${fmtTime(d.totalSeconds)}"></div>
-          <div class="bar-day">${new Date(`${d.date}T12:00`).toLocaleDateString(undefined, { weekday: 'short' })}</div>
-        </div>`,
-    )
-    .join('');
-  return `<div class="chart">${bars}</div>`;
-}
-
-function renderChannelList(channels: ChannelStats[]): string {
-  if (channels.length === 0) return `<div class="empty">No data yet</div>`;
-  const max = channels[0].seconds;
-  const items = channels
-    .slice(0, 10)
-    .map((ch, i) => {
-      const label = escHtml(ch.name || ch.channelId);
-      return `
-        <li class="channel-item">
-          <span class="channel-rank">${i + 1}</span>
-          <div class="channel-bar-wrap">
-            <div class="channel-bar-fill" style="width:${(ch.seconds / max) * 100}%"></div>
-            <span class="channel-name" title="${label}">${label}</span>
-          </div>
-          <span class="channel-time">${fmtTime(ch.seconds)}</span>
-        </li>`;
-    })
-    .join('');
-  return `<ul class="channel-list">${items}</ul>`;
-}
-
-async function panelHTML(channelDays: number): Promise<string> {
-  const [week, channels] = await Promise.all([getRange(7), getChannelTotals(channelDays)]);
-  const weekTotal = week.reduce((s, d) => s + d.totalSeconds, 0);
-  const tab = (days: number) =>
-    `<button class="tab-btn${days === channelDays ? ' active' : ''}" data-days="${days}">${days} days</button>`;
-
-  return `
-    <div class="header">
-      <h2>Watch time</h2>
-      <button class="close-btn" data-act="close" aria-label="Close">✕</button>
-    </div>
-
-    <div class="section">
-      <div class="stat-row">
-        <div class="stat-box">
-          <div class="stat-value">${fmtTime(week[0].totalSeconds)}</div>
-          <div class="stat-label">Today</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value">${fmtTime(weekTotal)}</div>
-          <div class="stat-label">Last 7 days</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <p class="section-title">Per day</p>
-      ${renderBarChart(week)}
-    </div>
-
-    <div class="section">
-      <p class="section-title">Most-watched channels</p>
-      <div class="tab-row">${tab(7)}${tab(30)}</div>
-      ${renderChannelList(channels)}
-    </div>
-  `;
-}
-
-// ---------------------------------------------------------------------------
-// Feature
-// ---------------------------------------------------------------------------
 
 const feature: Feature = {
   id: 'watch-time',
 
   async setup(ctx) {
     const stopTracking = startTracking(ctx);
-    /** Set on teardown so in-flight async work doesn't touch the page. */
     let stopped = false;
 
-    // ---- Dashboard: floating button + panel ----
-    const dash = document.createElement('div');
-    const dashRoot = dash.attachShadow({ mode: 'open' });
-    dashRoot.innerHTML = `
-      <style>${DASHBOARD_CSS}</style>
-      <button class="fab" aria-label="Watch time" title="Watch time">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-          <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-        </svg>
-      </button>
-      <div class="overlay" hidden><div class="panel"></div></div>
-    `;
-    const overlay = dashRoot.querySelector<HTMLElement>('.overlay')!;
-    const panel = dashRoot.querySelector<HTMLElement>('.panel')!;
-    document.body.appendChild(dash);
+    // ---- Daily-limit banner ----
+    const { host: banner, root: bannerRoot } = createHost('ytp-limit-banner', BANNER_CSS);
+    banner.tabIndex = -1; // focus parks here when its own buttons hide it
+    appendHtml(
+      bannerRoot,
+      `<section aria-label="Daily watch limit">${CLOCK}<p><b></b><span class="muted"></span></p>
+        <button class="ytp-btn" data-act="snooze">Snooze 15 min</button>
+        <button class="ytp-btn is-text" data-act="dismiss">Dismiss</button></section>`,
+    );
+    const [title, today] = bannerRoot.querySelectorAll('p > *');
+    const snoozeBtn = bannerRoot.querySelector<HTMLButtonElement>('[data-act="snooze"]')!;
 
-    let channelDays = 7;
-    const renderPanel = async () => {
-      panel.innerHTML = await panelHTML(channelDays);
-    };
-    const closePanel = () => {
-      overlay.hidden = true;
-    };
+    let limitMinutes = (await getConfig('watch-time')).dailyLimitMinutes;
+    let todaySeconds = 0;
+    let reminder: Reminder = {};
+    let snoozeTimer: ReturnType<typeof setTimeout> | undefined;
 
-    // The open overlay covers the button, so a click on it only ever opens.
-    dashRoot.querySelector('.fab')!.addEventListener('click', async () => {
-      await renderPanel();
-      overlay.hidden = false;
-    });
-
-    overlay.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target === overlay || target.closest('[data-act="close"]')) {
-        closePanel();
+    const renderBanner = () => {
+      clearTimeout(snoozeTimer);
+      const snoozed = (reminder.snoozeUntil ?? 0) > Date.now();
+      if (snoozed) snoozeTimer = setTimeout(renderBanner, reminder.snoozeUntil! - Date.now() + 500);
+      const due =
+        !stopped &&
+        limitMinutes > 0 &&
+        todaySeconds >= limitMinutes * 60 &&
+        !snoozed &&
+        reminder.dismissedOn !== isoDate();
+      if (!due) {
+        banner.classList.add('off');
+        // Keep it (empty) while it holds focus parked by Snooze/Dismiss.
+        if (document.activeElement !== banner) banner.remove();
         return;
       }
-      const days = target.closest<HTMLElement>('[data-days]')?.dataset.days;
-      if (days) {
-        channelDays = Number(days);
-        void renderPanel();
+      title.textContent = `You've reached your ${fmtDuration(limitMinutes * 60)} daily limit`;
+      today.textContent = ` · ${fmtDuration(todaySeconds)} watched today`;
+      banner.classList.remove('off');
+      const page = document.querySelector(ACTIVE_PAGE);
+      if (page && page.firstElementChild !== banner) page.prepend(banner);
+    };
+
+    const setReminder = (next: Reminder) => {
+      reminder = next;
+      renderBanner();
+      void storage.setItem(REMINDER_KEY, next);
+    };
+
+    bannerRoot.addEventListener('click', (e) => {
+      const act = (e.target as Element).closest<HTMLElement>('[data-act]')?.dataset.act;
+      if (!act) return;
+      const prev = reminder;
+      const undo = () => {
+        setReminder(prev);
+        if (banner.isConnected) snoozeBtn.focus();
+        flashToast('Daily limit reminder restored');
+      };
+      banner.focus({ preventScroll: true });
+      if (act === 'snooze') {
+        setReminder({ ...prev, snoozeUntil: Date.now() + SNOOZE_MS });
+        flashToast('Reminder snoozed for 15 minutes', { action: { label: 'Undo', onClick: undo } });
+      } else {
+        setReminder({ ...prev, dismissedOn: isoDate() });
+        flashToast('Reminder hidden for today', { action: { label: 'Undo', onClick: undo } });
       }
     });
 
-    const offEsc = onKey('Escape', closePanel);
+    const todayOf = (log: WatchLog | null) => log?.[isoDate()]?.totalSeconds ?? 0;
+    todaySeconds = todayOf(await getLog());
+    reminder = (await storage.getItem<Reminder>(REMINDER_KEY)) ?? {};
+    renderBanner();
 
-    // ---- Channel page: watched-time badge in the header ----
-    const badge = document.createElement('div');
-    const badgeRoot = badge.attachShadow({ mode: 'open' });
-    /** True once the badge holds the current channel page's stat. */
-    let badgeReady = false;
+    // Every tab's tracker flush lands here — no DOM polling.
+    const offLog = storage.watch<WatchLog>(LOG_KEY, (log) => {
+      todaySeconds = todayOf(log);
+      renderBanner();
+    });
+    const offReminder = storage.watch<Reminder>(REMINDER_KEY, (r) => {
+      reminder = r ?? {};
+      renderBanner();
+    });
+    const offConfig = watchConfig('watch-time', (c) => {
+      limitMinutes = c.dailyLimitMinutes;
+      renderBanner();
+    });
 
-    // YouTube re-renders the header, so this also re-attaches a dropped badge.
-    const mountBadge = () => {
-      if (!badgeReady || badge.isConnected) return;
-      for (const sel of HEADER_SELECTORS) {
-        const anchor = document.querySelector(sel);
-        if (anchor) {
-          anchor.appendChild(badge);
-          return;
-        }
+    // ---- Channel page: "• You've watched 6h 10m" ----
+    const { host: stat, root: statRoot } = createHost('ytp-channel-watched', STAT_CSS);
+    appendHtml(
+      statRoot,
+      `<span class="dot" aria-hidden="true">•</span><span class="stat"><button aria-describedby="tip"></button><span class="ytp-tooltip" id="tip" role="tooltip"></span></span>`,
+    );
+    const statWrap = statRoot.querySelector<HTMLElement>('.stat')!;
+    const statBtn = statRoot.querySelector('button')!;
+    const tip = statRoot.querySelector<HTMLElement>('.ytp-tooltip')!;
+    statBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') statWrap.classList.add('esc');
+    });
+    const tipReset = () => statWrap.classList.remove('esc');
+    statBtn.addEventListener('blur', tipReset);
+    statWrap.addEventListener('mouseleave', tipReset);
+
+    /** Pathname the stat was computed for; '' = nothing to show here. */
+    let statPath = '';
+
+    const placeStat = () => {
+      if (!statPath) return;
+      const row = document.querySelector(CHANNEL_META);
+      if (row && row.lastElementChild !== stat) row.append(stat);
+    };
+
+    // ponytail: keyed by the URL's channel id (@handle or UC…), which is what the tracker
+    // stores for almost every channel; a /channel/UC… visit to a @handle channel shows nothing.
+    const showStat = async () => {
+      statPath = '';
+      stat.remove();
+      const path = location.pathname;
+      const id = channelIdFromHref(path);
+      if (!id) return;
+      const [totals, log, speeds, flags, speed] = await Promise.all([
+        getChannelTotals(),
+        getLog(),
+        storage.getItem<Record<string, number>>(SPEED_KEY),
+        getFlags(),
+        getConfig('playback-speed'),
+      ]);
+      const all = totals[id]?.seconds ?? 0;
+      if (stopped || location.pathname !== path || all < 60) return;
+      let week = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        week += log[isoDate(d)]?.perChannel[id]?.seconds ?? 0;
       }
+      const rate = flags['playback-speed'] && speed.perChannel ? speeds?.[id] : undefined;
+      statBtn.textContent = `You've watched ${fmtDuration(all)}`;
+      tip.replaceChildren(
+        ...[
+          `${fmtDuration(all)} all time`,
+          `${fmtDuration(week)} in the last 7 days`,
+          ...(rate ? [`Plays at ${rate}× on this channel`] : []),
+        ].map((line) => Object.assign(document.createElement('span'), { textContent: line })),
+      );
+      statPath = path;
+      placeStat();
     };
 
-    const showChannelStat = async () => {
-      badgeReady = false;
-      badge.remove();
-      const channelId = channelIdFromHref(location.pathname);
-      if (!channelId) return;
-      const seconds = await getChannelTotal(channelId);
-      // Torn down, or navigated elsewhere while reading storage
-      if (stopped || channelIdFromHref(location.pathname) !== channelId) return;
-      badgeRoot.innerHTML = `
-        <style>${BADGE_CSS}</style>
-        <span class="badge">You've watched <strong>${fmtTime(seconds)}</strong> of this channel</span>
-      `;
-      badgeReady = true;
-      mountBadge();
-    };
+    void showStat();
 
-    void showChannelStat();
-    const offChange = ctx.observer.onChange(mountBadge);
-    const offNav = ctx.navigation.onNavigate(() => void showChannelStat());
-
-    // ---- Soft daily limit ----
-    let limitMinutes = 0;
-    let limitTimer: ReturnType<typeof setInterval> | undefined;
-    /** Date (YYYY-MM-DD) the limit toast last fired. */
-    let remindedOn = '';
-
-    const checkLimit = async () => {
-      const [today] = await getRange(1);
-      if (stopped || limitMinutes <= 0 || today.date === remindedOn) return;
-      if (today.totalSeconds < limitMinutes * 60) return;
-      remindedOn = today.date;
-      flashToast(`Daily limit reached: ${fmtTime(today.totalSeconds)} watched today`, 8000);
-    };
-
-    const applyLimit = ({ dailyLimitMinutes }: FeatureConfig['watch-time']) => {
-      limitMinutes = dailyLimitMinutes;
-      remindedOn = ''; // a new limit gets its own reminder
-      clearInterval(limitTimer);
-      if (limitMinutes > 0) {
-        limitTimer = setInterval(checkLimit, LIMIT_CHECK_MS);
-        void checkLimit();
-      }
-    };
-
-    applyLimit(await getConfig('watch-time'));
-    const offConfig = watchConfig('watch-time', applyLimit);
+    const offNav = ctx.navigation.onNavigate(() => {
+      renderBanner();
+      void showStat();
+    });
+    // YouTube re-renders headers/pages: put our bits back.
+    const offChange = ctx.observer.onChange(() => {
+      if (!banner.classList.contains('off')) renderBanner();
+      placeStat();
+    });
 
     return () => {
       stopped = true;
       stopTracking();
-      offEsc();
-      offChange();
-      offNav();
+      offLog();
+      offReminder();
       offConfig();
-      clearInterval(limitTimer);
-      dash.remove();
-      badge.remove();
+      offNav();
+      offChange();
+      clearTimeout(snoozeTimer);
+      banner.remove();
+      stat.remove();
     };
   },
 };
