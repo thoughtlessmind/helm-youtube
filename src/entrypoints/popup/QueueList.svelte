@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { tick } from 'svelte';
   import {
     clearPlayed,
     moveInQueue,
@@ -9,6 +8,7 @@
     type QueueItem,
   } from '../../lib/queue';
   import { fmtClock } from './lib';
+  import { Reorder, moveItem } from '../../lib/reorder.svelte';
 
   let {
     items = $bindable(),
@@ -30,52 +30,18 @@
   const hasPlayed = $derived(items.some((i) => i.playedAt && i.videoId !== currentId));
 
   let list = $state<HTMLOListElement>();
-  let dragId = $state<string | null>(null);
-  let overId = $state<string | null>(null);
-  let overAfter = $state(false);
   let announce = $state('');
 
   /** Optimistic local move, then persist. */
-  function move(id: string, to: number) {
-    const from = items.findIndex((i) => i.videoId === id);
-    if (from < 0) return;
-    const next = items.slice();
-    const [it] = next.splice(from, 1);
-    to = Math.max(0, Math.min(to, next.length));
-    next.splice(to, 0, it);
-    items = next;
-    void moveInQueue(id, to);
-    announce = `${it.title}, position ${to + 1} of ${next.length}`;
-  }
-
-  async function onGripKey(e: KeyboardEvent, id: string, i: number) {
-    const to = e.key === 'ArrowUp' ? i - 1 : e.key === 'ArrowDown' ? i + 1 : -2;
-    if (to === -2) return;
-    e.preventDefault();
-    if (to < 0 || to >= items.length) return;
-    move(id, to);
-    await tick();
-    list?.querySelector<HTMLElement>(`[data-grip="${CSS.escape(id)}"]`)?.focus();
-  }
-
-  function onDragOver(e: DragEvent, id: string) {
-    if (!dragId) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    overId = id;
-    overAfter = e.clientY > box.top + box.height / 2;
-  }
-
-  function onDrop(e: DragEvent, id: string) {
-    e.preventDefault();
-    if (dragId && dragId !== id) {
-      const rest = items.filter((i) => i.videoId !== dragId);
-      const to = rest.findIndex((i) => i.videoId === id) + (overAfter ? 1 : 0);
-      move(dragId, to);
-    }
-    dragId = overId = null;
-  }
+  const ro = new Reorder({
+    ids: () => items.map((i) => i.videoId),
+    root: () => list,
+    move(id, to) {
+      items = moveItem(items, items.findIndex((i) => i.videoId === id), to);
+      void moveInQueue(id, to);
+      announce = `${items[to].title}, position ${to + 1} of ${items.length}`;
+    },
+  });
 
 </script>
 
@@ -94,33 +60,27 @@
   {/if}
 
   <ol class="scroll" bind:this={list}>
-    {#each items as item, i (item.videoId)}
+    {#each items as item (item.videoId)}
       {@const isCurrent = item.videoId === currentId}
       {@const watched = !!item.playedAt && !isCurrent}
-      {@const over = dragId && dragId !== item.videoId && overId === item.videoId}
+      {@const over = ro.dragId && ro.dragId !== item.videoId && ro.overId === item.videoId}
       <li
         class="row"
         class:cur={isCurrent}
-        class:dragging={dragId === item.videoId}
+        class:dragging={ro.dragId === item.videoId}
         draggable="true"
-        ondragstart={(e) => {
-          if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', item.videoId);
-          }
-          dragId = item.videoId;
-        }}
-        ondragover={(e) => onDragOver(e, item.videoId)}
-        ondrop={(e) => onDrop(e, item.videoId)}
-        ondragend={() => (dragId = overId = null)}
+        ondragstart={(e) => ro.start(e, item.videoId)}
+        ondragover={(e) => ro.over(e, item.videoId)}
+        ondrop={(e) => ro.drop(e, item.videoId)}
+        ondragend={ro.end}
       >
-        {#if over && !overAfter}<span class="drop before" aria-hidden="true"></span>{/if}
+        {#if over && !ro.after}<span class="drop before" aria-hidden="true"></span>{/if}
         <button
           class="grip"
           data-grip={item.videoId}
           aria-label="Reorder {item.title}. Drag, or press up and down arrow keys."
           title="Drag to reorder, or use arrow keys"
-          onkeydown={(e) => onGripKey(e, item.videoId, i)}
+          onkeydown={(e) => ro.key(e, item.videoId)}
         >
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="9" cy="6" r="1.6" fill="currentColor"></circle><circle cx="15" cy="6" r="1.6" fill="currentColor"></circle><circle cx="9" cy="12" r="1.6" fill="currentColor"></circle><circle cx="15" cy="12" r="1.6" fill="currentColor"></circle><circle cx="9" cy="18" r="1.6" fill="currentColor"></circle><circle cx="15" cy="18" r="1.6" fill="currentColor"></circle></svg>
         </button>
@@ -162,7 +122,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
           </button>
         </div>
-        {#if over && overAfter}<span class="drop after" aria-hidden="true"></span>{/if}
+        {#if over && ro.after}<span class="drop after" aria-hidden="true"></span>{/if}
       </li>
     {/each}
   </ol>

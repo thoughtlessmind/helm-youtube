@@ -17,7 +17,8 @@ import { isTypingTarget } from './keys';
  * Pressed/open state comes from aria-pressed / aria-expanded. Chips: .ytp-chip with
  * aria-pressed|aria-selected. Menus: .ytp-menu > .ytp-menu-item, .ytp-menu-sep. Dialog:
  * <dialog class="ytp-dialog"> with <h2> and <footer> actions. .ytp-input (.is-underline),
- * <input type="checkbox" role="switch" class="ytp-switch">, .ytp-tooltip (child of its trigger).
+ * <input type="checkbox" role="switch" class="ytp-switch">, .ytp-tooltip (child of its trigger),
+ * .ytp-sr (visually hidden, for live-region status text).
  * Player popovers: .ytp-player-menu (always dark, like YouTube's own player CSS).
  */
 const T = (name: string) => `var(--yt-sys-color-baseline--${name})`;
@@ -86,6 +87,8 @@ export const NATIVE_CSS = `
 :has(>.ytp-tooltip){position:relative}
 .ytp-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;translate:-50% 0;z-index:1;padding:6px 10px;border-radius:4px;background:rgba(28,28,28,.9);color:#fff;font-size:12px;line-height:16px;font-weight:500;white-space:nowrap;text-shadow:none;pointer-events:none;opacity:0;transition:opacity .1s}
 :hover>.ytp-tooltip,:focus-visible>.ytp-tooltip{opacity:1}
+
+.ytp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
 @media (prefers-reduced-motion:reduce){*,::before,::after,::backdrop{animation:none!important;transition:none!important}}
 `;

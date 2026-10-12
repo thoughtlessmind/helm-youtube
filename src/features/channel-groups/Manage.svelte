@@ -4,6 +4,7 @@
   import { onDestroy, onMount, tick } from 'svelte';
   import Editor from './Editor.svelte';
   import { initials } from '../../lib/format';
+  import { Reorder, moveItem } from '../../lib/reorder.svelte';
   import {
     FAV,
     channelCount,
@@ -30,8 +31,6 @@
   let newName = $state('');
   let pending = $state<{ g: Group; i: number } | null>(null);
   let announce = $state('');
-  let dragId = $state<string | null>(null);
-  let over = $state<{ id: string; after: boolean } | null>(null);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let skipBlur = false;
 
@@ -51,54 +50,19 @@
 
   const at = (id: string) => groups.findIndex((g) => g.id === id);
 
+  // ── Reorder: drag, arrow keys on the grip, ↑/↓ buttons ────────────────
   function moveTo(id: string, to: number) {
-    const list = [...groups];
-    const from = at(id);
-    if (from < 0 || to < 0 || to >= list.length || to === from) return false;
-    const [g] = list.splice(from, 1);
-    list.splice(to, 0, g);
+    const list = moveItem(groups, at(id), to);
     saveGroups(list);
-    announce = `${g.name} moved to position ${to + 1} of ${list.length}`;
-    return true;
+    announce = `${list[to].name} moved to position ${to + 1} of ${list.length}`;
   }
+  const ro = new Reorder({ ids: () => groups.map((g) => g.id), move: moveTo, root: () => root });
 
+  /** ↑/↓ button; focus stays on it, or moves to its twin once it's disabled at the end. */
   function step(id: string, d: -1 | 1, focusSel: (to: number, len: number) => string) {
     const to = at(id) + d;
-    if (moveTo(id, to)) focus(focusSel(to, groups.length));
-  }
-
-  function onGripKey(e: KeyboardEvent, id: string) {
-    const d = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
-    if (!d) return;
-    e.preventDefault();
-    step(id, d, () => `[data-grip="${id}"]`);
-  }
-
-  // ── Drag ────────────────────────────────────────────────────────────────
-  function onDragStart(e: DragEvent, id: string) {
-    if (!e.dataTransfer) return;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', id);
-    dragId = id;
-  }
-  function onDragOver(e: DragEvent, id: string) {
-    if (!dragId) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const after = e.clientY > box.top + box.height / 2;
-    if (over?.id !== id || over.after !== after) over = { id, after };
-  }
-  function onDrop(e: DragEvent, id: string) {
-    e.preventDefault();
-    if (dragId && dragId !== id && over) {
-      const from = at(dragId);
-      let to = at(id) + (over.after ? 1 : 0);
-      if (from < to) to -= 1;
-      moveTo(dragId, to);
-    }
-    dragId = null;
-    over = null;
+    moveTo(id, to);
+    focus(focusSel(to, groups.length));
   }
 
   // ── Rename ──────────────────────────────────────────────────────────────
@@ -233,15 +197,15 @@
         {@const dup = rn && isDuplicateName(draft, g.id)}
         <li
           class="row"
-          class:dragging={dragId === g.id}
+          class:dragging={ro.dragId === g.id}
           draggable={!rn}
-          ondragstart={(e) => onDragStart(e, g.id)}
-          ondragover={(e) => onDragOver(e, g.id)}
-          ondrop={(e) => onDrop(e, g.id)}
-          ondragend={() => ((dragId = null), (over = null))}
+          ondragstart={(e) => ro.start(e, g.id)}
+          ondragover={(e) => ro.over(e, g.id)}
+          ondrop={(e) => ro.drop(e, g.id)}
+          ondragend={ro.end}
         >
-          {#if dragId && dragId !== g.id && over?.id === g.id}
-            <span class="drop" class:after={over.after} aria-hidden="true"></span>
+          {#if ro.dragId && ro.dragId !== g.id && ro.overId === g.id}
+            <span class="drop" class:after={ro.after} aria-hidden="true"></span>
           {/if}
           <button
             class="grip"
@@ -249,7 +213,7 @@
             data-grip={g.id}
             aria-label="Reorder {g.name}, position {i + 1} of {groups.length}. Drag, or press up and down arrow keys."
             title="Drag to reorder, or use arrow keys"
-            onkeydown={(e) => onGripKey(e, g.id)}
+            onkeydown={(e) => ro.key(e, g.id)}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6" fill="currentColor"></circle><circle cx="15" cy="6" r="1.6" fill="currentColor"></circle><circle cx="9" cy="12" r="1.6" fill="currentColor"></circle><circle cx="15" cy="12" r="1.6" fill="currentColor"></circle><circle cx="9" cy="18" r="1.6" fill="currentColor"></circle><circle cx="15" cy="18" r="1.6" fill="currentColor"></circle></svg>
           </button>
@@ -350,7 +314,7 @@
     </footer>
   {/if}
 
-  <div class="sr" aria-live="polite">{announce}</div>
+  <div class="ytp-sr" aria-live="polite">{announce}</div>
   <div class="toast-slot" role="status" aria-live="polite" aria-atomic="true">
     {#if pending}
       <div class="toast">
@@ -400,7 +364,6 @@
   footer { display: flex; align-items: center; gap: 8px; }
   .newrow { margin-left: -10px; }
   .spacer { flex: 1 1 auto; }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .toast-slot { position: absolute; left: 24px; bottom: 72px; z-index: 2; }
   .toast { display: flex; align-items: center; gap: 12px; min-height: 48px; box-sizing: border-box; padding: 0 9px 0 16px; border-radius: 8px;
     background: var(--yt-sys-color-baseline--inverted-background); color: var(--yt-sys-color-baseline--text-primary-inverse);

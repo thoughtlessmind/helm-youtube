@@ -23,6 +23,7 @@
   import { tick } from 'svelte';
   import { thumbUrl } from '../../lib/queue';
   import { fmtClock } from '../../lib/format';
+  import { Reorder, moveItem } from '../../lib/reorder.svelte';
 
   let { actions, initial }: { actions: PanelActions; initial: PanelState } = $props();
 
@@ -35,9 +36,6 @@
 
   let list = $state<HTMLOListElement>();
   let status = $state('');
-  let dragId = $state<string | null>(null);
-  let overId = $state<string | null>(null);
-  let overAfter = $state(false);
 
   const upNextCount = $derived(s.items.filter((i) => !i.playedAt).length);
   const curIdx = $derived(s.items.findIndex((i) => i.videoId === s.currentId));
@@ -53,25 +51,15 @@
   });
 
   /** Local reorder first (focus + drop feedback stay instant), then persist. */
-  function reorder(videoId: string, to: number) {
-    const items = s.items.slice();
-    const from = items.findIndex((i) => i.videoId === videoId);
-    if (from < 0 || to < 0 || to >= items.length || to === from) return false;
-    items.splice(to, 0, ...items.splice(from, 1));
-    s.items = items;
-    actions.move(videoId, to);
-    return true;
-  }
-
-  async function onGripKey(e: KeyboardEvent, i: number, videoId: string) {
-    const d = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
-    if (!d) return;
-    e.preventDefault();
-    if (!reorder(videoId, i + d)) return;
-    status = `Moved to position ${i + d + 1} of ${s.items.length}`;
-    await tick();
-    list?.querySelector<HTMLElement>(`[data-id="${videoId}"] .grip`)?.focus();
-  }
+  const ro = new Reorder({
+    ids: () => s.items.map((i) => i.videoId),
+    root: () => list,
+    move(videoId, to) {
+      s.items = moveItem(s.items, s.items.findIndex((i) => i.videoId === videoId), to);
+      actions.move(videoId, to);
+      status = `Moved to position ${to + 1} of ${s.items.length}`;
+    },
+  });
 
   async function remove(i: number, videoId: string) {
     s.items = s.items.filter((x) => x.videoId !== videoId);
@@ -80,32 +68,6 @@
     const btns = list?.querySelectorAll<HTMLElement>('.rm');
     btns?.[Math.min(i, btns.length - 1)]?.focus();
   }
-
-  function onDragStart(e: DragEvent, videoId: string) {
-    e.dataTransfer!.effectAllowed = 'move';
-    e.dataTransfer!.setData('text/plain', videoId);
-    dragId = videoId;
-  }
-  function onDragOver(e: DragEvent, videoId: string) {
-    if (!dragId) return;
-    e.preventDefault();
-    e.dataTransfer!.dropEffect = 'move';
-    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    overId = videoId;
-    overAfter = e.clientY > box.top + box.height / 2;
-  }
-  function onDrop(e: DragEvent, videoId: string) {
-    e.preventDefault();
-    const d = dragId;
-    if (d && d !== videoId) {
-      const from = s.items.findIndex((i) => i.videoId === d);
-      let to = s.items.findIndex((i) => i.videoId === videoId) + (overAfter ? 1 : 0);
-      if (from < to) to -= 1;
-      reorder(d, to);
-    }
-    dragId = overId = null;
-  }
-  const onDragEnd = () => (dragId = overId = null);
 </script>
 
 <section aria-label="Queue">
@@ -154,16 +116,16 @@
         <li
           class="row"
           class:cur={isCurrent}
-          class:dragging={dragId === item.videoId}
+          class:dragging={ro.dragId === item.videoId}
           data-id={item.videoId}
           draggable="true"
-          ondragstart={(e) => onDragStart(e, item.videoId)}
-          ondragover={(e) => onDragOver(e, item.videoId)}
-          ondrop={(e) => onDrop(e, item.videoId)}
-          ondragend={onDragEnd}
+          ondragstart={(e) => ro.start(e, item.videoId)}
+          ondragover={(e) => ro.over(e, item.videoId)}
+          ondrop={(e) => ro.drop(e, item.videoId)}
+          ondragend={ro.end}
         >
-          {#if dragId && dragId !== item.videoId && overId === item.videoId}
-            <span class="drop" class:after={overAfter} aria-hidden="true"></span>
+          {#if ro.dragId && ro.dragId !== item.videoId && ro.overId === item.videoId}
+            <span class="drop" class:after={ro.after} aria-hidden="true"></span>
           {/if}
           <div class="ind">
             <span class="ind-state">
@@ -177,9 +139,10 @@
             </span>
             <button
               class="grip"
+              data-grip={item.videoId}
               aria-label={`Reorder ${item.title}. Drag, or press up and down arrow keys.`}
               title="Drag to reorder, or use arrow keys"
-              onkeydown={(e) => onGripKey(e, i, item.videoId)}
+              onkeydown={(e) => ro.key(e, item.videoId)}
             >
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                 <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" /><circle cx="9" cy="12" r="1.6" />
@@ -210,7 +173,7 @@
       {/each}
     </ol>
   {/if}
-  <span class="sr" role="status">{status}</span>
+  <span class="ytp-sr" role="status">{status}</span>
 </section>
 
 <style>
@@ -498,14 +461,6 @@
   .row:hover .rm,
   .row:focus-within .rm {
     opacity: 1;
-  }
-  .sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
   @media (prefers-reduced-motion: reduce) {
     .eq span {
