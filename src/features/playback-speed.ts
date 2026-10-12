@@ -30,6 +30,7 @@ import {
   mountInPlayer,
   onVideoEvent,
   tooltip,
+  watchMetaCurrent,
 } from '../lib/yt/player';
 
 const STORAGE_KEY = 'local:ytpro:per-channel-speed';
@@ -245,7 +246,7 @@ const feature: Feature = {
 
     /** Resolve the channel once the watch metadata has rendered, then apply. */
     const resolveChannel = () => {
-      if (!isWatchPage()) return;
+      if (!watchMetaCurrent()) return; // the owner link still names the previous video's channel
       const ch = getWatchChannel();
       if (!ch || (ch.id === channel?.id && ch.name === channel.name)) return;
       channel = ch;
