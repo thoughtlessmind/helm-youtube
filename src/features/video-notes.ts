@@ -1,402 +1,222 @@
 /**
- * video-notes — attach a free-text personal note to any YouTube video.
+ * video-notes — one private note per video. A "Notes" button in the watch-page action row (left
+ * of Like; a blue dot when this video has a note) opens a card above the description: autosaves
+ * as you type, "Add 6:52" inserts the current time at the caret, Close/Esc returns focus to the
+ * button. The card follows the video on SPA navigation and picks up edits from other tabs.
  *
- * Injects a floating shadow-DOM panel anchored to the bottom-right corner
- * of the viewport. The panel is a circular toggle button that expands into
- * a resizable textarea. A filled-dot indicator on the toggle signals that
- * the current video already has a saved note. Notes auto-save 400ms after
- * the last keystroke; a pending write is flushed synchronously on teardown
- * so the last edit is never lost.
- *
- * Storage shape:  `local:ytpro:video-notes`  →  Record<videoId, string>
- * FeatureConfig:  none
- * Permissions:    none new
- * Catalog:        Notes & Tags / "Video Notes"
+ * Storage: `local:ytpro:video-notes` → Record<videoId, string> (blank notes are deleted).
  */
 
 import { storage } from '#imports';
 import type { Feature } from '../lib/features';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
+import { createHost } from '../lib/yt/ui';
+import { actionCss, placeAboveDescription, placeInActionRow } from '../lib/yt/action-row';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const HOST_ID = 'yt-pro-video-notes-host';
-const STORAGE_KEY = 'local:ytpro:video-notes' as const;
+type Notes = Record<string, string>;
+const KEY = 'local:ytpro:video-notes' as const;
 const DEBOUNCE_MS = 400;
-/** Above most YouTube UI. */
-const Z_INDEX = 2147483640;
 
-// ─── CSS (scoped inside shadow root) ─────────────────────────────────────────
+const SVG = (d: string, extra = '') =>
+  `<svg${extra} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`; // first duplicate attribute wins
 
-const SHADOW_CSS = `
-  :host {
-    all: initial;
-    font-family: "YouTube Sans", Roboto, system-ui, sans-serif;
-    box-sizing: border-box;
-  }
-  *, *::before, *::after { box-sizing: inherit; }
+// The dot punches a hole in the icon (mask) instead of a ring in the button's colour, so it reads
+// the same on any theme and hover state.
+const NOTE_ICON = SVG(
+  `<mask id="hole"><rect width="24" height="24" fill="#fff"/><circle cx="21.6" cy="3.6" r="6"/></mask>
+   <g><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.5V14l-6 6H6.5A1.5 1.5 0 0 1 5 18.5z"/><path d="M13 20v-4.5a1.5 1.5 0 0 1 1.5-1.5H19"/><path d="M8.5 8.5h7M8.5 11.5h4"/></g>
+   <circle class="dot" cx="21.6" cy="3.6" r="3.6" stroke="none"/>`,
+  ' style="overflow:visible"',
+);
 
-  .toggle {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: none;
-    background: var(--yt-spec-call-to-action, #065fd4);
-    color: #fff;
-    font-size: 20px;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.15s, background 0.15s;
-    flex-shrink: 0;
-    user-select: none;
-  }
-  .toggle:hover { transform: scale(1.08); }
-  .toggle:active { transform: scale(0.96); }
-
-  .toggle[aria-expanded="true"] {
-    background: var(--yt-spec-text-secondary, #606060);
-  }
-
-  /* Filled dot indicator: note exists for this video */
-  .has-note::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: #f90;
-    border: 2px solid #fff;
-  }
-
-  .panel {
-    background: var(--yt-spec-base-background, #fff);
-    border: 1px solid var(--yt-spec-10-percent-layer, rgba(0,0,0,0.1));
-    border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-    display: flex;
-    flex-direction: column;
-    width: 320px;
-    overflow: hidden;
-    transition: opacity 0.15s, transform 0.15s;
-    transform-origin: bottom right;
-  }
-  .panel[hidden] {
-    display: none;
-  }
-
-  .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px 8px;
-    border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(0,0,0,0.08));
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--yt-spec-text-secondary, #606060);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    user-select: none;
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--yt-spec-text-secondary, #606060);
-    font-size: 16px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    line-height: 1;
-    transition: background 0.15s;
-  }
-  .close-btn:hover { background: rgba(0,0,0,0.07); }
-
-  .textarea {
-    width: 100%;
-    min-height: 160px;
-    max-height: 400px;
-    border: none;
-    outline: none;
-    resize: vertical;
-    padding: 10px 12px;
-    font-family: inherit;
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--yt-spec-text-primary, #0f0f0f);
-    background: transparent;
-  }
-
-  .panel-footer {
-    padding: 4px 12px 8px;
-    font-size: 11px;
-    color: var(--yt-spec-text-secondary, #909090);
-    text-align: right;
-    min-height: 20px;
-  }
-
-  /* Dark mode via attribute on <html> */
-  :host-context(html[dark]) .panel,
-  :host-context([dark]) .panel {
-    background: #212121;
-    border-color: rgba(255,255,255,0.1);
-  }
-  :host-context(html[dark]) .textarea,
-  :host-context([dark]) .textarea {
-    color: #f1f1f1;
-  }
-  :host-context(html[dark]) .panel-header,
-  :host-context([dark]) .panel-header {
-    border-color: rgba(255,255,255,0.08);
-    color: #aaa;
-  }
-  :host-context(html[dark]) .close-btn:hover,
-  :host-context([dark]) .close-btn:hover {
-    background: rgba(255,255,255,0.08);
-  }
+const BTN_CSS = `${actionCss(96)}
+.dot{fill:var(--yt-sys-color-baseline--call-to-action);display:none}
+.has-note .dot{display:inline}
 `;
 
-// ─── Feature ──────────────────────────────────────────────────────────────────
+const CARD_CSS = `
+:host{display:block;flex:1 1 100%;margin:12px 12px 0 0}
+section{padding:6px 8px 16px 12px;border-radius:12px;background:var(--yt-sys-color-baseline--additive-background)}
+header{display:flex;align-items:center;gap:8px;height:36px}
+.lock{width:16px;height:16px;flex:none;color:var(--yt-sys-color-baseline--text-secondary)}
+h2{margin:0;font-size:14px;line-height:20px;font-weight:500}
+.status{font-size:12px;line-height:18px;color:var(--yt-sys-color-baseline--text-secondary)}
+.grow{flex:1}
+textarea.ytp-input{display:block;height:65px;margin-top:4px;padding:2px 0 4px;resize:none;line-height:20px}
+`;
+
+// append, not innerHTML: a createHost root already holds its <style>.
+const html = (s: string) => document.createRange().createContextualFragment(s);
+
+/** 412 → "6:52", 3725 → "1:02:05". */
+const clock = (s: number) => {
+  const t = Math.floor(s);
+  const mmss = `${Math.floor((t % 3600) / 60)}:${String(t % 60).padStart(2, '0')}`;
+  return t >= 3600 ? `${Math.floor(t / 3600)}:${mmss.padStart(5, '0')}` : mmss;
+};
 
 const feature: Feature = {
   id: 'video-notes',
 
   setup(ctx) {
-    // In-memory cache of the full notes dict.
-    let noteCache: Record<string, string> = {};
-    let currentVideoId: string | null = null;
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    let isOpen = false;
+    let notes: Notes = {};
+    let vid = getVideoId();
+    let open = false;
+    let dirty = false;
+    let timer = 0;
+    let writes = Promise.resolve();
+    let player: HTMLVideoElement | null = null;
 
-    // DOM handles.
-    let host: HTMLDivElement | null = null;
-    let shadow: ShadowRoot | null = null;
-    let toggleBtn: HTMLButtonElement | null = null;
-    let panelEl: HTMLDivElement | null = null;
-    let textareaEl: HTMLTextAreaElement | null = null;
-    let footerEl: HTMLDivElement | null = null;
+    const btnHost = createHost('ytp-notes', BTN_CSS);
+    btnHost.root.append(html(`<button class="ytp-btn" type="button" aria-pressed="false" aria-label="Notes" title="Private note for this video">${NOTE_ICON}<span>Notes</span></button>`));
+    const btn = btnHost.root.querySelector('button')!;
+    const iconBody = btn.querySelector('g')!;
 
-    const teardowns: Array<() => void> = [];
+    const card = createHost('ytp-note-card', CARD_CSS);
+    card.root.append(html(`
+      <section aria-labelledby="title">
+        <header>
+          ${SVG('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', ' class="lock" stroke-width="2"')}
+          <h2 id="title">Your private note</h2>
+          <span class="status" role="status"></span>
+          <div class="grow"></div>
+          <button class="ytp-btn is-sm" type="button" data-stamp>${SVG('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', ' stroke-width="1.9"')}<span></span></button>
+          <button class="ytp-btn is-icon is-text" type="button" aria-label="Close note">${SVG('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
+        </header>
+        <textarea class="ytp-input is-underline" aria-labelledby="title" placeholder="Write a note about this video…"></textarea>
+      </section>`));
+    const status = card.root.querySelector<HTMLElement>('.status')!;
+    const stamp = card.root.querySelector<HTMLButtonElement>('[data-stamp]')!;
+    const stampText = stamp.querySelector('span')!;
+    const closeBtn = card.root.querySelector<HTMLButtonElement>('[aria-label="Close note"]')!;
+    const ta = card.root.querySelector('textarea')!;
 
-    // ── Storage ─────────────────────────────────────────────────────────────
-
-    const loadCache = async () => {
-      noteCache = (await storage.getItem<Record<string, string>>(STORAGE_KEY)) ?? {};
+    const refresh = () => {
+      const has = !!(open ? ta.value : (vid && notes[vid]) || '').trim();
+      btn.classList.toggle('has-note', has);
+      btn.setAttribute('aria-label', has ? 'Notes (has a note)' : 'Notes');
+      if (has) iconBody.setAttribute('mask', 'url(#hole)');
+      else iconBody.removeAttribute('mask');
     };
 
-    const flushWrite = (vid: string, text: string) => {
-      noteCache[vid] = text;
-      if (!text.trim()) delete noteCache[vid];
-      void storage.setItem(STORAGE_KEY, noteCache);
+    /** Write the textarea to storage now. Writes are chained so two flushes can't race. */
+    const flush = () => {
+      clearTimeout(timer);
+      if (!dirty || !vid) return;
+      dirty = false;
+      const id = vid;
+      const text = ta.value.trim() ? ta.value : '';
+      if (text) notes[id] = text;
+      else delete notes[id];
+      status.textContent = 'Saved just now';
+      writes = writes.then(async () => {
+        const cur = { ...(await storage.getItem<Notes>(KEY)) };
+        if (text) cur[id] = text;
+        else delete cur[id];
+        await storage.setItem(KEY, cur);
+      });
     };
 
-    /** Debounced save — call on every textarea input event. */
-    const scheduleSave = (vid: string, text: string) => {
-      if (debounceTimer !== null) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        debounceTimer = null;
-        flushWrite(vid, text);
-        updateFooter('Saved');
-      }, DEBOUNCE_MS);
+    const onInput = () => {
+      dirty = true;
+      status.textContent = 'Saving…';
+      refresh();
+      clearTimeout(timer);
+      timer = window.setTimeout(flush, DEBOUNCE_MS);
     };
 
-    /** Force-write any pending changes immediately (called on teardown + nav). */
-    const flushPending = () => {
-      if (debounceTimer !== null && currentVideoId && textareaEl) {
-        clearTimeout(debounceTimer);
-        debounceTimer = null;
-        flushWrite(currentVideoId, textareaEl.value);
+    const showTime = () => {
+      const t = clock(player?.currentTime ?? 0);
+      if (stampText.textContent === `Add ${t}`) return;
+      stampText.textContent = `Add ${t}`;
+      stamp.setAttribute('aria-label', `Add ${t} timestamp to note`);
+    };
+    const watchPlayer = () => {
+      player?.removeEventListener('timeupdate', showTime);
+      player = open ? document.querySelector<HTMLVideoElement>('video.html5-main-video') : null;
+      player?.addEventListener('timeupdate', showTime);
+      showTime();
+    };
+
+    const loadNote = () => {
+      ta.value = (vid && notes[vid]) || '';
+      status.textContent = '';
+      refresh();
+    };
+
+    const show = () => {
+      open = true;
+      btn.setAttribute('aria-pressed', 'true');
+      loadNote();
+      watchPlayer();
+      if (!placeAboveDescription(card.host)) return hide(true);
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    };
+
+    const hide = (returnFocus: boolean) => {
+      flush();
+      open = false;
+      watchPlayer();
+      card.host.remove();
+      btn.setAttribute('aria-pressed', 'false');
+      refresh();
+      if (returnFocus) btn.focus();
+    };
+
+    btn.addEventListener('click', () => (open ? hide(false) : show()));
+    closeBtn.addEventListener('click', () => hide(true));
+    card.root.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Escape') hide(true);
+    });
+    ta.addEventListener('input', onInput);
+    stamp.addEventListener('click', () => {
+      const s = ta.selectionStart;
+      const gap = s > 0 && !/\s/.test(ta.value[s - 1]) ? ' ' : '';
+      ta.focus();
+      ta.setRangeText(`${gap}[${clock(player?.currentTime ?? 0)}] `, s, ta.selectionEnd, 'end');
+      onInput();
+    });
+
+    const ensure = () => {
+      if (!isWatchPage()) return;
+      placeInActionRow(btnHost.host);
+      if (open) placeAboveDescription(card.host);
+    };
+
+    const offWatch = storage.watch<Notes>(KEY, (v) => {
+      notes = v ?? {};
+      // Another tab edited this note while ours has nothing unsaved: show theirs.
+      if (open && !dirty && vid && ta.value !== (notes[vid] ?? '')) ta.value = notes[vid] ?? '';
+      refresh();
+    });
+    const offNav = ctx.navigation.onNavigate(() => {
+      flush();
+      vid = getVideoId();
+      if (!vid) {
+        if (open) hide(false);
+      } else if (open) {
+        loadNote();
+        watchPlayer();
       }
-    };
+      refresh();
+      ensure();
+    });
+    const offChange = ctx.observer.onChange(ensure);
 
-    // ── UI helpers ───────────────────────────────────────────────────────────
-
-    const updateFooter = (msg: string) => {
-      if (!footerEl) return;
-      footerEl.textContent = msg;
-      setTimeout(() => {
-        if (footerEl) footerEl.textContent = '';
-      }, 1500);
-    };
-
-    const refreshToggleIndicator = () => {
-      if (!toggleBtn) return;
-      const hasNote = !!(currentVideoId && (noteCache[currentVideoId] ?? '').trim());
-      toggleBtn.classList.toggle('has-note', hasNote);
-      toggleBtn.setAttribute(
-        'title',
-        hasNote ? 'Video note (saved)' : 'Video note',
-      );
-    };
-
-    const openPanel = () => {
-      if (!panelEl || !toggleBtn) return;
-      isOpen = true;
-      panelEl.removeAttribute('hidden');
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      textareaEl?.focus();
-    };
-
-    const closePanel = () => {
-      if (!panelEl || !toggleBtn) return;
-      flushPending();
-      isOpen = false;
-      panelEl.setAttribute('hidden', '');
-      toggleBtn.setAttribute('aria-expanded', 'false');
-    };
-
-    // ── Build shadow DOM (once) ───────────────────────────────────────────────
-
-    const buildUI = () => {
-      host = document.createElement('div');
-      host.id = HOST_ID;
-      Object.assign(host.style, {
-        position: 'fixed',
-        bottom: '140px',
-        right: '20px',
-        zIndex: String(Z_INDEX),
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: '8px',
-        pointerEvents: 'none',
-      } as Partial<CSSStyleDeclaration>);
-
-      shadow = host.attachShadow({ mode: 'open' });
-
-      const style = document.createElement('style');
-      style.textContent = SHADOW_CSS;
-      shadow.appendChild(style);
-
-      // Panel (starts hidden).
-      panelEl = document.createElement('div');
-      panelEl.className = 'panel';
-      panelEl.setAttribute('hidden', '');
-      panelEl.style.pointerEvents = 'auto';
-
-      const header = document.createElement('div');
-      header.className = 'panel-header';
-      header.textContent = 'Video Note';
-
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'close-btn';
-      closeBtn.textContent = '✕';
-      closeBtn.title = 'Close';
-      closeBtn.setAttribute('aria-label', 'Close notes panel');
-      closeBtn.addEventListener('click', () => closePanel());
-      header.appendChild(closeBtn);
-
-      textareaEl = document.createElement('textarea');
-      textareaEl.className = 'textarea';
-      textareaEl.placeholder = 'Add a note for this video…';
-      textareaEl.setAttribute('aria-label', 'Video note');
-      // Prevent page-level key handlers from firing inside the textarea.
-      textareaEl.addEventListener('keydown', (e) => e.stopPropagation());
-      textareaEl.addEventListener('keyup', (e) => e.stopPropagation());
-      textareaEl.addEventListener('keypress', (e) => e.stopPropagation());
-      textareaEl.addEventListener('input', () => {
-        if (currentVideoId) scheduleSave(currentVideoId, textareaEl!.value);
-      });
-
-      footerEl = document.createElement('div');
-      footerEl.className = 'panel-footer';
-
-      panelEl.appendChild(header);
-      panelEl.appendChild(textareaEl);
-      panelEl.appendChild(footerEl);
-
-      // Toggle button.
-      toggleBtn = document.createElement('button');
-      toggleBtn.className = 'toggle';
-      toggleBtn.setAttribute('aria-label', 'Video note');
-      toggleBtn.setAttribute('aria-expanded', 'false');
-      toggleBtn.title = 'Video note';
-      toggleBtn.style.pointerEvents = 'auto';
-      toggleBtn.innerHTML = `
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-          <polyline points="10 9 9 9 8 9"/>
-        </svg>`;
-      toggleBtn.addEventListener('click', () => {
-        if (isOpen) closePanel(); else openPanel();
-      });
-
-      shadow.appendChild(panelEl);
-      shadow.appendChild(toggleBtn);
-
-      document.body.appendChild(host);
-    };
-
-    // ── Load note for current video ───────────────────────────────────────────
-
-    const loadCurrentNote = () => {
-      if (!textareaEl) return;
-      const text = (currentVideoId ? noteCache[currentVideoId] : '') ?? '';
-      textareaEl.value = text;
-      refreshToggleIndicator();
-      if (footerEl) footerEl.textContent = '';
-    };
-
-    // ── Show / hide based on page type ───────────────────────────────────────
-
-    const syncVisibility = () => {
-      if (!host) return;
-      host.style.display = isWatchPage() ? 'flex' : 'none';
-    };
-
-    // ── Bootstrap ────────────────────────────────────────────────────────────
-
-    void (async () => {
-      await loadCache();
-
-      buildUI();
-
-      currentVideoId = getVideoId();
-      loadCurrentNote();
-      syncVisibility();
-
-      // Watch for storage updates from other tabs.
-      teardowns.push(
-        storage.watch<Record<string, string>>(STORAGE_KEY, (v) => {
-          if (v) noteCache = v;
-          // Refresh indicator; don't overwrite textarea if user is actively typing.
-          refreshToggleIndicator();
-        }),
-      );
-
-      // React to SPA navigation.
-      teardowns.push(
-        ctx.navigation.onNavigate(() => {
-          flushPending();
-          if (isOpen) closePanel();
-          currentVideoId = getVideoId();
-          loadCurrentNote();
-          syncVisibility();
-        }),
-      );
-    })();
-
-    // ── Teardown ─────────────────────────────────────────────────────────────
+    void storage.getItem<Notes>(KEY).then((v) => {
+      notes = v ?? {};
+      if (open && !dirty) loadNote();
+      refresh();
+    });
+    ensure();
 
     return () => {
-      flushPending();
-      teardowns.forEach((off) => off());
-      host?.remove();
-      host = null;
-      shadow = null;
-      toggleBtn = null;
-      panelEl = null;
-      textareaEl = null;
-      footerEl = null;
+      offChange();
+      offNav();
+      offWatch();
+      if (open) hide(false);
+      btnHost.host.remove();
     };
   },
 };
