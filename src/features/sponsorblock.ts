@@ -1,197 +1,227 @@
 import type { Feature } from '../lib/features';
 import { fetchJson } from '../lib/fetch-json';
-import { getVideoId, isWatchPage } from '../lib/yt/video';
+import { getConfig, watchConfig, type FeatureConfig } from '../lib/settings';
+import { createHost } from '../lib/yt/ui';
+import {
+  PLAYER_CSS,
+  fmtTime,
+  getVideo,
+  isAdShowing,
+  mountInPlayer,
+  onVideoEvent,
+  playerVideoId,
+  tooltip,
+} from '../lib/yt/player';
 
 /**
- * sponsorblock
- *
- * Fetches crowd-sourced sponsor segments from the public SponsorBlock API
- * and displays the "real" (sponsor-free) watch time near the video metadata.
- *
- * Does NOT auto-skip — display only.
- *
- * Host permission required: https://sponsor.ajay.app/*
+ * SponsorBlock auto-skip (board WatchPlayer). Segments of all five categories are fetched once per
+ * video through the SW (content-script fetches are cross-origin blocked); the categories enabled
+ * in config are drawn on the progress bar and skipped when playback enters them — once per
+ * segment per play-through. The in-player toast's Undo seeks back to the segment start and leaves
+ * that segment alone. SponsorBlock 404 = no segments, silently.
  */
 
-const API_BASE = 'https://sponsor.ajay.app/api/skipSegments';
-const CATEGORIES = ['sponsor', 'selfpromo', 'interaction'] as const;
-
-/** Element id injected into the watch-page metadata area. */
-const BADGE_ID = 'yt-pro-sponsorfree';
-
-/** Selectors tried in order for the metadata container to anchor the badge. */
-const META_ANCHOR_SELECTORS = [
-  'ytd-watch-metadata #info',
-  'ytd-watch-metadata #above-the-fold',
-  '#above-the-fold',
-  'ytd-watch-metadata',
-];
-
-interface SponsorSegment {
-  category: string;
+type Category = keyof FeatureConfig['sponsorblock'];
+interface Segment {
+  category: Category;
+  actionType?: string;
   segment: [number, number];
   UUID: string;
 }
 
-function fmtSeconds(totalSecs: number): string {
-  const h = Math.floor(totalSecs / 3600);
-  const m = Math.floor((totalSecs % 3600) / 60);
-  const s = Math.floor(totalSecs % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
+const API = 'https://sponsor.ajay.app/api/skipSegments';
+const CATEGORIES: Category[] = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro'];
+const LABEL: Record<Category, string> = {
+  sponsor: 'Sponsor',
+  selfpromo: 'Self-promotion',
+  interaction: 'Interaction reminder',
+  intro: 'Intro',
+  outro: 'Outro',
+};
+// Board colours (sponsor, self-promo, outro) + SponsorBlock's own for the rest; the player is always dark.
+const COLOR: Record<Category, string> = {
+  sponsor: '#00d400',
+  selfpromo: '#ffff00',
+  interaction: '#cc00ff',
+  intro: '#00ffff',
+  outro: '#3a7bfd',
+};
+const NOTE = 'skipped automatically';
 
-/**
- * Tries each selector in order and returns the first element found,
- * or null if none exist yet.
- */
-function findAnchor(): HTMLElement | null {
-  for (const sel of META_ANCHOR_SELECTORS) {
-    const el = document.querySelector<HTMLElement>(sel);
-    if (el) return el;
-  }
-  return null;
-}
+const X_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 
-/**
- * Inserts (or updates) the sponsor-free badge in the anchor element.
- *
- * @param sponsorFreeSecs  Real watch time in seconds.
- * @param savedSecs        Total seconds removed.
- * @param videoDuration    Full video duration in seconds (from the player).
- */
-function upsertBadge(sponsorFreeSecs: number, savedSecs: number): void {
-  const anchor = findAnchor();
-  if (!anchor) return;
+// Inside .ytp-progress-bar: above the played/markers layers (z 40), below the scrubber (z 43).
+const BAR_CSS = `
+:host{position:absolute;inset:0;z-index:42;pointer-events:none}
+:host-context(.ad-showing){display:none}
+.seg{position:absolute;top:-6px;height:18px;pointer-events:auto;cursor:pointer}
+.seg:focus-visible{outline-offset:0}
+.bar{position:absolute;left:0;right:0;top:7px;height:4px;transition:transform .1s}
+.seg:hover .bar,.seg:focus-visible .bar,:host-context(.ytp-progress-bar-container:hover) .bar{transform:scaleY(1.5)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+`;
 
-  let badge = document.getElementById(BADGE_ID) as HTMLElement | null;
-  if (!badge) {
-    badge = document.createElement('div');
-    badge.id = BADGE_ID;
-    Object.assign(badge.style, {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      fontSize: '12px',
-      fontFamily: 'system-ui, sans-serif',
-      color: 'var(--yt-spec-text-secondary, #606060)',
-      marginTop: '4px',
-      padding: '2px 6px',
-      borderRadius: '4px',
-      background: 'var(--yt-spec-badge-chip-background, rgba(0,0,0,0.05))',
-      userSelect: 'none',
-    } as CSSStyleDeclaration);
-    // Insert as the first child so it stays near the top of metadata.
-    anchor.prepend(badge);
-  }
+// In-player, bottom-left above the controls; visible while the controls are hidden too.
+const TOAST_CSS = `
+:host{position:absolute;left:29px;bottom:98px;z-index:60}
+.toast{display:flex;align-items:center;gap:4px;height:36px;box-sizing:border-box;padding:0 2px 0 14px;border-radius:18px;background:rgba(28,28,28,.9);animation:tin .18s ease-out}
+.dot{width:9px;height:9px;border-radius:50%;margin-right:5px;flex:none}
+.text{white-space:nowrap;padding-right:2px}
+.undo{color:#3ea6ff;font-weight:500;padding:7px 11px;border-radius:18px;transition:background-color .1s}
+.undo:hover{background-color:rgba(255,255,255,.1)}
+@keyframes tin{from{opacity:0;transform:translateY(7px)}}
+`;
 
-  const savedLabel = savedSecs > 0 ? ` (−${fmtSeconds(savedSecs)} sponsored)` : '';
-  badge.textContent = `⏱ Sponsor-free: ${fmtSeconds(sponsorFreeSecs)}${savedLabel}`;
-}
-
-function removeBadge(): void {
-  document.getElementById(BADGE_ID)?.remove();
+function dot(color: string): HTMLElement {
+  const el = document.createElement('span');
+  el.className = 'dot';
+  el.style.background = color;
+  el.setAttribute('aria-hidden', 'true');
+  return el;
 }
 
 const feature: Feature = {
   id: 'sponsorblock',
 
-  setup(ctx) {
-    let abortController: AbortController | null = null;
+  async setup(ctx) {
+    let cfg = await getConfig('sponsorblock');
+    let videoId: string | null = null; // whose segments are loaded (or loading)
+    let segs: Segment[] = [];
+    const done = new Set<string>(); // UUIDs skipped or undone in this play-through
+    let toastTimer = 0;
 
-    /**
-     * Fetches sponsor data for `videoId` and injects the badge. If the
-     * anchor DOM hasn't rendered yet, registers an observer retry.
-     */
-    const fetchAndDisplay = async (videoId: string): Promise<void> => {
-      // Abort any in-flight request for the previous page.
-      abortController?.abort();
-      abortController = new AbortController();
-      const signal = abortController.signal;
+    const bar = createHost('ytp-sb-bar', PLAYER_CSS + BAR_CSS);
+    const toast = createHost('ytp-sb-toast', PLAYER_CSS + TOAST_CSS);
+    const region = document.createElement('div');
+    region.setAttribute('role', 'status');
+    toast.root.append(region);
+    // Clicks on the toast mustn't reach the player (click = play/pause, double-click = fullscreen).
+    for (const t of ['click', 'dblclick', 'mousedown', 'pointerdown']) {
+      toast.host.addEventListener(t, (e) => e.stopPropagation());
+    }
 
-      // Remove any stale badge immediately.
-      removeBadge();
+    const enabled = () => segs.filter((s) => cfg[s.category]);
 
-      // Build URL with categories array.
-      const categoriesParam = encodeURIComponent(JSON.stringify(CATEGORIES));
-      const url = `${API_BASE}?videoID=${encodeURIComponent(videoId)}&categories=${categoriesParam}`;
-
-      let segments: SponsorSegment[];
-      try {
-        // 404 = no sponsor data for this video; any non-2xx comes back as null — silent.
-        const { data } = await fetchJson<SponsorSegment[]>(url);
-        if (!data) return;
-        segments = data;
-      } catch {
-        // Extension context gone — silent.
-        return;
-      }
-
-      // Guard: user may have navigated away while we were fetching.
-      if (signal.aborted || getVideoId() !== videoId) return;
-
-      // Sum all sponsored seconds (segments may overlap; we do simple sum per spec).
-      const savedSecs = segments.reduce((acc, seg) => {
-        const [start, end] = seg.segment;
-        return acc + Math.max(0, end - start);
-      }, 0);
-
-      if (savedSecs <= 0) return; // Nothing meaningful to show.
-
-      // Try to read the real video duration from the player element.
-      const videoEl = document.querySelector<HTMLVideoElement>('video.html5-main-video');
-      const duration = videoEl?.duration ?? 0;
-      const sponsorFreeSecs = Math.max(0, duration - savedSecs);
-
-      const paint = (): boolean => {
-        if (signal.aborted || getVideoId() !== videoId) return true; // abort retries
-        const anchor = findAnchor();
-        if (!anchor) return false; // not ready yet
-        upsertBadge(sponsorFreeSecs, savedSecs);
-        return true;
-      };
-
-      if (!paint()) {
-        // Anchor not rendered yet — retry on observer ticks.
-        const offObs = ctx.observer.onChange(() => {
-          if (paint()) offObs(); // painted successfully — unsubscribe.
-        });
-        // Clean up the observer if/when teardown happens or we navigate.
-        abortController.signal.addEventListener('abort', offObs);
+    const render = () => {
+      bar.root.querySelectorAll('.seg, .tt').forEach((n) => n.remove());
+      const d = getVideo()?.duration;
+      if (!d || !Number.isFinite(d)) return;
+      // ponytail: maps time linearly across the bar; YouTube's 4px chapter gaps shift it a few px.
+      for (const s of enabled()) {
+        const [a, b] = s.segment;
+        const label = LABEL[s.category];
+        const el = document.createElement('span');
+        el.className = 'seg';
+        el.tabIndex = 0;
+        el.setAttribute('role', 'img');
+        el.setAttribute('aria-label', `${label} segment, ${fmtTime(a)} to ${fmtTime(b)}, ${NOTE}`);
+        el.style.left = `${(a / d) * 100}%`;
+        el.style.width = `${((b - a) / d) * 100}%`;
+        const fill = document.createElement('span');
+        fill.className = 'bar';
+        fill.style.background = COLOR[s.category];
+        el.append(fill);
+        bar.root.append(el);
+        tooltip(el, () => [dot(COLOR[s.category]), `${label} · ${NOTE}`]);
       }
     };
 
-    // Fetch on initial load if already on a watch page.
-    if (isWatchPage()) {
-      const vid = getVideoId();
-      if (vid) void fetchAndDisplay(vid);
-    }
+    const hideToast = () => {
+      clearTimeout(toastTimer);
+      region.replaceChildren();
+    };
 
-    // Re-fetch on every SPA navigation.
-    const offNav = ctx.navigation.onNavigate(() => {
-      if (!isWatchPage()) {
-        removeBadge();
-        return;
+    const showToast = (s: Segment, undone: boolean) => {
+      clearTimeout(toastTimer);
+      const [a, b] = s.segment;
+      const label = LABEL[s.category].toLowerCase();
+      const el = document.createElement('div');
+      el.className = 'toast';
+      const text = document.createElement('span');
+      text.className = 'text';
+      text.textContent = undone ? `Back at the ${label} segment` : `Skipped ${label} (${fmtTime(b - a)})`;
+      el.append(dot(COLOR[s.category]), text);
+      if (!undone) {
+        const undo = document.createElement('button');
+        undo.className = 'undo';
+        undo.textContent = 'Undo';
+        undo.addEventListener('click', () => {
+          const v = getVideo();
+          if (v) v.currentTime = a; // `done` already holds this UUID → no re-skip
+          showToast(s, true);
+          region.querySelector<HTMLElement>('[aria-label="Dismiss"]')?.focus();
+        });
+        el.append(undo);
       }
-      const vid = getVideoId();
-      if (vid) void fetchAndDisplay(vid);
-    });
+      const close = document.createElement('button');
+      close.className = 'pb sm';
+      close.setAttribute('aria-label', 'Dismiss');
+      close.innerHTML = X_ICON;
+      close.addEventListener('click', hideToast);
+      el.append(close);
+      // Don't time out under the pointer or keyboard focus.
+      const arm = () => {
+        clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(hideToast, undone ? 3000 : 5000);
+      };
+      el.addEventListener('pointerenter', () => clearTimeout(toastTimer));
+      el.addEventListener('pointerleave', arm);
+      el.addEventListener('focusin', () => clearTimeout(toastTimer));
+      el.addEventListener('focusout', arm);
+      region.replaceChildren(el);
+      arm();
+    };
 
-    // Re-inject badge if YouTube re-renders the metadata subtree.
-    // Guard against re-triggering while a fetch is already in flight.
-    const offObs = ctx.observer.onChange(() => {
-      if (!isWatchPage()) return;
-      if (document.getElementById(BADGE_ID)) return; // badge still present — nothing to do
-      if (abortController && !abortController.signal.aborted) return; // fetch in flight
-      const vid = getVideoId();
-      if (vid) void fetchAndDisplay(vid);
-    });
+    const onTime = (v: HTMLVideoElement) => {
+      if (!segs.length || isAdShowing() || playerVideoId() !== videoId) return;
+      const t = v.currentTime;
+      const s = enabled().find((s) => !done.has(s.UUID) && t >= s.segment[0] && t < s.segment[1] - 0.5);
+      if (!s) return;
+      done.add(s.UUID);
+      v.currentTime = s.segment[1];
+      showToast(s, false);
+    };
+
+    const load = async () => {
+      const id = playerVideoId();
+      if (!id || id === videoId) return;
+      videoId = id;
+      segs = [];
+      done.clear();
+      hideToast();
+      render();
+      const cats = encodeURIComponent(JSON.stringify(CATEGORIES));
+      let data: Segment[] | null;
+      try {
+        ({ data } = await fetchJson<Segment[]>(`${API}?videoID=${encodeURIComponent(id)}&categories=${cats}`));
+      } catch {
+        return; // extension context gone
+      }
+      if (videoId !== id || !Array.isArray(data)) return; // navigated meanwhile, or 404 = none
+      segs = data.filter((s) => (s.actionType ?? 'skip') === 'skip' && CATEGORIES.includes(s.category));
+      render();
+    };
+
+    const offs = [
+      mountInPlayer(ctx, bar.host, 'progress'),
+      mountInPlayer(ctx, toast.host, 'overlay'),
+      onVideoEvent('timeupdate', onTime),
+      onVideoEvent('loadedmetadata', () => void load()),
+      onVideoEvent('durationchange', render),
+      onVideoEvent('ended', () => done.clear()),
+      ctx.navigation.onNavigate(() => void load()),
+      watchConfig('sponsorblock', (next) => {
+        cfg = next;
+        render();
+      }),
+    ];
+    void load();
 
     return () => {
-      abortController?.abort();
-      removeBadge();
-      offNav();
-      offObs();
+      videoId = null;
+      clearTimeout(toastTimer);
+      offs.forEach((off) => off());
     };
   },
 };
