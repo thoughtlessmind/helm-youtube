@@ -36,8 +36,9 @@ export function channelIdFromHref(href: string | null | undefined): string | nul
       : href;
     const ucMatch = path.match(/\/channel\/(UC[\w-]+)/);
     if (ucMatch) return ucMatch[1];
-    const handleMatch = path.match(/\/(@[\w.-]+)/);
-    if (handleMatch) return handleMatch[1];
+    // Non-ASCII handles arrive percent-encoded (/@%E3%81%82…).
+    const handleMatch = path.match(/\/(@[^/?#]+)/);
+    if (handleMatch) return decodeURIComponent(handleMatch[1]);
     const namedMatch = path.match(/\/(?:c|user)\/([\w.-]+)/);
     if (namedMatch) return namedMatch[1];
     return null;

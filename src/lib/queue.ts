@@ -105,8 +105,13 @@ export function clearQueue(): Promise<void> {
   return setQueue([]);
 }
 
+/** Null when unset — or when session storage isn't readable yet (SW not started; see `myTabId`). */
 export async function getPlayerTabId(): Promise<number | null> {
-  return (await storage.getItem<number>(PLAYER_TAB_KEY)) ?? null;
+  try {
+    return (await storage.getItem<number>(PLAYER_TAB_KEY)) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function setPlayerTabId(id: number | null): Promise<void> {

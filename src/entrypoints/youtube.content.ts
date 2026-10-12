@@ -7,7 +7,7 @@ import { installThemeAliases } from '../lib/yt/theme';
 export default defineContentScript({
   matches: ['*://*.youtube.com/*'],
   runAt: 'document_idle',
-  async main() {
+  async main(wxt) {
     const ctx = createYTContext();
     const teardowns = new Map<string, () => void>();
 
@@ -29,7 +29,8 @@ export default defineContentScript({
     // every feature (or the whole extension) switched off.
     installPlayerBridge(ctx);
 
-    const sync = async (enabledIds: string[]) => {
+    const apply = async (enabledIds: string[]) => {
+      if (wxt.isInvalid) return;
       const enabled = new Set(enabledIds);
 
       for (const [id, off] of teardowns) {
@@ -53,6 +54,24 @@ export default defineContentScript({
         }
       }
     };
+
+    // One sync at a time: a toggle (or the kill switch) arriving mid-setup
+    // must not double-set-up a feature or miss tearing one down.
+    let queue = Promise.resolve();
+    const sync = (ids: string[]) => (queue = queue.then(() => apply(ids)));
+
+    // Extension updated/reloaded: this script is orphaned (storage and
+    // messaging throw). Remove everything it added so the page is plain YouTube.
+    wxt.onInvalidated(() => {
+      for (const off of teardowns.values()) {
+        try {
+          off();
+        } catch {}
+      }
+      teardowns.clear();
+      ctx.observer.destroy();
+      ctx.navigation.destroy();
+    });
 
     sync(await getEnabledFeatures());
     watchEnabledFeatures(sync);

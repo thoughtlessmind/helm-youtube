@@ -65,7 +65,7 @@ export const NATIVE_CSS = `
 @keyframes ytp-in{from{opacity:0;transform:translateY(4px)}}
 .ytp-menu:popover-open,.ytp-player-menu:popover-open{animation:ytp-in .12s ease-out}
 
-.ytp-dialog{box-sizing:border-box;width:min(494px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:24px;border:0;border-radius:12px;background:${T('raised-background')};color:${T('text-primary')};box-shadow:0 4px 32px ${T('shadow-medium')};font-size:14px;line-height:20px;overflow:auto}
+.ytp-dialog{box-sizing:border-box;width:min(494px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:24px;border:0;border-radius:12px;background:${T('raised-background')};color:${T('text-primary')};box-shadow:0 4px 32px ${T('shadow-medium')};outline:var(--ytp-dialog-outline,none);font-size:14px;line-height:20px;overflow:auto}
 .ytp-dialog[open]{display:flex;flex-direction:column;gap:20px}
 .ytp-dialog::backdrop{background:var(--yt-sys-color-baseline--overlay-background-medium,rgba(0,0,0,.6))}
 .ytp-dialog h2{margin:0;font-size:20px;line-height:28px;font-weight:500}

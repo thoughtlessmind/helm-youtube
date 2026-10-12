@@ -7,8 +7,11 @@ import { getPlayerTabId, setPlayerTabId } from '../lib/queue';
 const ALLOWED_HOSTS = new Set(['sponsor.ajay.app']);
 
 export default defineBackground(() => {
-  // Content scripts read/watch the player tab id in session storage.
-  void browser.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
+  // Content scripts read/watch the player tab id in session storage. `whoami`
+  // answers only after this, so a tab that asked first can then read it.
+  const sessionReady = Promise.resolve(
+    browser.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }),
+  ).catch(() => {});
 
   browser.tabs.onRemoved.addListener(async (tabId) => {
     if ((await getPlayerTabId()) === tabId) await setPlayerTabId(null);
@@ -16,8 +19,8 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type === 'whoami') {
-      sendResponse(sender.tab?.id ?? null);
-      return;
+      void sessionReady.then(() => sendResponse(sender.tab?.id ?? null));
+      return true;
     }
     if (msg?.type !== 'fetch-json') return;
     const fail: FetchJsonResult = { status: 0, data: null };

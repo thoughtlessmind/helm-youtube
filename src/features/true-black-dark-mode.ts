@@ -16,6 +16,8 @@ html[dark] {
   --yt-sys-color-baseline--base-background: #000 !important;
   --yt-sys-color-baseline--raised-background: #000 !important;
   --yt-sys-color-baseline--menu-background: #0a0a0a !important;
+  /* Our dialogs (lib/yt/ui.ts) would vanish into the black page. */
+  --ytp-dialog-outline: 1px solid rgba(255, 255, 255, 0.2);
 }
 html[dark] body,
 html[dark] ytd-app,

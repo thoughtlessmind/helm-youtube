@@ -72,13 +72,20 @@ export function isBackupData(value: unknown): value is BackupData {
  * Restore a backup. Writes each key back to its storage area. Only YouTube
  * Pro keys are written, so a tampered file cannot clobber unrelated state.
  */
+/** Shape checks for keys a feature would crash on if a hand-edited backup broke them. */
+const LOCAL_SHAPES: Record<string, (v: unknown) => boolean> = {
+  'ytpro:queue': (v) => Array.isArray(v) && v.every((i) => typeof i?.videoId === 'string'),
+  'ytpro:channel-groups': (v) =>
+    Array.isArray(v) && v.every((g) => typeof g?.id === 'string' && !!g.channels && typeof g.channels === 'object'),
+};
+
 export async function importBackup(data: BackupData): Promise<void> {
   const writes: Promise<unknown>[] = [];
   for (const [key, val] of Object.entries(data.sync)) {
     if (isOwnKey(key)) writes.push(storage.setItem(`sync:${key}`, val));
   }
   for (const [key, val] of Object.entries(data.local)) {
-    if (isOwnKey(key)) writes.push(storage.setItem(`local:${key}`, val));
+    if (isOwnKey(key) && (LOCAL_SHAPES[key]?.(val) ?? true)) writes.push(storage.setItem(`local:${key}`, val));
   }
   await Promise.all(writes);
 }
