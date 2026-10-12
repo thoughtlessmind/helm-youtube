@@ -20,7 +20,8 @@ export function onKey(key: string, handler: KeyHandler): () => void {
   const wrapped = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() !== key.toLowerCase()) return;
     if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-    if (isTypingTarget(e.target)) return;
+    // composedPath()[0]: inside our shadow roots e.target is just the host.
+    if (isTypingTarget(e.composedPath()[0] ?? e.target)) return;
     handler(e);
   };
   document.addEventListener('keydown', wrapped, true);
