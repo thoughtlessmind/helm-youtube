@@ -40,11 +40,9 @@
   <img class="art" src={art} alt="" />
   <div class="scrim" aria-hidden="true"></div>
 
-  <div class="top">
-    <button class="ib glass" aria-label="Go to the player tab" title="Go to the player tab" onclick={onGoto}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path></svg>
-    </button>
-  </div>
+  <button class="ib glass" aria-label="Go to the player tab" title="Go to the player tab" onclick={onGoto}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path></svg>
+  </button>
 
   <div class="meta">
     <div class="kicker status">
@@ -150,15 +148,10 @@
       rgb(var(--bg-rgb)) 100%
     );
   }
-  .top {
+  .glass {
     position: absolute;
     top: 12px;
-    left: 12px;
     right: 12px;
-    display: flex;
-    justify-content: flex-end;
-  }
-  .glass {
     border-radius: 999px;
     width: 36px;
     height: 36px;
