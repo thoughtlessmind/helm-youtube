@@ -96,20 +96,26 @@ export const NATIVE_CSS = `
 /** Keys our UI consumes; everything else still reaches YouTube's hotkeys. */
 const OWN_KEYS = new Set(['Enter', ' ', 'Escape']);
 
+/** Stroke icon; `extra` attributes come first, so they win over the defaults (e.g. ' stroke-width="2"'). */
+export const icon = (d: string, extra = '') =>
+  `<svg${extra} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+
+/** Page-level <style> (light DOM); remove the returned element in the teardown. */
+export const addStyle = (css: string) =>
+  document.head.appendChild(Object.assign(document.createElement('style'), { textContent: css }));
+
 /**
- * `<ytp-host id=id>` + open shadow root holding NATIVE_CSS + extraCss. The caller inserts the host.
+ * `<ytp-host id=id>` + open shadow root holding NATIVE_CSS + extraCss, then `html`. The caller inserts the host.
  * Not a <div>: YouTube's reset (`div{background:transparent;padding:0;font-size:100%…}`) beats
  * `:host` rules, so `:host{…}` in extraCss only works on a tag the reset doesn't list.
  * Key events YouTube would misread (its listeners only see the retargeted host) are stopped at
  * the host: typing in our inputs, Enter/Space/Esc on our controls, and keys a handler consumed.
  */
-export function createHost(id: string, extraCss = ''): { host: HTMLElement; root: ShadowRoot } {
+export function createHost(id: string, extraCss = '', html = ''): { host: HTMLElement; root: ShadowRoot } {
   const host = document.createElement('ytp-host');
   host.id = id;
   const root = host.attachShadow({ mode: 'open' });
-  const style = document.createElement('style');
-  style.textContent = NATIVE_CSS + extraCss;
-  root.append(style);
+  root.innerHTML = `<style>${NATIVE_CSS + extraCss}</style>${html}`;
   const guard = (e: Event) => {
     const k = e as KeyboardEvent;
     if (k.defaultPrevented || OWN_KEYS.has(k.key) || isTypingTarget(k.composedPath()[0])) e.stopPropagation();
