@@ -11,7 +11,7 @@ import { storage } from '#imports';
 import type { Feature } from '../lib/features';
 import { fmtClock } from '../lib/format';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
-import { createHost } from '../lib/yt/ui';
+import { createHost, icon } from '../lib/yt/ui';
 import { getVideo, onVideoEvent } from '../lib/yt/player';
 import { actionCss, placeAboveDescription, placeInActionRow } from '../lib/yt/action-row';
 
@@ -19,12 +19,9 @@ type Notes = Record<string, string>;
 const KEY = 'local:ytpro:video-notes' as const;
 const DEBOUNCE_MS = 400;
 
-const SVG = (d: string, extra = '') =>
-  `<svg${extra} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`; // first duplicate attribute wins
-
 // The dot punches a hole in the icon (mask) instead of a ring in the button's colour, so it reads
 // the same on any theme and hover state.
-const NOTE_ICON = SVG(
+const NOTE_ICON = icon(
   `<mask id="hole"><rect width="24" height="24" fill="#fff"/><circle cx="21.6" cy="3.6" r="6"/></mask>
    <g><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.5V14l-6 6H6.5A1.5 1.5 0 0 1 5 18.5z"/><path d="M13 20v-4.5a1.5 1.5 0 0 1 1.5-1.5H19"/><path d="M8.5 8.5h7M8.5 11.5h4"/></g>
    <circle class="dot" cx="21.6" cy="3.6" r="3.6" stroke="none"/>`,
@@ -47,9 +44,6 @@ h2{margin:0;font-size:14px;line-height:20px;font-weight:500}
 textarea.ytp-input{display:block;height:65px;margin-top:4px;padding:2px 0 4px;resize:none;line-height:20px}
 `;
 
-// append, not innerHTML: a createHost root already holds its <style>.
-const html = (s: string) => document.createRange().createContextualFragment(s);
-
 const feature: Feature = {
 
   setup(ctx) {
@@ -61,24 +55,22 @@ const feature: Feature = {
     let writes = Promise.resolve();
     let offTime = () => {};
 
-    const btnHost = createHost('ytp-notes', BTN_CSS);
-    btnHost.root.append(html(`<button class="ytp-btn" type="button" aria-pressed="false" aria-label="Notes" title="Private note for this video">${NOTE_ICON}<span>Notes</span></button>`));
+    const btnHost = createHost('ytp-notes', BTN_CSS, `<button class="ytp-btn" type="button" aria-pressed="false" aria-label="Notes" title="Private note for this video">${NOTE_ICON}<span>Notes</span></button>`);
     const btn = btnHost.root.querySelector('button')!;
     const iconBody = btn.querySelector('g')!;
 
-    const card = createHost('ytp-note-card', CARD_CSS);
-    card.root.append(html(`
+    const card = createHost('ytp-note-card', CARD_CSS, `
       <section aria-labelledby="title">
         <header>
-          ${SVG('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', ' class="lock" stroke-width="2"')}
+          ${icon('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', ' class="lock" stroke-width="2"')}
           <h2 id="title">Your private note</h2>
           <span class="status" role="status"></span>
           <div class="grow"></div>
-          <button class="ytp-btn is-sm" type="button" data-stamp>${SVG('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', ' stroke-width="1.9"')}<span></span></button>
-          <button class="ytp-btn is-icon is-text" type="button" aria-label="Close note">${SVG('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
+          <button class="ytp-btn is-sm" type="button" data-stamp>${icon('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', ' stroke-width="1.9"')}<span></span></button>
+          <button class="ytp-btn is-icon is-text" type="button" aria-label="Close note">${icon('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
         </header>
         <textarea class="ytp-input is-underline" aria-labelledby="title" placeholder="Write a note about this video…"></textarea>
-      </section>`));
+      </section>`);
     const status = card.root.querySelector<HTMLElement>('.status')!;
     const stamp = card.root.querySelector<HTMLButtonElement>('[data-stamp]')!;
     const stampText = stamp.querySelector('span')!;

@@ -25,28 +25,20 @@ import {
 type Category = keyof FeatureConfig['sponsorblock'];
 interface Segment {
   category: Category;
-  actionType?: string;
   segment: [number, number];
   UUID: string;
 }
 
 const API = 'https://sponsor.ajay.app/api/skipSegments';
-const CATEGORIES: Category[] = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro'];
-const LABEL: Record<Category, string> = {
-  sponsor: 'Sponsor',
-  selfpromo: 'Self-promotion',
-  interaction: 'Interaction reminder',
-  intro: 'Intro',
-  outro: 'Outro',
-};
 // Board colours (sponsor, self-promo, outro) + SponsorBlock's own for the rest; the player is always dark.
-const COLOR: Record<Category, string> = {
-  sponsor: '#00d400',
-  selfpromo: '#ffff00',
-  interaction: '#cc00ff',
-  intro: '#00ffff',
-  outro: '#3a7bfd',
+const CATS: Record<Category, [label: string, color: string]> = {
+  sponsor: ['Sponsor', '#00d400'],
+  selfpromo: ['Self-promotion', '#ffff00'],
+  interaction: ['Interaction reminder', '#cc00ff'],
+  intro: ['Intro', '#00ffff'],
+  outro: ['Outro', '#3a7bfd'],
 };
+const CATEGORIES = Object.keys(CATS) as Category[];
 const NOTE = 'skipped automatically';
 
 // Inside .ytp-progress-bar: above the played/markers layers (z 40), below the scrubber (z 43).
@@ -107,7 +99,7 @@ const feature: Feature = {
       // ponytail: maps time linearly across the bar; YouTube's 4px chapter gaps shift it a few px.
       for (const s of enabled()) {
         const [a, b] = s.segment;
-        const label = LABEL[s.category];
+        const [label, color] = CATS[s.category];
         const el = document.createElement('span');
         el.className = 'seg';
         el.tabIndex = 0;
@@ -117,10 +109,10 @@ const feature: Feature = {
         el.style.width = `${((b - a) / d) * 100}%`;
         const fill = document.createElement('span');
         fill.className = 'bar';
-        fill.style.background = COLOR[s.category];
+        fill.style.background = color;
         el.append(fill);
         bar.root.append(el);
-        tooltip(el, () => [dot(COLOR[s.category]), `${label} · ${NOTE}`]);
+        tooltip(el, () => [dot(color), `${label} · ${NOTE}`]);
       }
     };
 
@@ -132,13 +124,14 @@ const feature: Feature = {
     const showToast = (s: Segment, undone: boolean) => {
       clearTimeout(toastTimer);
       const [a, b] = s.segment;
-      const label = LABEL[s.category].toLowerCase();
+      const [name, color] = CATS[s.category];
+      const label = name.toLowerCase();
       const el = document.createElement('div');
       el.className = 'toast';
       const text = document.createElement('span');
       text.className = 'text';
       text.textContent = undone ? `Back at the ${label} segment` : `Skipped ${label} (${fmtClock(b - a)})`;
-      el.append(dot(COLOR[s.category]), text);
+      el.append(dot(color), text);
       if (!undone) {
         const undo = document.createElement('button');
         undo.className = 'undo';
@@ -197,7 +190,7 @@ const feature: Feature = {
         return; // extension context gone
       }
       if (videoId !== id || !Array.isArray(data)) return; // navigated meanwhile, or 404 = none
-      segs = data.filter((s) => (s.actionType ?? 'skip') === 'skip' && CATEGORIES.includes(s.category));
+      segs = data.filter((s) => CATEGORIES.includes(s.category)); // actionTypes defaults to [skip]
       render();
     };
 

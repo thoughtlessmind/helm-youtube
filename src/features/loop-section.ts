@@ -122,11 +122,7 @@ const feature: Feature = {
         render();
         flashToast(`Loop ${fmtClock(a)} → ${fmtClock(b)}`);
       }),
-      onKey('\\', () => {
-        if (a == null) return;
-        clear();
-        flashToast('Loop cleared');
-      }),
+      onKey('\\', () => a != null && clearBtn.click()),
     ];
     render();
 
