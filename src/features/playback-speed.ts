@@ -6,9 +6,9 @@
  *   across SPA navigations and resets the rate on each new src) and again
  *   once the watch metadata renders and the channel is known.
  * - User speed changes (YouTube's own menu) are captured via `ratechange` and
- *   saved for the channel. Our own assignments are gated by `applying`;
- *   YouTube's load-time resets are gated by `mediaSettled` (~500 ms after
- *   loadedmetadata — no user changes speed that fast).
+ *   saved for the channel. Our own assignments re-save the rate they came
+ *   from (a no-op); YouTube's load-time resets are gated by `mediaSettled`
+ *   (~500 ms after loadedmetadata — no user changes speed that fast).
  * - Saving the default rate for a channel deletes its override.
  * - Overrides live in `local:ytpro:per-channel-speed` (`channelId → rate`);
  *   the channel-page watch-time tooltip reads it too.
@@ -20,7 +20,7 @@ import type { Feature } from '../lib/features';
 import { storage } from '#imports';
 import { getConfig, setConfig, watchConfig } from '../lib/settings';
 import { getWatchChannel, isWatchPage, type ChannelRef } from '../lib/yt/video';
-import { createHost, openPopover } from '../lib/yt/ui';
+import { createHost, icon, openPopover } from '../lib/yt/ui';
 import { initials } from '../lib/format';
 import {
   PLAYER_CSS,
@@ -43,12 +43,12 @@ const sp = (v: number) => `${v}×`;
 const stepFrom = (v: number, dir: number) =>
   dir > 0 ? SPEEDS.find((s) => s > v + 1e-6) : [...SPEEDS].reverse().find((s) => s < v - 1e-6);
 
-const svg = (d: string, size = 18) =>
-  `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${size === 18 ? 2.2 : 2}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const MINUS = svg('<path d="M5 12h14"/>');
-const PLUS = svg('<path d="M12 5v14M5 12h14"/>');
-const GAUGE = svg('<path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>', 22);
-const RESET = svg('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', 22);
+const SM = ' width="18" height="18" stroke-width="2.2"';
+const LG = ' width="22" height="22" stroke-width="2"';
+const MINUS = icon('<path d="M5 12h14"/>', SM);
+const PLUS = icon('<path d="M12 5v14M5 12h14"/>', SM);
+const GAUGE = icon('<path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>', LG);
+const RESET = icon('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', LG);
 
 // Board px ÷ 0.8916. The popover is a player menu: always dark.
 const CSS = `
@@ -57,7 +57,7 @@ const CSS = `
 .pop{width:max-content;min-width:345px;max-width:420px;padding:4px 0 8px}
 .head{display:flex;align-items:center;height:40px;padding:0 16px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.2);margin-bottom:7px}
 .row{display:flex;align-items:center;gap:13px;width:100%;height:40px;box-sizing:border-box;padding:0 9px 0 16px;text-align:left}
-.row[hidden],.sep[hidden]{display:none}
+.row[hidden],.sep[hidden],.av[hidden]{display:none}
 .row>svg{width:22px;height:22px;flex:none}
 .def{color:#aaa}
 .av{display:flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;border-radius:50%;object-fit:cover;background:#6b4636;color:#f1f1f1;font-size:9px;font-weight:700;text-shadow:none}
@@ -75,7 +75,7 @@ const CSS = `
 
 const POP_HTML = `
 <div class="head">Playback speed</div>
-<div class="row chan"><span class="av" aria-hidden="true"></span><span class="name"></span><span class="step"><button class="stp" data-k="chan" data-d="-1">${MINUS}</button><span class="val" aria-live="polite"></span><button class="stp" data-k="chan" data-d="1">${PLUS}</button></span></div>
+<div class="row chan"><img class="av" alt="" hidden><span class="av" aria-hidden="true"></span><span class="name"></span><span class="step"><button class="stp" data-k="chan" data-d="-1">${MINUS}</button><span class="val" aria-live="polite"></span><button class="stp" data-k="chan" data-d="1">${PLUS}</button></span></div>
 <div class="row def">${GAUGE}<span class="name"></span><span class="step"><button class="stp" data-k="def" data-d="-1" aria-label="Lower default speed">${MINUS}</button><span class="val" aria-live="polite"></span><button class="stp" data-k="def" data-d="1" aria-label="Raise default speed">${PLUS}</button></span></div>
 <div class="sep" aria-hidden="true"></div>
 <button class="row reset">${RESET}<span class="name">Reset this channel</span><span class="hint"></span></button>`;
@@ -91,9 +91,8 @@ const feature: Feature = {
     let map: SpeedMap = (await storage.getItem<SpeedMap>(STORAGE_KEY)) ?? {};
     // Channel of the current watch page; null until metadata renders.
     let channel: ChannelRef | null = null;
-    let applying = false;
     let mediaSettled = true;
-    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
     const perChannel = () => (cfg.perChannel && channel ? channel : null);
     const chanRate = () => {
@@ -104,13 +103,7 @@ const feature: Feature = {
     const apply = () => {
       const video = getVideo();
       const rate = chanRate();
-      if (!video || video.playbackRate === rate) return;
-      applying = true;
-      video.playbackRate = rate;
-      // ratechange fires synchronously; clear the gate after it.
-      queueMicrotask(() => {
-        applying = false;
-      });
+      if (video && video.playbackRate !== rate) video.playbackRate = rate;
     };
 
     const saveChannel = (rate: number) => {
@@ -140,6 +133,8 @@ const feature: Feature = {
     const defRow = $('.def');
     const steppers = [...pop.querySelectorAll<HTMLButtonElement>('.stp')];
     const reset = $<HTMLButtonElement>('.reset');
+    const avImg = $<HTMLImageElement>('img.av');
+    const avText = $('span.av');
     const isOpen = () => pop.matches(':popover-open');
 
     tooltip(chip, () => {
@@ -160,19 +155,10 @@ const feature: Feature = {
       if (ch) {
         $('.chan .name').textContent = `${ch.name} (this channel)`;
         const src = ownerAvatar();
-        const av = $('.av');
-        if (!(av instanceof HTMLImageElement)) {
-          if (src) {
-            const img = document.createElement('img');
-            img.className = 'av';
-            img.alt = '';
-            av.replaceWith(img);
-          } else {
-            av.textContent = initials(ch.name);
-          }
-        }
-        const img = $('.av');
-        if (src && img instanceof HTMLImageElement && img.src !== src) img.src = src;
+        avImg.hidden = !src;
+        avText.hidden = !!src;
+        avText.textContent = initials(ch.name);
+        if (src && avImg.src !== src) avImg.src = src;
       }
       const vals: Record<string, number> = { chan: chanRate(), def: cfg.rate };
       $('.chan .val').textContent = sp(vals.chan);
@@ -226,7 +212,6 @@ const feature: Feature = {
     // --- rate bookkeeping --------------------------------------------------
     const onRateChange = () => {
       render();
-      if (applying) return;
       // YouTube resets the rate itself while a new src loads.
       if (!mediaSettled) return;
       const rate = getVideo()?.playbackRate;
@@ -235,11 +220,8 @@ const feature: Feature = {
 
     const onLoadedMetadata = () => {
       mediaSettled = false;
-      if (settleTimer !== null) clearTimeout(settleTimer);
-      settleTimer = setTimeout(() => {
-        mediaSettled = true;
-        settleTimer = null;
-      }, 500);
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => (mediaSettled = true), 500);
       apply();
     };
 
@@ -281,7 +263,7 @@ const feature: Feature = {
 
     return () => {
       offs.forEach((off) => off());
-      if (settleTimer !== null) clearTimeout(settleTimer);
+      clearTimeout(settleTimer);
     };
   },
 };
