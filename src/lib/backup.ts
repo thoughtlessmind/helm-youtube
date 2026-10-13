@@ -56,22 +56,9 @@ export async function exportBackup(): Promise<BackupData> {
 }
 
 /** Validate that an arbitrary parsed object is a YouTube Pro backup. */
-export function isBackupData(value: unknown): value is BackupData {
-  if (!value || typeof value !== 'object') return false;
-  const v = value as Record<string, unknown>;
-  return (
-    v.version === 1 &&
-    typeof v.sync === 'object' &&
-    v.sync !== null &&
-    typeof v.local === 'object' &&
-    v.local !== null
-  );
-}
+export const isBackupData = (v: any): v is BackupData =>
+  v?.version === 1 && !!v.sync && typeof v.sync === 'object' && !!v.local && typeof v.local === 'object';
 
-/**
- * Restore a backup. Writes each key back to its storage area. Only YouTube
- * Pro keys are written, so a tampered file cannot clobber unrelated state.
- */
 /** Shape checks for keys a feature would crash on if a hand-edited backup broke them. */
 const LOCAL_SHAPES: Record<string, (v: unknown) => boolean> = {
   'ytpro:queue': (v) => Array.isArray(v) && v.every((i) => typeof i?.videoId === 'string'),
@@ -79,13 +66,15 @@ const LOCAL_SHAPES: Record<string, (v: unknown) => boolean> = {
     Array.isArray(v) && v.every((g) => typeof g?.id === 'string' && !!g.channels && typeof g.channels === 'object'),
 };
 
+/**
+ * Restore a backup. Writes each key back to its storage area. Only YouTube
+ * Pro keys are written, so a tampered file cannot clobber unrelated state.
+ */
 export async function importBackup(data: BackupData): Promise<void> {
-  const writes: Promise<unknown>[] = [];
-  for (const [key, val] of Object.entries(data.sync)) {
-    if (isOwnKey(key)) writes.push(storage.setItem(`sync:${key}`, val));
-  }
-  for (const [key, val] of Object.entries(data.local)) {
-    if (isOwnKey(key) && (LOCAL_SHAPES[key]?.(val) ?? true)) writes.push(storage.setItem(`local:${key}`, val));
-  }
-  await Promise.all(writes);
+  await storage.setItems([
+    ...Object.entries(pickOwn(data.sync)).map(([k, value]) => ({ key: `sync:${k}` as const, value })),
+    ...Object.entries(pickOwn(data.local))
+      .filter(([k, v]) => LOCAL_SHAPES[k]?.(v) ?? true)
+      .map(([k, value]) => ({ key: `local:${k}` as const, value })),
+  ]);
 }
