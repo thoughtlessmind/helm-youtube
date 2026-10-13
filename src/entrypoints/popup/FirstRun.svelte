@@ -1,12 +1,11 @@
 <script lang="ts">
   import { storage } from '#imports';
-  import { ICONS, ALL_FEATURES } from '../../lib/feature-catalog';
+  import { ALL_FEATURES, type FeatureId } from '../../lib/feature-catalog';
   import { getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
   import { FIRST_RUN_KEY, openYouTube, type Page } from './lib';
 
   let { go }: { go: (p: Page) => void } = $props();
 
-  type Id = keyof FeatureFlags;
   let flags = $state<FeatureFlags>({});
   let rate = $state(1.25);
   let opened = $state(false);
@@ -19,25 +18,27 @@
   });
 
   // Default-on features, phrased as what changed on YouTube (and what it says once turned off).
-  const DEFAULTS = $derived<{ id: Id; icon: string; keys?: string[]; on: string; off: string }[]>([
-    { id: 'hide-shorts', icon: ICONS.shorts, on: 'Shorts are gone from your feeds', off: 'Shorts show in your feeds' },
-    { id: 'playback-speed', icon: ICONS.speed, on: `Videos start at ${rate}× speed`, off: 'Videos start at normal speed' },
-    { id: 'hide-end-screen-cards', icon: ICONS.endCards, on: 'End-screen cards are hidden', off: 'End-screen cards show' },
-    { id: 'auto-dismiss-still-watching', icon: ICONS.still, on: '“Still watching?” is answered for you', off: '“Still watching?” can pause videos' },
-    { id: 'loop-section', icon: ICONS.loop, keys: ['[', ']'], on: 'loop a section', off: 'Section loop keys are off' },
-    { id: 'screenshot-current-frame', icon: ICONS.camera, keys: ['S'], on: 'saves a frame', off: 'Frame saving is off' },
+  const DEFAULTS = $derived<{ id: FeatureId; keys?: string[]; on: string; off: string }[]>([
+    { id: 'hide-shorts', on: 'Shorts are gone from your feeds', off: 'Shorts show in your feeds' },
+    { id: 'playback-speed', on: `Videos start at ${rate}× speed`, off: 'Videos start at normal speed' },
+    { id: 'hide-end-screen-cards', on: 'End-screen cards are hidden', off: 'End-screen cards show' },
+    { id: 'auto-dismiss-still-watching', on: '“Still watching?” is answered for you', off: '“Still watching?” can pause videos' },
+    { id: 'loop-section', keys: ['[', ']'], on: 'loop a section', off: 'Section loop keys are off' },
+    { id: 'screenshot-current-frame', keys: ['S'], on: 'saves a frame', off: 'Frame saving is off' },
   ]);
-  const PICKS: { id: Id; icon: string; name: string; desc: string }[] = [
-    { id: 'read-later-queue', icon: ICONS.queue, name: 'Global queue', desc: 'One queue shared by every YouTube tab.' },
-    { id: 'sponsorblock', icon: ICONS.sponsor, name: 'SponsorBlock auto-skip', desc: 'Skips sponsor reads and filler.' },
-    { id: 'focus-mode', icon: ICONS.focus, name: 'Focus mode', desc: 'Hides feeds and recommendations.' },
-    { id: 'watch-time', icon: ICONS.clock, name: 'Watch time', desc: 'Daily stats with a gentle limit.' },
+  const PICKS: { id: FeatureId; name: string; desc: string }[] = [
+    { id: 'read-later-queue', name: 'Global queue', desc: 'One queue shared by every YouTube tab.' },
+    { id: 'sponsorblock', name: 'SponsorBlock auto-skip', desc: 'Skips sponsor reads and filler.' },
+    { id: 'focus-mode', name: 'Focus mode', desc: 'Hides feeds and recommendations.' },
+    { id: 'watch-time', name: 'Watch time', desc: 'Daily stats with a gentle limit.' },
   ];
 
   const onCount = $derived(DEFAULTS.filter((f) => flags[f.id]).length);
   const pickCount = $derived(PICKS.filter((f) => flags[f.id]).length);
 
-  async function toggle(id: Id) {
+  const icon = (id: FeatureId) => ALL_FEATURES.find((f) => f.id === id)!.icon;
+
+  async function toggle(id: FeatureId) {
     flags[id] = !flags[id];
     await setFlag(id, !!flags[id]);
   }
@@ -71,7 +72,7 @@
           {@const on = !!flags[f.id]}
           <label class="feat tall">
             <span class="tile" class:on aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={f.icon}></path></svg>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={icon(f.id)}></path></svg>
             </span>
             <span class="line" class:muted={!on}>
               {#if on}{#each f.keys ?? [] as k (k)}<kbd>{k}</kbd>{/each}{/if}{on ? f.on : f.off}
@@ -92,7 +93,7 @@
           {@const on = !!flags[f.id]}
           <label class="feat">
             <span class="tile" class:on aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={f.icon}></path></svg>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={icon(f.id)}></path></svg>
             </span>
             <span class="pick-text">
               <span class="name">{f.name}</span>

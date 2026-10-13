@@ -4,32 +4,23 @@ import type { FeatureConfig, FeatureFlags } from './settings';
  * The feature list exactly as the popup's Settings board draws it: sections,
  * per-feature copy and icon, and the controls shown under a feature while it
  * is on. Settings renders from this; FirstRun reuses the icons.
- *
- * Adding a feature end to end:
- *   1. src/features/<id>.ts        — the Feature module
- *   2. src/lib/features.ts         — registry line
- *   3. src/lib/settings.ts         — FeatureFlags + FEATURE_DEFAULTS (+ config)
- *   4. this file                   — one CatalogEntry in the right section
  */
 
 export type FeatureId = keyof FeatureFlags;
 export type ConfigId = keyof FeatureConfig;
-
-/** A key of `FeatureConfig[id]` — kept loose so one Control type covers every feature. */
-type Key = string;
 
 export interface Option {
   value: number;
   label: string;
 }
 
-/** Controls, rendered in this order inside the feature's options panel. */
+/** Controls, rendered in this order inside the feature's options panel. Keys are `FeatureConfig[id]` keys, kept loose. */
 export type Control =
-  | { type: 'checks'; items: { key: Key; label: string }[] }
-  | { type: 'chips'; label: string; items: { key: Key; label: string }[] }
-  | { type: 'select'; key: Key; label: string; options: Option[] }
-  | { type: 'keywords'; key: Key; label: string; placeholder: string }
-  | { type: 'length'; minKey: Key; maxKey: Key; label: string }
+  | { type: 'checks'; items: { key: string; label: string }[] }
+  | { type: 'chips'; label: string; items: { key: string; label: string }[] }
+  | { type: 'select'; key: string; label: string; options: Option[] }
+  | { type: 'keywords'; key: string; label: string; placeholder: string }
+  | { type: 'length'; minKey: string; maxKey: string; label: string }
   | { type: 'manage-groups' }
   /** Today / This week from the watch-time log. */
   | { type: 'watch-stats' };
@@ -48,39 +39,19 @@ export interface CatalogSection {
   features: CatalogEntry[];
 }
 
-export const ICONS = {
-  shorts: 'M3 3l18 18M8 3h8a2 2 0 0 1 2 2v9M18 18v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6',
-  focus: 'M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
-  filter: 'M4 5h16l-6 7.5V19l-4 2v-8.5z',
-  grid: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
-  endCards: 'M3 5h18v14H3zM12 12h6v4h-6z',
-  speed: 'M12 14l4-4M4.9 19a9 9 0 1 1 14.2 0',
-  sponsor: 'M5 5l9 7-9 7zM19 5v14',
-  boost: 'M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13',
-  still: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
-  loop: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
-  queue: 'M3 6h12M3 12h12M3 18h8M17 15l5 3-5 3z',
-  groups: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
-  notes: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4',
-  clock: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 7v5l3 2',
-  transcript: 'M4 5h16M4 10h16M4 15h8M17 13v8M14 18l3 3 3-3',
-  camera:
-    'M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 13m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0',
-  moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
-} as const;
-
 const opts = (pairs: [number, string][]): Option[] => pairs.map(([value, label]) => ({ value, label }));
 
 export const CATALOG: CatalogSection[] = [
   {
     title: 'Clean up YouTube',
     features: [
-      { id: 'hide-shorts', name: 'Hide Shorts', desc: 'Remove Shorts from Home, search, sidebar and channel pages.', icon: ICONS.shorts },
+      { id: 'hide-shorts', name: 'Hide Shorts', desc: 'Remove Shorts from Home, search, sidebar and channel pages.',
+        icon: 'M3 3l18 18M8 3h8a2 2 0 0 1 2 2v9M18 18v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6' },
       {
         id: 'focus-mode',
         name: 'Focus mode',
         desc: 'Hide the parts of YouTube built to keep you scrolling.',
-        icon: ICONS.focus,
+        icon: 'M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
         controls: [
           {
             type: 'checks',
@@ -97,7 +68,7 @@ export const CATALOG: CatalogSection[] = [
         id: 'feed-filters',
         name: 'Feed filters',
         desc: 'Hide videos by keyword, by length, or once watched.',
-        icon: ICONS.filter,
+        icon: 'M4 5h16l-6 7.5V19l-4 2v-8.5z',
         controls: [
           { type: 'keywords', key: 'keywords', label: 'Keywords', placeholder: 'drama, reaction' },
           { type: 'length', minKey: 'minMinutes', maxKey: 'maxMinutes', label: 'Length, minutes' },
@@ -108,7 +79,7 @@ export const CATALOG: CatalogSection[] = [
         id: 'customize-grid',
         name: 'Grid density',
         desc: 'Choose how many videos fit in a row on Home.',
-        icon: ICONS.grid,
+        icon: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
         controls: [
           {
             type: 'select',
@@ -118,7 +89,8 @@ export const CATALOG: CatalogSection[] = [
           },
         ],
       },
-      { id: 'hide-end-screen-cards', name: 'Hide end-screen cards', desc: 'No video tiles covering the last seconds.', icon: ICONS.endCards },
+      { id: 'hide-end-screen-cards', name: 'Hide end-screen cards', desc: 'No video tiles covering the last seconds.',
+        icon: 'M3 5h18v14H3zM12 12h6v4h-6z' },
     ],
   },
   {
@@ -128,7 +100,7 @@ export const CATALOG: CatalogSection[] = [
         id: 'playback-speed',
         name: 'Playback speed',
         desc: 'Start at your speed, and remember one per channel.',
-        icon: ICONS.speed,
+        icon: 'M12 14l4-4M4.9 19a9 9 0 1 1 14.2 0',
         controls: [
           {
             type: 'select',
@@ -143,7 +115,7 @@ export const CATALOG: CatalogSection[] = [
         id: 'sponsorblock',
         name: 'Skip sponsors',
         desc: 'Auto-skip sponsor reads and filler, via SponsorBlock.',
-        icon: ICONS.sponsor,
+        icon: 'M5 5l9 7-9 7zM19 5v14',
         controls: [
           {
             type: 'chips',
@@ -162,7 +134,7 @@ export const CATALOG: CatalogSection[] = [
         id: 'volume-boost',
         name: 'Volume boost',
         desc: 'Go past 100% on quiet videos.',
-        icon: ICONS.boost,
+        icon: 'M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13',
         controls: [
           {
             type: 'select',
@@ -172,8 +144,10 @@ export const CATALOG: CatalogSection[] = [
           },
         ],
       },
-      { id: 'auto-dismiss-still-watching', name: 'Skip “Still watching?”', desc: 'Keep playing without the pause prompt.', icon: ICONS.still },
-      { id: 'loop-section', name: 'A→B loop', desc: 'Loop a section. [ sets the start, ] the end, \\ clears.', icon: ICONS.loop },
+      { id: 'auto-dismiss-still-watching', name: 'Skip “Still watching?”', desc: 'Keep playing without the pause prompt.',
+        icon: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0' },
+      { id: 'loop-section', name: 'A→B loop', desc: 'Loop a section. [ sets the start, ] the end, \\ clears.',
+        icon: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3' },
     ],
   },
   {
@@ -183,7 +157,7 @@ export const CATALOG: CatalogSection[] = [
         id: 'read-later-queue',
         name: 'Queue',
         desc: 'One queue for every YouTube tab, kept after reload.',
-        icon: ICONS.queue,
+        icon: 'M3 6h12M3 12h12M3 18h8M17 15l5 3-5 3z',
         controls: [
           {
             type: 'checks',
@@ -198,10 +172,11 @@ export const CATALOG: CatalogSection[] = [
         id: 'channel-groups',
         name: 'Channel groups',
         desc: 'Group channels and filter your feed by group.',
-        icon: ICONS.groups,
+        icon: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
         controls: [{ type: 'manage-groups' }],
       },
-      { id: 'video-notes', name: 'Video notes', desc: 'Keep a private note on any video.', icon: ICONS.notes },
+      { id: 'video-notes', name: 'Video notes', desc: 'Keep a private note on any video.',
+        icon: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4' },
     ],
   },
   {
@@ -211,7 +186,7 @@ export const CATALOG: CatalogSection[] = [
         id: 'watch-time',
         name: 'Watch time',
         desc: 'Daily and weekly stats, with a gentle daily limit.',
-        icon: ICONS.clock,
+        icon: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 7v5l3 2',
         controls: [
           { type: 'watch-stats' },
           {
@@ -227,9 +202,12 @@ export const CATALOG: CatalogSection[] = [
   {
     title: 'Tools and appearance',
     features: [
-      { id: 'download-transcript', name: 'Transcript download', desc: 'Save a video’s transcript as .txt or .srt.', icon: ICONS.transcript },
-      { id: 'screenshot-current-frame', name: 'Frame screenshot', desc: 'Press S to save the current frame as a PNG.', icon: ICONS.camera },
-      { id: 'true-black-dark-mode', name: 'True black', desc: 'Pure black backgrounds for OLED screens.', icon: ICONS.moon },
+      { id: 'download-transcript', name: 'Transcript download', desc: 'Save a video’s transcript as .txt or .srt.',
+        icon: 'M4 5h16M4 10h16M4 15h8M17 13v8M14 18l3 3 3-3' },
+      { id: 'screenshot-current-frame', name: 'Frame screenshot', desc: 'Press S to save the current frame as a PNG.',
+        icon: 'M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 13m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0' },
+      { id: 'true-black-dark-mode', name: 'True black', desc: 'Pure black backgrounds for OLED screens.',
+        icon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z' },
     ],
   },
 ];
