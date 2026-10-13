@@ -57,8 +57,6 @@ const TOGGLE_CSS = `
 .toggle:hover { background: var(--yt-sys-color-baseline--additive-background); color: var(--yt-sys-color-baseline--text-primary); }
 .toggle svg { width: 20px; height: 20px; flex: none; }`;
 
-type Config = FeatureConfig['feed-filters'];
-
 const feature: Feature = {
 
   async setup(ctx) {
@@ -121,7 +119,7 @@ const feature: Feature = {
       renderToggle();
     }
 
-    const apply = (cfg: Config) => {
+    const apply = (cfg: FeatureConfig['feed-filters']) => {
       keywords = cfg.keywords
         .split(',')
         .map((k) => k.trim().toLowerCase())

@@ -174,8 +174,7 @@ const BAR_CSS = `
   :host { display: block; width: 100%; } /* the grid is a centered flex column */
   .row { display: flex; align-items: flex-start; gap: 12px; }
   .row:has(> :not([hidden])) { padding: 12px 0; }
-  [data-part][hidden] { display: none; }
-  [data-part="groups"] { order: 0; flex: 1 1 auto; min-width: 0; }
+  [data-part="groups"] { flex: 1 1 auto; min-width: 0; }
   [data-part="filters"] { order: 1; flex: none; margin-left: auto; }
 `;
 

@@ -59,14 +59,7 @@ const feature: Feature = {
     const html = document.documentElement;
     // whoami answers once the SW has opened session storage to content scripts — ask it first.
     const tabId = await myTabId();
-    const [initialItems, initialConfig, initialPlayerTab] = await Promise.all([
-      getQueue(),
-      getConfig('read-later-queue'),
-      getPlayerTabId(),
-    ]);
-    let items = initialItems;
-    let config = initialConfig;
-    let playerTab = initialPlayerTab;
+    let [items, config, playerTab] = await Promise.all([getQueue(), getConfig('read-later-queue'), getPlayerTabId()]);
     const isPlayerTab = () => tabId !== null && playerTab === tabId;
 
     // ── Panel ──────────────────────────────────────────────────────────────
@@ -86,9 +79,7 @@ const feature: Feature = {
     const place = (host: HTMLElement) => {
       const slot = document.querySelector('ytd-watch-flexy #secondary-inner');
       if (!slot || host.parentElement === slot) return;
-      const native = slot.querySelector(':scope > ytd-playlist-panel-renderer');
-      if (native) slot.insertBefore(host, native);
-      else slot.prepend(host);
+      slot.insertBefore(host, slot.querySelector(':scope > ytd-playlist-panel-renderer') ?? slot.firstChild);
     };
 
     const unmountPanel = () => {

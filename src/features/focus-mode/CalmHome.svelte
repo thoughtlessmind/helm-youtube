@@ -3,18 +3,13 @@
 <script module lang="ts">
   import type { QueueItem } from '../../lib/queue';
 
-  export interface CalmGroup {
-    id: string;
-    name: string;
-    channels: number;
-  }
   export interface CalmState {
     /** "Show it once": the real feed is visible for this visit. */
     feedShown: boolean;
     /** Unplayed queue items; empty when the queue feature is off. */
     upNext: QueueItem[];
     /** Groups with channels; empty when channel groups are off. */
-    groups: CalmGroup[];
+    groups: { id: string; name: string; channels: number }[];
   }
   export interface CalmActions {
     toggleFeed(): void;
