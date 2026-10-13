@@ -7,13 +7,11 @@
   import { KEY as GROUPS_KEY, withFavorites, type Group } from '../../features/channel-groups/store.svelte';
   import {
     FEATURE_CONFIG_DEFAULTS,
+    extensionEnabled,
     getConfig,
-    getExtensionEnabled,
     getFlags,
     setConfig,
-    setExtensionEnabled,
     setFlag,
-    watchExtensionEnabled,
     type FeatureFlags,
   } from '../../lib/settings';
   import { fmtMin, focusTab, getLog, minutesOn, minutesOver, youtubeTabs, type Page, type WatchLog } from './lib';
@@ -37,7 +35,7 @@
   async function load() {
     const [f, on, l, groups, ...configs] = await Promise.all([
       getFlags(),
-      getExtensionEnabled(),
+      extensionEnabled.getValue(),
       getLog(),
       storage.getItem<Group[]>(GROUPS_KEY),
       ...CONFIG_IDS.map((id) => getConfig(id)),
@@ -55,7 +53,7 @@
 
   onMount(() => {
     void load();
-    return watchExtensionEnabled((on) => (enabled = on));
+    return extensionEnabled.watch((on) => (enabled = on));
   });
 
   const q = $derived(query.trim().toLowerCase());
@@ -85,7 +83,7 @@
 
   async function setEnabled(on: boolean) {
     enabled = on;
-    await setExtensionEnabled(on);
+    await extensionEnabled.setValue(on);
   }
 
   /** D9: open the in-page Manage-groups dialog in a YouTube tab. */
