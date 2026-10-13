@@ -116,7 +116,7 @@
     <button
       class="btn primary open"
       onclick={() => {
-        void openYouTube(undefined, false);
+        void openYouTube(false);
         opened = true;
       }}
     >

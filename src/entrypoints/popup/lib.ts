@@ -42,5 +42,5 @@ export async function focusTab(tab: { id?: number; windowId?: number }) {
   if (tab.windowId != null) await browser.windows.update(tab.windowId, { focused: true });
 }
 
-/** Opens youtube.com (or `url`) in a new tab. */
-export const openYouTube = (url = 'https://www.youtube.com/', active = true) => browser.tabs.create({ url, active });
+/** Opens youtube.com in a new tab. */
+export const openYouTube = (active = true) => browser.tabs.create({ url: 'https://www.youtube.com/', active });

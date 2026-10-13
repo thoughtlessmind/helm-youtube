@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { CATALOG, type CatalogEntry, type ConfigId } from '../../lib/feature-catalog';
   import { exportBackup, importBackup, isBackupData } from '../../lib/backup';
+  import { saveFile } from '../../lib/download';
   import { sendToTab } from '../../lib/messages';
   import { KEY as GROUPS_KEY, withFavorites, type Group } from '../../features/channel-groups/store.svelte';
   import {
@@ -99,14 +100,8 @@
   }
 
   async function doExport() {
-    const data = await exportBackup();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `youtube-pro-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const blob = new Blob([JSON.stringify(await exportBackup(), null, 2)], { type: 'application/json' });
+    saveFile(blob, `youtube-pro-backup-${new Date().toISOString().slice(0, 10)}.json`);
     backupStatus = 'Settings exported.';
   }
 

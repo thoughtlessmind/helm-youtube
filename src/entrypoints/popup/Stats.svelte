@@ -145,7 +145,6 @@
         <h2 class="label">Last 7 days</h2>
         <button
           class="ib sm"
-          class:pressed={table}
           aria-label="Show as table"
           title="Show as table"
           aria-pressed={table}
@@ -350,11 +349,11 @@
     border-radius: 999px;
     background: var(--accent-mark);
   }
-  .pressed {
+  [aria-pressed='true'] {
     background: rgba(127, 127, 140, 0.16);
     color: var(--text);
   }
-  .week-head .ib:not(.pressed) {
+  .week-head .ib:not([aria-pressed='true']) {
     color: var(--muted);
   }
   .week {
