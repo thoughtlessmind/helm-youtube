@@ -1,4 +1,6 @@
 import type { Feature } from '../lib/features';
+import { getVideo } from '../lib/yt/player';
+import { isWatchPage } from '../lib/yt/video';
 
 /**
  * YouTube periodically pauses playback to ask "Video paused. Continue
@@ -21,8 +23,7 @@ const feature: Feature = {
     addEventListener('keydown', mark, true);
 
     const tryDismiss = () => {
-      if (location.pathname !== '/watch' || Date.now() - lastInput < IDLE_MS) return;
-      if (!document.querySelector<HTMLVideoElement>('#movie_player video.html5-main-video')?.paused) return;
+      if (!isWatchPage() || Date.now() - lastInput < IDLE_MS || !getVideo()?.paused) return;
       const btn = document.querySelector<HTMLElement>(
         'ytd-popup-container yt-confirm-dialog-renderer #confirm-button button',
       );

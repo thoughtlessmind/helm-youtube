@@ -29,19 +29,11 @@ export function getVideoId(): string | null {
  * `UC…` id, falling back to the handle/name segment.
  */
 export function channelIdFromHref(href: string | null | undefined): string | null {
-  if (!href) return null;
+  const path = URL.parse(href ?? '', 'https://www.youtube.com')?.pathname ?? '';
+  const m = path.match(/\/channel\/(UC[\w-]+)/) ?? path.match(/\/(@[^/?#]+)/) ?? path.match(/\/(?:c|user)\/([\w.-]+)/);
   try {
-    const path = href.startsWith('http')
-      ? new URL(href).pathname
-      : href;
-    const ucMatch = path.match(/\/channel\/(UC[\w-]+)/);
-    if (ucMatch) return ucMatch[1];
     // Non-ASCII handles arrive percent-encoded (/@%E3%81%82…).
-    const handleMatch = path.match(/\/(@[^/?#]+)/);
-    if (handleMatch) return decodeURIComponent(handleMatch[1]);
-    const namedMatch = path.match(/\/(?:c|user)\/([\w.-]+)/);
-    if (namedMatch) return namedMatch[1];
-    return null;
+    return m && decodeURIComponent(m[1]);
   } catch {
     return null;
   }
