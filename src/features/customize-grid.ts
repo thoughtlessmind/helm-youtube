@@ -1,10 +1,8 @@
 import type { Feature } from '../lib/features';
 import { getConfig, watchConfig } from '../lib/settings';
-
-const STYLE_ID = 'yt-pro-customize-grid';
+import { addStyle } from '../lib/yt/ui';
 
 function buildCSS(cols: number): string {
-
   // YouTube's media queries override its own items-per-row var at narrow
   // viewports, so we set grid-template-columns explicitly. The CSS vars
   // are kept in sync for any internal YT calc that still reads them.
@@ -54,28 +52,13 @@ ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *) {
 `;
 }
 
-function applyStyle(css: string): void {
-  let style = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
-  if (!style) {
-    style = document.createElement('style');
-    style.id = STYLE_ID;
-    document.head.appendChild(style);
-  }
-  style.textContent = css;
-}
-
 const feature: Feature = {
   async setup() {
-    const cfg = await getConfig('customize-grid');
-    applyStyle(buildCSS(cfg.columnsPerRow));
-
-    const offConfig = watchConfig('customize-grid', (next) => {
-      applyStyle(buildCSS(next.columnsPerRow));
-    });
-
+    const style = addStyle(buildCSS((await getConfig('customize-grid')).columnsPerRow));
+    const offConfig = watchConfig('customize-grid', (next) => (style.textContent = buildCSS(next.columnsPerRow)));
     return () => {
       offConfig();
-      document.getElementById(STYLE_ID)?.remove();
+      style.remove();
     };
   },
 };

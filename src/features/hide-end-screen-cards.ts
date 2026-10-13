@@ -1,6 +1,5 @@
 import type { Feature } from '../lib/features';
-
-const STYLE_ID = 'yt-pro-hide-end-screen-cards';
+import { addStyle } from '../lib/yt/ui';
 
 /**
  * The end-screen suggested-video overlay covers the last ~20s of every
@@ -21,12 +20,8 @@ const CSS = `
 
 const feature: Feature = {
   setup() {
-    if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = CSS;
-    document.head.appendChild(style);
-    return () => document.getElementById(STYLE_ID)?.remove();
+    const style = addStyle(CSS);
+    return () => style.remove();
   },
 };
 

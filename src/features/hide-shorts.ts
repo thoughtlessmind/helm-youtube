@@ -1,6 +1,5 @@
 import type { Feature } from '../lib/features';
-
-const STYLE_ID = 'yt-pro-hide-shorts';
+import { addStyle } from '../lib/yt/ui';
 
 const CSS = `
 /* Sidebar nav entries (full + mini guide) */
@@ -40,20 +39,10 @@ tp-yt-paper-tab:has(> .tab-content:is([href*="/shorts"])) {
 
 const feature: Feature = {
   setup() {
-    if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = CSS;
-    document.head.appendChild(style);
-
+    const style = addStyle(CSS);
     // If we're already on a /shorts/ URL, send the user back home.
-    if (location.pathname.startsWith('/shorts/')) {
-      location.replace('/');
-    }
-
-    return () => {
-      document.getElementById(STYLE_ID)?.remove();
-    };
+    if (location.pathname.startsWith('/shorts/')) location.replace('/');
+    return () => style.remove();
   },
 };
 

@@ -1,6 +1,5 @@
 import type { Feature } from '../lib/features';
-
-const STYLE_ID = 'yt-pro-true-black-dark-mode';
+import { addStyle } from '../lib/yt/ui';
 
 /**
  * Override YouTube's dark-theme tokens to true black for OLED screens.
@@ -31,12 +30,8 @@ html[dark] ytd-watch-flexy {
 
 const feature: Feature = {
   setup() {
-    if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = CSS;
-    document.head.appendChild(style);
-    return () => document.getElementById(STYLE_ID)?.remove();
+    const style = addStyle(CSS);
+    return () => style.remove();
   },
 };
 
