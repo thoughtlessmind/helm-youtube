@@ -2,6 +2,8 @@ import type { Feature } from '../lib/features';
 import { getConfig, watchConfig } from '../lib/settings';
 import { addStyle } from '../lib/yt/ui';
 
+const ITEM = 'ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *)';
+
 function buildCSS(cols: number): string {
   // YouTube's media queries override its own items-per-row var at narrow
   // viewports, so we set grid-template-columns explicitly. The CSS vars
@@ -42,12 +44,30 @@ ytd-rich-section-renderer {
 }
 
 /* :not() excludes items nested inside section shelves like "Explore more
-   topics" — those have their own internal layout we shouldn't override. */
-ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *) {
+   topics" — those have their own internal layout we shouldn't override.
+   Each card is a size container so its text can scale with it. */
+${ITEM} {
   width: 100% !important;
   max-width: none !important;
   min-width: 0 !important;
   margin: 0 0 24px 0 !important;
+  container-type: inline-size;
+}
+
+/* Text keeps the card's proportions: YouTube's 16px title / 14px metadata
+   on a 360px-wide card, shrinking in ratio on narrower cards. Never larger
+   than YouTube's size; floored at 11px / 10px to stay readable. */
+${ITEM} .ytLockupMetadataViewModelTitle,
+${ITEM} #video-title {
+  font-size: clamp(11px, 4.44cqi, 16px) !important;
+  line-height: 1.375em !important;
+}
+${ITEM} .ytContentMetadataViewModelMetadataText,
+${ITEM} .ytContentMetadataViewModelDelimiter,
+${ITEM} #metadata-line span,
+${ITEM} ytd-channel-name #text {
+  font-size: clamp(10px, 3.89cqi, 14px) !important;
+  line-height: 1.43em !important;
 }
 `;
 }
