@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { getConfig } from '../../lib/settings';
   import { initials } from '../../lib/format';
-  import { dayAgo, fmtMin, getLog, isoDate, minutesOn, minutesOver, watchLog, type Page, type WatchLog } from './lib';
+  import { dayAgo, fmtMin, getLog, isoDate, minutesOn, minutesOver, logItem, type Page, type WatchLog } from './lib';
 
   let { go }: { go: (p: Page) => void } = $props();
 
@@ -18,7 +18,7 @@
       log = l;
       limit = wt.dailyLimitMinutes;
     });
-    return watchLog((l) => (log = l));
+    return logItem.watch((l) => (log = l));
   });
 
   const fmtDate = (d: Date, o: Intl.DateTimeFormatOptions) => d.toLocaleDateString('en-US', o);

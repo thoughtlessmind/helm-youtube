@@ -85,18 +85,21 @@ async function record(seconds: number, ch: ChannelRef | null): Promise<void> {
 }
 
 /** Writes pending seconds. Seconds and channel are captured synchronously. */
-function flush(): Promise<void> {
+function flush(): void {
   tick();
-  if (pendingSeconds > 0) {
-    const seconds = pendingSeconds;
-    const ch = channel;
-    pendingSeconds = 0;
-    writes = writes
-      .then(() => record(seconds, ch))
-      .catch((err) => console.error('[youtube-pro] watch-tracker: write failed', err));
-  }
-  return writes;
+  if (pendingSeconds <= 0) return;
+  const seconds = pendingSeconds;
+  const ch = channel;
+  pendingSeconds = 0;
+  writes = writes
+    .then(() => record(seconds, ch))
+    .catch((err) => console.error('[youtube-pro] watch-tracker: write failed', err));
 }
+
+const stop = () => {
+  stopCounting();
+  flush();
+};
 
 /** Starts tracking; returns stop (flushes and removes every listener). */
 export function startTracking(ctx: YTContext): () => void {
@@ -108,16 +111,10 @@ export function startTracking(ctx: YTContext): () => void {
     else if (!counting) stopCounting();
   };
 
-  const onPageHide = () => {
-    stopCounting();
-    void flush();
-  };
-
   document.addEventListener('visibilitychange', sync);
-  window.addEventListener('pagehide', onPageHide);
+  window.addEventListener('pagehide', stop);
   const offNav = ctx.navigation.onNavigate(() => {
-    stopCounting();
-    void flush(); // time so far belongs to the previous page's channel
+    stop(); // time so far belongs to the previous page's channel
     channel = currentChannel();
     sync();
   });
@@ -128,7 +125,7 @@ export function startTracking(ctx: YTContext): () => void {
   });
   const offPlay = onVideoEvent('play', sync);
   const offPause = onVideoEvent('pause', sync);
-  const flushTimer = setInterval(() => void flush(), FLUSH_INTERVAL_MS);
+  const flushTimer = setInterval(flush, FLUSH_INTERVAL_MS);
 
   channel = currentChannel();
   sync();
@@ -136,22 +133,21 @@ export function startTracking(ctx: YTContext): () => void {
   return () => {
     offPlay();
     offPause();
-    stopCounting();
-    void flush();
+    stop();
     channel = null;
     document.removeEventListener('visibilitychange', sync);
-    window.removeEventListener('pagehide', onPageHide);
+    window.removeEventListener('pagehide', stop);
     offNav();
     offChange();
     clearInterval(flushTimer);
   };
 }
 
+export const logItem = storage.defineItem<WatchLog>(LOG_KEY, { fallback: {} });
+
 // Readers don't flush: a reader reacting to LOG_KEY changes would otherwise write on every
 // change it sees. Up to 15 s of this tab's time may be missing — fine for stats.
-export async function getLog(): Promise<WatchLog> {
-  return (await storage.getItem<WatchLog>(LOG_KEY)) ?? {};
-}
+export const getLog = () => logItem.getValue();
 
 export async function getChannelTotals(): Promise<ChannelTotals> {
   return (await storage.getItem<ChannelTotals>(CHANNELS_KEY)) ?? {};

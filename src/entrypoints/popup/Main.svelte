@@ -21,7 +21,7 @@
     getLog,
     minutesOn,
     openYouTube,
-    watchLog,
+    logItem,
     youtubeTabs,
     type Page,
     type WatchLog,
@@ -71,7 +71,7 @@
   }
 
   onMount(() => {
-    const offs = [watchQueue((q) => (queue = q)), watchLog((l) => (log = l))];
+    const offs = [watchQueue((q) => (queue = q)), logItem.watch((l) => (log = l))];
     void Promise.all([getQueue(), getFlags(), getConfig('watch-time'), getLog()]).then(([q, f, wt, l]) => {
       queue = q;
       flags = f;

@@ -1,16 +1,14 @@
-import { storage } from '#imports';
 import { fmtDuration } from '../../lib/format';
-import { LOG_KEY, isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
+import { isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
 
 /** Small helpers shared by the popup pages. */
 
 export { fmtClock } from '../../lib/format';
-export { getLog, isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
+export { getLog, isoDate, logItem, type WatchLog } from '../../lib/yt/watch-tracker';
 
 export type Page = 'main' | 'settings' | 'stats' | 'firstrun';
 
 export const FIRST_RUN_KEY = 'local:ytpro:first-run-seen' as const;
-export const watchLog = (cb: (log: WatchLog) => void) => storage.watch<WatchLog>(LOG_KEY, (v) => cb(v ?? {}));
 
 /** The date `back` days before today (0 = today). */
 export function dayAgo(back: number): Date {
