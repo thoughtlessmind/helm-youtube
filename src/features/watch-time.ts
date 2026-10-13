@@ -39,12 +39,6 @@ const ACTIVE_PAGE = 'ytd-page-manager > :not([hidden])';
 const CHANNEL_META =
   'ytd-browse[page-subtype="channels"]:not([hidden]) yt-page-header-renderer yt-content-metadata-view-model';
 
-function appendHtml(root: ShadowRoot, html: string): void {
-  const t = document.createElement('template');
-  t.innerHTML = html;
-  root.append(t.content);
-}
-
 const CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
 
 const BANNER_CSS = `
@@ -58,6 +52,9 @@ p{flex:1;min-width:0;margin:0;overflow:hidden;white-space:nowrap;text-overflow:e
 b{font-weight:500}
 .muted{color:var(--yt-sys-color-baseline--text-secondary)}
 `;
+const BANNER_HTML = `<section aria-label="Daily watch limit">${CLOCK}<p><b></b><span class="muted"></span></p>
+  <button class="ytp-btn" data-act="snooze">Snooze 15 min</button>
+  <button class="ytp-btn is-text" data-act="dismiss">Dismiss</button></section>`;
 
 const STAT_CSS = `
 /* Same box as YouTube's meta rows (10px inline-flex, middle, 2px top) so they line up. */
@@ -71,6 +68,7 @@ button{margin:0;padding:0;border:0;border-radius:2px;font:inherit;color:inherit;
 .stat:hover>.ytp-tooltip,.stat:focus-within>.ytp-tooltip{opacity:1}
 .stat.esc>.ytp-tooltip{opacity:0}
 `;
+const STAT_HTML = `<span class="dot" aria-hidden="true">•</span><span class="stat"><button aria-describedby="tip"></button><span class="ytp-tooltip" id="tip" role="tooltip"></span></span>`;
 
 const feature: Feature = {
 
@@ -79,14 +77,8 @@ const feature: Feature = {
     let stopped = false;
 
     // ---- Daily-limit banner ----
-    const { host: banner, root: bannerRoot } = createHost('ytp-limit-banner', BANNER_CSS);
+    const { host: banner, root: bannerRoot } = createHost('ytp-limit-banner', BANNER_CSS, BANNER_HTML);
     banner.tabIndex = -1; // focus parks here when its own buttons hide it
-    appendHtml(
-      bannerRoot,
-      `<section aria-label="Daily watch limit">${CLOCK}<p><b></b><span class="muted"></span></p>
-        <button class="ytp-btn" data-act="snooze">Snooze 15 min</button>
-        <button class="ytp-btn is-text" data-act="dismiss">Dismiss</button></section>`,
-    );
     const [title, today] = bannerRoot.querySelectorAll('p > *');
     const snoozeBtn = bannerRoot.querySelector<HTMLButtonElement>('[data-act="snooze"]')!;
 
@@ -134,13 +126,9 @@ const feature: Feature = {
         flashToast('Daily limit reminder restored');
       };
       banner.focus({ preventScroll: true });
-      if (act === 'snooze') {
-        setReminder({ ...prev, snoozeUntil: Date.now() + SNOOZE_MS });
-        flashToast('Reminder snoozed for 15 minutes', { action: { label: 'Undo', onClick: undo } });
-      } else {
-        setReminder({ ...prev, dismissedOn: isoDate() });
-        flashToast('Reminder hidden for today', { action: { label: 'Undo', onClick: undo } });
-      }
+      const snooze = act === 'snooze';
+      setReminder(snooze ? { ...prev, snoozeUntil: Date.now() + SNOOZE_MS } : { ...prev, dismissedOn: isoDate() });
+      flashToast(snooze ? 'Reminder snoozed for 15 minutes' : 'Reminder hidden for today', { action: { label: 'Undo', onClick: undo } });
     });
 
     const todayOf = (log: WatchLog | null) => log?.[isoDate()]?.totalSeconds ?? 0;
@@ -163,11 +151,7 @@ const feature: Feature = {
     });
 
     // ---- Channel page: "• You've watched 6h 10m" ----
-    const { host: stat, root: statRoot } = createHost('ytp-channel-watched', STAT_CSS);
-    appendHtml(
-      statRoot,
-      `<span class="dot" aria-hidden="true">•</span><span class="stat"><button aria-describedby="tip"></button><span class="ytp-tooltip" id="tip" role="tooltip"></span></span>`,
-    );
+    const { host: stat, root: statRoot } = createHost('ytp-channel-watched', STAT_CSS, STAT_HTML);
     const statWrap = statRoot.querySelector<HTMLElement>('.stat')!;
     const statBtn = statRoot.querySelector('button')!;
     const tip = statRoot.querySelector<HTMLElement>('.ytp-tooltip')!;

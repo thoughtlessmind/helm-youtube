@@ -26,6 +26,7 @@ import {
   unhideAllCards,
   unhideCard,
 } from '../lib/yt/feed-cards';
+import { addStyle } from '../lib/yt/ui';
 
 const ID = 'feed-filters';
 const REASON = 'data-ytp-filtered';
@@ -69,9 +70,7 @@ const feature: Feature = {
     let reveal = false;
     let toggle: HTMLButtonElement | null = null;
 
-    const pageStyle = document.createElement('style');
-    pageStyle.textContent = PAGE_CSS;
-    document.head.append(pageStyle);
+    const pageStyle = addStyle(PAGE_CSS);
 
     /** Why the card is filtered (board copy), or null to keep it. */
     const reason = (card: HTMLElement): string | null => {

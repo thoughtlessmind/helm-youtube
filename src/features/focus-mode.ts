@@ -10,7 +10,7 @@ import {
 } from '../lib/settings';
 import { getQueue, setPlayerTabId, upNext, watchQueue, type QueueItem } from '../lib/queue';
 import { myTabId } from '../lib/messages';
-import { createHost } from '../lib/yt/ui';
+import { addStyle, createHost } from '../lib/yt/ui';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
 import { playInThisTab } from '../lib/yt/player-bridge';
 import { KEY as GROUPS_KEY, feedKey, type Group } from './channel-groups/store.svelte';
@@ -87,6 +87,7 @@ svg{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:
 .dot{margin:0 -3px}
 .ytp-btn{margin-left:-6px;padding:0 8px}
 `;
+const LINE_HTML = `<div class="line">${EYE_OFF}${EYE}<span class="msg"></span><span class="dot" aria-hidden="true">·</span><button class="ytp-btn is-link"></button></div>`;
 
 const feature: Feature = {
   async setup(ctx) {
@@ -96,8 +97,7 @@ const feature: Feature = {
     /** Video whose recommendations were revealed with "Show once". */
     let recsShownFor: string | null = null;
 
-    const style = document.createElement('style');
-    document.head.append(style);
+    const style = addStyle('');
     const applyCss = () => {
       style.textContent = [
         cfg.homeFeed && !feedShown && CSS.homeFeed,
@@ -187,10 +187,7 @@ const feature: Feature = {
     };
 
     // ---- Watch page: "Recommendations hidden · Show once" ----
-    const { host: line, root: lineRoot } = createHost('ytp-recs-line', LINE_CSS);
-    const tpl = document.createElement('template');
-    tpl.innerHTML = `<div class="line">${EYE_OFF}${EYE}<span class="msg"></span><span class="dot" aria-hidden="true">·</span><button class="ytp-btn is-link"></button></div>`;
-    lineRoot.append(tpl.content);
+    const { host: line, root: lineRoot } = createHost('ytp-recs-line', LINE_CSS, LINE_HTML);
     const msg = lineRoot.querySelector('.msg')!;
     const recsBtn = lineRoot.querySelector('button')!;
 

@@ -32,7 +32,7 @@ import {
   unhideAllCards,
   unhideCard,
 } from '../lib/yt/feed-cards';
-import { createHost, showDialog } from '../lib/yt/ui';
+import { addStyle, createHost, showDialog } from '../lib/yt/ui';
 import { watchMetaCurrent } from '../lib/yt/player';
 import { channelIdFromHref, getWatchChannel, isWatchPage, type ChannelRef } from '../lib/yt/video';
 import ChipBar from './channel-groups/ChipBar.svelte';
@@ -134,9 +134,7 @@ const feature: Feature = {
     let chipBar: { target: HTMLElement; app: ReturnType<typeof mount> } | null = null;
     let dialog: HTMLDialogElement | null = null;
 
-    const guideStyle = document.createElement('style');
-    guideStyle.textContent = GUIDE_CSS;
-    document.head.append(guideStyle);
+    const guideStyle = addStyle(GUIDE_CSS);
 
     // ── Dialogs ───────────────────────────────────────────────────────────
 
