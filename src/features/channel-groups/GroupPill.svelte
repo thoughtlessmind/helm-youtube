@@ -7,10 +7,6 @@
 
   let { onManage }: { onManage: () => void } = $props();
 
-  /** Channel page: 40px like its Subscribe button, menu opens below. Watch: 36px, opens above. */
-  const large = $derived(store.onChannelPage);
-
-  let trigger = $state<HTMLButtonElement>();
   let panel: HTMLDivElement;
   let menu: HTMLDivElement;
   let newInput = $state<HTMLInputElement>();
@@ -26,21 +22,17 @@
 
   onMount(() => menuKeys(menu));
 
-  function toggleOpen() {
+  function toggleOpen(e: Event) {
     creating = false;
     newName = '';
-    if (trigger) close = openPopover(trigger, panel, { side: large ? 'below' : 'above', align: 'start' });
+    close = openPopover(e.currentTarget as Element, panel, { side: store.onChannelPage ? 'below' : 'above', align: 'start' });
   }
 
   function onTriggerKey(e: KeyboardEvent) {
     if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !panel.matches(':popover-open')) {
       e.preventDefault();
-      toggleOpen();
+      toggleOpen(e);
     }
-  }
-
-  function toggleMember(groupId: string, on: boolean) {
-    if (ch) setMember(groupId, ch, on);
   }
 
   function startCreate() {
@@ -75,18 +67,12 @@
       cancelCreate();
     }
   }
-
-  function manage() {
-    close();
-    onManage();
-  }
 </script>
 
 {#if ch}
   <button
-    bind:this={trigger}
     class="ytp-btn pill"
-    class:large
+    class:large={store.onChannelPage}
     type="button"
     aria-haspopup="dialog"
     aria-expanded="false"
@@ -114,7 +100,7 @@
     <div class="glist">
       {#each store.groups as g (g.id)}
         {@const on = !!ch && !!memberKey(g, ch)}
-        <button class="ytp-menu-item" type="button" role="menuitemcheckbox" aria-checked={on} onclick={() => toggleMember(g.id, !on)}>
+        <button class="ytp-menu-item" type="button" role="menuitemcheckbox" aria-checked={on} onclick={() => ch && setMember(g.id, ch, !on)}>
           {#if on}
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5" fill="currentColor"></rect><path class="tick" d="M7.5 12.3l3 3 6-6.3" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
           {:else}
@@ -146,7 +132,7 @@
         New group
       </button>
     {/if}
-    <button class="ytp-menu-item" type="button" role="menuitem" onclick={manage}>
+    <button class="ytp-menu-item" type="button" role="menuitem" onclick={onManage}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg>
       Manage groups
     </button>

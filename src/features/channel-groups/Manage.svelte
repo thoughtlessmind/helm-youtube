@@ -32,7 +32,6 @@
   let pending = $state<{ g: Group; i: number } | null>(null);
   let announce = $state('');
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
-  let skipBlur = false;
 
   const groups = $derived(store.groups);
   const pickGroup = $derived(groups.find((g) => g.id === picking) ?? null);
@@ -70,7 +69,6 @@
     adding = false;
     renaming = g.id;
     draft = g.name;
-    skipBlur = false;
     focus(`[data-rn="${g.id}"]`, true);
   }
   function saveRename(refocus: boolean) {
@@ -79,10 +77,7 @@
     const name = draft.trim();
     if (name && !isDuplicateName(name, id)) updateGroup(id, { name });
     renaming = null;
-    if (refocus) {
-      skipBlur = true;
-      focus(`[data-rename="${id}"]`);
-    }
+    if (refocus) focus(`[data-rename="${id}"]`);
   }
   function onRenameKey(e: KeyboardEvent) {
     if (e.key === 'Enter') {
@@ -91,14 +86,9 @@
     } else if (e.key === 'Escape') {
       e.preventDefault(); // keep the dialog open
       const id = renaming;
-      skipBlur = true;
       renaming = null;
       focus(`[data-rename="${id}"]`);
     }
-  }
-  function onRenameBlur() {
-    if (skipBlur) skipBlur = false;
-    else saveRename(false);
   }
 
   // ── New group ───────────────────────────────────────────────────────────
@@ -174,8 +164,6 @@
 <div class="manage" bind:this={root} onkeydown={onKeydown}>
   {#if pickGroup}
     <Editor
-      title="Edit group"
-      submitLabel="Save"
       group={pickGroup}
       {channels}
       onBack={closePicker}
@@ -229,7 +217,7 @@
                 aria-describedby="mg-meta-{i}"
                 bind:value={draft}
                 onkeydown={onRenameKey}
-                onblur={onRenameBlur}
+                onblur={() => saveRename(false)}
               />
             {:else}
               <span class="gname">

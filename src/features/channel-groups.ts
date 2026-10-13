@@ -76,11 +76,7 @@ const GUIDE_CSS = `
 }`;
 
 const PILL_CSS = ':host { display: inline-flex; align-items: center; margin-left: 8px; }';
-const DIALOG_CSS = '.ytp-dialog.is-manage { height: min(538px, calc(100vh - 32px)); }';
-
-function sameChannel(a: ChannelRef | null, b: ChannelRef | null): boolean {
-  return a?.id === b?.id && a?.name === b?.name;
-}
+const DIALOG_CSS = '.ytp-dialog:has(.manage) { height: min(538px, calc(100vh - 32px)); }';
 
 /** The channel the watch or channel page belongs to. */
 function pageChannel(): ChannelRef | null {
@@ -158,20 +154,13 @@ const feature: Feature = {
       return [...map];
     }
 
-    function closeDialog(): void {
-      dialog?.close();
-    }
+    const closeDialog = () => dialog?.close();
 
-    function openDialog<P extends Record<string, unknown>>(
-      component: Component<P>,
-      props: P,
-      label: string,
-      cls = '',
-    ): void {
+    function openDialog<P extends Record<string, unknown>>(component: Component<P>, props: P, label: string): void {
       closeDialog();
       const { host, root } = createHost('ytp-groups-dialog', DIALOG_CSS);
       const el = document.createElement('dialog');
-      el.className = `ytp-dialog ${cls}`;
+      el.className = 'ytp-dialog';
       el.setAttribute('aria-label', label);
       el.setAttribute('closedby', 'any'); // backdrop click closes, like the boards' scrim
       root.append(el);
@@ -187,16 +176,13 @@ const feature: Feature = {
     }
 
     function openManage(): void {
-      openDialog(Manage, { channels: knownChannels(), onClose: closeDialog }, 'Manage groups', 'is-manage');
+      openDialog(Manage, { channels: knownChannels(), onClose: closeDialog }, 'Manage groups');
     }
 
     function openEditor(group: Group | null): void {
-      const title = group ? 'Edit group' : 'New group';
       openDialog(
         Editor,
         {
-          title,
-          submitLabel: group ? 'Save' : 'Create',
           group,
           channels: knownChannels(),
           onCancel: closeDialog,
@@ -206,7 +192,7 @@ const feature: Feature = {
             closeDialog();
           },
         },
-        title,
+        group ? 'Edit group' : 'New group',
       );
     }
 
@@ -214,7 +200,7 @@ const feature: Feature = {
 
     function syncPill(): void {
       const ch = pageChannel();
-      if (!sameChannel(store.page, ch)) store.page = ch;
+      if (store.page?.id !== ch?.id || store.page?.name !== ch?.name) store.page = ch;
       store.onChannelPage = !isWatchPage();
       const anchor = ch && pillAnchor();
       if (!anchor) {

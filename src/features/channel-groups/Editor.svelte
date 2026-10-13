@@ -6,8 +6,6 @@
   import type { Group } from './store.svelte';
 
   interface Props {
-    title: string;
-    submitLabel: string;
     group: Group | null;
     /** [id, name] of every channel the picker offers, sorted by name. */
     channels: [string, string][];
@@ -16,9 +14,8 @@
     /** Inside Manage groups: show a Back arrow; Esc goes back instead of closing. */
     onBack?: () => void;
   }
-  let { title, submitLabel, group, channels, onSave, onCancel, onBack }: Props = $props();
+  let { group, channels, onSave, onCancel, onBack }: Props = $props();
 
-  const uid = Math.random().toString(36).slice(2);
   // Edits a copy of the group as it was on open; nothing is saved until Create / Save.
   const initial = untrack(() => group);
   let name = $state(initial?.name ?? '');
@@ -56,16 +53,14 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="editor" class:in-manage={!!onBack} onkeydown={onKeydown}>
-  {#if onBack}
-    <div class="back-head">
+  <div class:back-head={onBack}>
+    {#if onBack}
       <button class="ytp-btn is-text is-icon" type="button" aria-label="Back to all groups" onclick={onBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="M11 6l-6 6 6 6"></path></svg>
       </button>
-      <h2 id="ed-title-{uid}">{title}</h2>
-    </div>
-  {:else}
-    <h2 id="ed-title-{uid}">{title}</h2>
-  {/if}
+    {/if}
+    <h2>{group ? 'Edit group' : 'New group'}</h2>
+  </div>
 
   <label class="name">
     <span class="lbl">Name</span>
@@ -80,9 +75,9 @@
     />
   </label>
 
-  <div class="channels" role="group" aria-labelledby="ed-ch-{uid}">
+  <div class="channels" role="group" aria-labelledby="ed-ch">
     <div class="chead">
-      <span id="ed-ch-{uid}" class="lbl">Channels</span>
+      <span id="ed-ch" class="lbl">Channels</span>
       <span class="small" aria-live="polite">{count ? `${count} selected` : ''}</span>
     </div>
     <div class="search">
@@ -108,7 +103,7 @@
   <footer>
     <span class="hint small">{canSave ? '' : 'Add a name and at least one channel'}</span>
     <button class="ytp-btn is-text" type="button" onclick={onCancel}>Cancel</button>
-    <button class="ytp-btn is-cta" type="button" disabled={!canSave} onclick={submit}>{submitLabel}</button>
+    <button class="ytp-btn is-cta" type="button" disabled={!canSave} onclick={submit}>{group ? 'Save' : 'Create'}</button>
   </footer>
 </div>
 
