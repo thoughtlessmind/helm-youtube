@@ -137,7 +137,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
     </button>
     <h1>Settings</h1>
-    <div class="grow"></div>
     {#if ready}<label class="master">
       {enabled ? 'On' : 'Paused'}
       <input
@@ -302,10 +301,8 @@
     --surface: var(--surface-card);
     --accent-soft: var(--accent-soft-2);
   }
-  .grow {
-    flex-grow: 1;
-  }
   .master {
+    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -369,57 +366,17 @@
   .sec {
     margin: 0 4px 8px;
   }
-  .card {
-    border-radius: 16px;
-    background: var(--surface);
-    overflow: hidden;
-  }
   .feat {
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
-  .feat + .feat {
-    border-top: 1px solid var(--line);
-  }
   .feat-head {
     display: flex;
     align-items: center;
     gap: 12px;
     cursor: pointer;
-  }
-  .tile {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--tile);
-    color: var(--muted);
-    transition: background-color 0.18s ease, color 0.18s ease;
-  }
-  .tile.on {
-    background: var(--accent-soft);
-    color: var(--accent-text);
-  }
-  .feat-text {
-    flex-grow: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .name {
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .desc {
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--muted);
   }
   .opts {
     margin-left: 44px;
@@ -430,9 +387,6 @@
     flex-direction: column;
     gap: 6px;
     font-size: 12px;
-  }
-  .muted {
-    color: var(--muted);
   }
   .field {
     display: flex;

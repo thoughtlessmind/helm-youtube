@@ -47,7 +47,7 @@
   </div>
 
   <div class="meta">
-    <div class="status">
+    <div class="kicker status">
       <span class="eq" class:paused={st.paused} aria-hidden="true"><span></span><span></span><span></span></span>
       <span>{st.paused ? 'Paused' : 'Now playing'}</span>
       <span aria-hidden="true">·</span>
@@ -136,7 +136,6 @@
     height: 214px;
     object-fit: cover;
     background: var(--surface);
-    -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
   }
   .scrim {
@@ -166,7 +165,6 @@
     background: rgba(12, 12, 16, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.14);
     color: #fff;
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
     backdrop-filter: blur(16px) saturate(160%);
   }
   .glass svg {
@@ -186,11 +184,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
   }
   .speed {
     letter-spacing: 0;
@@ -199,21 +192,6 @@
   }
   .eq {
     color: var(--accent-text);
-  }
-  .title {
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .channel {
-    font-size: 13px;
-    color: var(--muted);
   }
 
   .transport {

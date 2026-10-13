@@ -200,7 +200,6 @@ button:disabled {
 
 /* Switch: a real checkbox with role=switch. */
 .sw {
-  -webkit-appearance: none;
   appearance: none;
   width: 38px;
   height: 22px;
@@ -248,6 +247,143 @@ button:disabled {
   background: var(--accent-soft);
   color: var(--accent-text);
   font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Hero text: the Now playing card and the Nothing-playing card. */
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.channel {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Queue rows: the popup queue and the Nothing-playing list. */
+.ithumb {
+  width: 76px;
+  height: 43px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  color: #fff;
+}
+.ithumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dur {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.78);
+  font-variant-numeric: tabular-nums;
+  line-height: 14px;
+}
+.itext {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ititle {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.isub {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.next {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Feature cards (Settings, FirstRun; Stats uses .card). */
+.card {
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.feat + .feat {
+  border-top: 1px solid var(--line);
+}
+.tile {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tile);
+  color: var(--muted);
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.tile.on {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.feat-text {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* Footer bar (Main, Stats; FirstRun adjusts it). */
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 20px;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
 }
 
 /* Sub-page header (Settings, Stats). */

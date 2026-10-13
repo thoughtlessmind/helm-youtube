@@ -120,7 +120,6 @@
           <span class="big">{fmtMin(todayMin)}</span>
           {#if limit}
             <span class="muted">of {fmtMin(limit)}</span>
-            <span class="grow"></span>
             <span class="small">{todayMin <= limit ? `${fmtMin(limit - todayMin)} left` : `${fmtMin(todayMin - limit)} over`}</span>
           {/if}
         </div>
@@ -221,10 +220,10 @@
           </div>
           <div class="legend">
             {#if limit}
-              <span><span class="key bar-sw" aria-hidden="true"></span>Under {fmtMin(limit)}</span>
-              <span><span class="key over-sw" aria-hidden="true"></span>Over {fmtMin(limit)}</span>
+              <span><span class="key" style:background="var(--mark-bar)" aria-hidden="true"></span>Under {fmtMin(limit)}</span>
+              <span><span class="key" style:background="var(--mark-over)" aria-hidden="true"></span>Over {fmtMin(limit)}</span>
             {/if}
-            <span><span class="key today-sw" aria-hidden="true"></span>Today</span>
+            <span><span class="key" style:background="var(--accent-mark)" aria-hidden="true"></span>Today</span>
             {#if limit}<span><span class="dash" aria-hidden="true"></span>Daily limit</span>{/if}
           </div>
         {:else}
@@ -294,9 +293,6 @@
   .grow {
     flex-grow: 1;
   }
-  .muted {
-    color: var(--muted);
-  }
   .small {
     font-size: 11px;
     color: var(--muted);
@@ -310,10 +306,6 @@
   .week-head {
     align-items: center;
     margin: -6px 0 2px 4px;
-  }
-  .card {
-    border-radius: 16px;
-    background: var(--surface);
   }
   .today-card {
     padding: 14px;
@@ -330,6 +322,7 @@
     font-size: 13px;
   }
   .today-row .small {
+    margin-left: auto;
     font-size: 12px;
   }
   .big {
@@ -516,15 +509,6 @@
     height: 10px;
     border-radius: 3px;
   }
-  .bar-sw {
-    background: var(--mark-bar);
-  }
-  .over-sw {
-    background: var(--mark-over);
-  }
-  .today-sw {
-    background: var(--accent-mark);
-  }
   .dash {
     width: 14px;
     border-top: 1px dashed var(--muted);
@@ -626,14 +610,6 @@
     font-size: 12px;
     color: var(--muted);
     text-align: center;
-  }
-  .foot {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px 8px 20px;
-    border-top: 1px solid var(--line);
-    flex-shrink: 0;
   }
   .foot .small {
     font-size: 12px;

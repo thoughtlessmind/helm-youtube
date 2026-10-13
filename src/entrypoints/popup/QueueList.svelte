@@ -49,7 +49,6 @@
   <div class="head">
     <h2 class="label">Queue</h2>
     {#if upCount}<span class="badge">{upCount} up next</span>{/if}
-    <div class="grow"></div>
     {#if hasPlayed}<button class="ghost" onclick={() => clearPlayed(currentId)}>Clear watched</button>{/if}
   </div>
 
@@ -84,7 +83,7 @@
         >
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="9" cy="6" r="1.6" fill="currentColor"></circle><circle cx="15" cy="6" r="1.6" fill="currentColor"></circle><circle cx="9" cy="12" r="1.6" fill="currentColor"></circle><circle cx="15" cy="12" r="1.6" fill="currentColor"></circle><circle cx="9" cy="18" r="1.6" fill="currentColor"></circle><circle cx="15" cy="18" r="1.6" fill="currentColor"></circle></svg>
         </button>
-        <button class="thumb" aria-label="Play now: {item.title}" onclick={() => onPlay(item.videoId)}>
+        <button class="ithumb" aria-label="Play now: {item.title}" onclick={() => onPlay(item.videoId)}>
           <img src={thumbUrl(item.videoId)} alt="" draggable="false" class:dim={watched} />
           <span class="ov">
             <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor"></path></svg>
@@ -97,9 +96,9 @@
             </span>
           {/if}
         </button>
-        <div class="text">
-          <div class="title" class:muted={watched}>{item.title}</div>
-          <div class="sub">
+        <div class="itext">
+          <div class="ititle" class:muted={watched}>{item.title}</div>
+          <div class="isub">
             {#if isCurrent}
               <span class="playing"><span class="eq" class:paused aria-hidden="true"><span></span><span></span><span></span></span>Playing</span>
             {/if}
@@ -144,10 +143,8 @@
     padding: 10px 12px 4px 20px;
     min-height: 44px;
   }
-  .grow {
-    flex-grow: 1;
-  }
   .ghost {
+    margin-left: auto;
     color: var(--muted);
   }
   .none {
@@ -217,23 +214,7 @@
   .grip:focus-visible {
     opacity: 1;
   }
-  .thumb {
-    width: 76px;
-    height: 43px;
-    border-radius: 9px;
-    flex-shrink: 0;
-    position: relative;
-    overflow: hidden;
-    background: var(--surface);
-    color: #fff;
-  }
-  .thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .thumb img.dim {
+  .ithumb img.dim {
     opacity: 0.45;
   }
   .ov {
@@ -246,21 +227,9 @@
     opacity: 0;
     transition: opacity 0.15s ease;
   }
-  .thumb:hover .ov,
-  .thumb:focus-visible .ov {
+  .ithumb:hover .ov,
+  .ithumb:focus-visible .ov {
     opacity: 1;
-  }
-  .dur {
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 0 4px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.78);
-    font-variant-numeric: tabular-nums;
-    line-height: 14px;
   }
   .check {
     position: absolute;
@@ -274,32 +243,8 @@
     align-items: center;
     justify-content: center;
   }
-  .text {
-    flex-grow: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .title {
-    font-size: 13px;
-    font-weight: 600;
+  .ititle {
     line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .title.muted {
-    color: var(--muted);
-  }
-  .sub {
-    font-size: 12px;
-    color: var(--muted);
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    white-space: nowrap;
-    overflow: hidden;
   }
   .playing {
     display: inline-flex;
@@ -307,10 +252,6 @@
     gap: 5px;
     color: var(--accent-text);
     font-weight: 700;
-  }
-  .next {
-    font-weight: 700;
-    color: var(--text);
   }
   .ch {
     overflow: hidden;

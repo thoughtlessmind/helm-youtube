@@ -214,7 +214,7 @@
           <div class="scrim" aria-hidden="true"></div>
           <div class="idle-meta">
             <div class="kicker">Nothing playing · up next</div>
-            <div class="idle-title">{first.title}</div>
+            <div class="title">{first.title}</div>
             <div class="channel">{first.channelName}{first.duration ? ` · ${fmtClock(first.duration)}` : ''}</div>
             <div class="actions">
               <button class="btn primary" onclick={() => playItem(first.videoId)}>
@@ -292,14 +292,6 @@
 
 <style>
   /* Footer */
-  .foot {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px 8px 20px;
-    border-top: 1px solid var(--line);
-    flex-shrink: 0;
-  }
   .foot.solo {
     justify-content: flex-end;
   }
@@ -443,7 +435,6 @@
     object-fit: cover;
     opacity: 0.55;
     filter: grayscale(0.35);
-    -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
   }
   .scrim {
@@ -466,28 +457,6 @@
     flex-direction: column;
     gap: 6px;
   }
-  .kicker {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .idle-title {
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .channel {
-    font-size: 13px;
-    color: var(--muted);
-  }
   .actions {
     display: flex;
     gap: 8px;
@@ -497,7 +466,6 @@
     background: var(--glass-btn);
     border: 1px solid var(--line-2);
     color: var(--text);
-    -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
   }
   .idle-queue {
@@ -527,60 +495,6 @@
     gap: 10px;
     padding: 6px 8px 6px 12px;
     border-radius: 14px;
-  }
-  .ithumb {
-    width: 76px;
-    height: 43px;
-    border-radius: 9px;
-    overflow: hidden;
-    flex-shrink: 0;
-    position: relative;
-    background: var(--surface);
-  }
-  .ithumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .dur {
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 0 4px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.78);
-    color: #fff;
-    line-height: 14px;
-    font-variant-numeric: tabular-nums;
-  }
-  .itext {
-    flex-grow: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .ititle {
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .isub {
-    font-size: 12px;
-    color: var(--muted);
-    display: flex;
-    gap: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-  .next {
-    font-weight: 700;
-    color: var(--text);
   }
 
   /* No YouTube tab, empty queue (NoTab board) */

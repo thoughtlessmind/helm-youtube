@@ -95,7 +95,7 @@
             <span class="tile" class:on aria-hidden="true">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={icon(f.id)}></path></svg>
             </span>
-            <span class="pick-text">
+            <span class="feat-text">
               <span class="name">{f.name}</span>
               <span class="desc">{f.desc}</span>
             </span>
@@ -180,11 +180,6 @@
     gap: 8px;
     margin: 0 4px 8px;
   }
-  .card {
-    border-radius: 16px;
-    background: var(--surface);
-    overflow: hidden;
-  }
   .feat {
     display: flex;
     align-items: center;
@@ -197,9 +192,6 @@
     min-height: 48px;
     padding: 10px 14px;
   }
-  .feat + .feat {
-    border-top: 1px solid var(--line);
-  }
   .feat:hover {
     background-color: rgba(127, 127, 140, 0.06);
   }
@@ -207,17 +199,6 @@
     width: 28px;
     height: 28px;
     border-radius: 9px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--tile);
-    color: var(--muted);
-    transition: background-color 0.18s ease, color 0.18s ease;
-  }
-  .tile.on {
-    background: var(--accent-soft);
-    color: var(--accent-text);
   }
   .line {
     flex-grow: 1;
@@ -225,9 +206,6 @@
     font-size: 13px;
     font-weight: 600;
     line-height: 1.35;
-  }
-  .line.muted {
-    color: var(--muted);
   }
   kbd {
     display: inline-flex;
@@ -246,21 +224,8 @@
     border: 1px solid var(--line);
     color: var(--text);
   }
-  .pick-text {
-    flex-grow: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
   .name {
     font-size: 13px;
-    font-weight: 600;
-  }
-  .desc {
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--muted);
   }
   .more {
     width: 100%;
@@ -279,12 +244,8 @@
     background-color: rgba(127, 127, 140, 0.09);
   }
   .foot {
-    display: flex;
-    align-items: center;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid var(--line);
-    flex-shrink: 0;
   }
   .quiet {
     justify-content: center;
