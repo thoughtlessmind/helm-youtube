@@ -63,14 +63,17 @@ export async function removeFromQueue(videoId: string): Promise<void> {
   await update((items) => items.filter((i) => i.videoId !== videoId));
 }
 
+/** A copy of `list` with the item at `from` moved to index `to`. */
+export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
+  const next = list.slice();
+  next.splice(to, 0, ...next.splice(from, 1));
+  return next;
+}
+
 export async function moveInQueue(videoId: string, toIndex: number): Promise<void> {
   await update((items) => {
     const from = items.findIndex((i) => i.videoId === videoId);
-    if (from < 0) return items;
-    const next = items.slice();
-    const [it] = next.splice(from, 1);
-    next.splice(Math.max(0, Math.min(toIndex, next.length)), 0, it);
-    return next;
+    return from < 0 ? items : moveItem(items, from, Math.max(0, toIndex));
   });
 }
 

@@ -1,11 +1,6 @@
 import { tick } from 'svelte';
 
-/** A copy of `list` with the item at `from` moved to index `to`. */
-export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
-  const next = list.slice();
-  next.splice(to, 0, ...next.splice(from, 1));
-  return next;
-}
+export { moveItem } from './queue';
 
 /**
  * Drag + keyboard reordering for a list whose rows have string ids. The component renders
