@@ -5,7 +5,7 @@
  * panel again if we were the ones who opened it.
  */
 
-import type { PageObserver } from './observer';
+import type { YTContext } from './context';
 
 /** One timestamped line of a video transcript. */
 export interface TranscriptSegment {
@@ -56,7 +56,7 @@ export function hasTranscript(): boolean {
  * The current video's transcript, or null when it has none or the panel didn't fill within 8 s.
  * Waits on the shared observer, not a polling loop.
  */
-export async function fetchTranscript(observer: PageObserver): Promise<TranscriptSegment[] | null> {
+export async function fetchTranscript(observer: YTContext['observer']): Promise<TranscriptSegment[] | null> {
   const open = readOpenPanel();
   if (open) return open.segments;
 

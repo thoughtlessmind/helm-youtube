@@ -3,13 +3,7 @@
  * video. It fires a `yt-navigate-finish` event on document instead.
  * Features that need to react to route changes should subscribe here.
  */
-
-export interface NavigationBus {
-  onNavigate(listener: (url: string) => void): () => void;
-  destroy(): void;
-}
-
-export function createNavigationBus(): NavigationBus {
+export function createNavigationBus() {
   const listeners = new Set<(url: string) => void>();
 
   const handler = () => {
@@ -20,7 +14,7 @@ export function createNavigationBus(): NavigationBus {
   document.addEventListener('yt-navigate-finish', handler);
 
   return {
-    onNavigate(listener) {
+    onNavigate(listener: (url: string) => void): () => void {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },

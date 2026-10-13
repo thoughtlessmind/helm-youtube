@@ -54,7 +54,7 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 ### Shared helpers in `src/lib/yt/`
 
 - `context.ts` — bundles the observer and navigation bus; created once per content-script lifetime
-- `observer.ts` — single batched MutationObserver. Use `ctx.observer.onChange(cb)` (debounced 100 ms re-scan) or `ctx.observer.subscribe(mutations => …)` for raw access
+- `observer.ts` — single batched MutationObserver. Use `ctx.observer.onChange(cb)` (debounced 100 ms re-scan)
 - `navigation.ts` — `ctx.navigation.onNavigate(url => …)` for SPA route changes (`yt-navigate-finish`)
 - `keys.ts` — `onKey('y', handler)` page-level keyboard shortcut helper that auto-skips when the user is typing in an input/textarea/contenteditable
 - `toast.ts` — `flashToast('Added to queue', { action: { label: 'Undo', onClick } })` — YouTube-style bottom-left toast
