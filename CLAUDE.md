@@ -61,7 +61,6 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 - `ui.ts` — YouTube-native kit: `createHost(id)` (shadow host + `NATIVE_CSS` classes `.ytp-btn`, `.ytp-chip`, `.ytp-menu`, `.ytp-dialog`, …), `openPopover`, `menuKeys`, `showDialog`. Every on-page surface uses it
 - `player.ts` — `mountInPlayer(ctx, host, slot, order)` for the player's controls row / progress bar / overlay; `action-row.ts` — slots left of Like and above the description
 - `player-bridge.ts` — answers the popup's messages (`lib/messages.ts`) in every YouTube tab, flags or not
-- `theme.ts` — aliases YouTube's retired `--yt-spec-*` color tokens to the live `--yt-sys-color-baseline--*` ones; write new theme overrides against the `--yt-sys-*` tokens
 
 ### Performance rules — these are the moat
 

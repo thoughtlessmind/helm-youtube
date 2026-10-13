@@ -2,7 +2,6 @@ import { createYTContext } from '../lib/yt/context';
 import { featureRegistry } from '../lib/features';
 import { getEnabledFeatures, watchEnabledFeatures } from '../lib/settings';
 import { installPlayerBridge } from '../lib/yt/player-bridge';
-import { installThemeAliases } from '../lib/yt/theme';
 
 export default defineContentScript({
   matches: ['*://*.youtube.com/*'],
@@ -22,8 +21,6 @@ export default defineContentScript({
       addEventListener('error', (e) => devLog(`error: ${e.message} @ ${e.filename}:${e.lineno}`));
       addEventListener('unhandledrejection', (e) => devLog(`rejection: ${e.reason?.stack ?? e.reason}`));
     }
-
-    installThemeAliases();
 
     // The popup's now-playing card talks to every YouTube tab, even with
     // every feature (or the whole extension) switched off.
