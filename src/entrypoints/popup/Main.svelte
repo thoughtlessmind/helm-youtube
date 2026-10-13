@@ -99,11 +99,10 @@
     void poll();
   }
 
-  function togglePlay() {
-    if (!st) return;
-    const action = st.paused ? 'play' : 'pause';
-    st.paused = !st.paused; // optimistic; the next poll confirms
-    void control({ type: 'player-control', action });
+  function toggle(p: Playing) {
+    const action = p.state.paused ? 'play' : 'pause';
+    p.state.paused = !p.state.paused; // optimistic; the next poll confirms
+    void sendToTab(p.id, { type: 'player-control', action }).then(poll);
   }
 
   function seek(to: number) {
@@ -149,25 +148,6 @@
   }
 </script>
 
-{#snippet footer()}
-  <footer class="foot" class:solo={!flags['watch-time']}>
-    {#if flags['watch-time']}
-      <button class="stat" title="Watch time stats" onclick={() => go('stats')}>
-        <span class="stat-text">
-          <span><strong>{fmtMin(todayMin)}</strong> watched today{limitMin ? ` · ${fmtMin(limitMin)} limit` : ''}</span>
-          {#if limitMin}
-            <span class="meter" aria-hidden="true"><span style:width="{Math.min(100, (todayMin / limitMin) * 100)}%"></span></span>
-          {/if}
-        </span>
-        <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
-      </button>
-    {/if}
-    <button class="ib gear" aria-label="Settings" title="Settings" onclick={() => go('settings')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-    </button>
-  </footer>
-{/snippet}
-
 {#snippet queueOff()}
   <div class="off">
     <span>Queue is off</span>
@@ -183,7 +163,7 @@
         fromQueue={queue.some((q) => q.videoId === st.videoId)}
         nextLabel={nextItem ? `Next: ${nextItem.title}` : 'Queue finished. YouTube autoplay takes over.'}
         nextDisabled={!nextItem}
-        onToggle={togglePlay}
+        onToggle={() => shown && toggle(shown)}
         onSeek={seek}
         onSeekBy={(by) => {
           st.currentTime = Math.max(0, st.currentTime + by);
@@ -191,7 +171,7 @@
         }}
         onPrev={prev}
         onNext={() => nextItem && playItem(nextItem.videoId)}
-        onGoto={() => shown && focusTab({ id: shown.id, windowId: shown.windowId })}
+        onGoto={() => shown && focusTab(shown)}
       />
 
       {#if other}
@@ -206,11 +186,7 @@
             class="ib sm"
             aria-label="{o.state.paused ? 'Play' : 'Pause'} the other tab"
             title="{o.state.paused ? 'Play' : 'Pause'} the other tab"
-            onclick={() => {
-              const action = o.state.paused ? 'play' : 'pause';
-              o.state.paused = !o.state.paused;
-              void sendToTab(o.id, { type: 'player-control', action }).then(poll);
-            }}
+            onclick={() => toggle(o)}
           >
             {#if o.state.paused}
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor"></path></svg>
@@ -295,7 +271,22 @@
         </button>
       </section>
     {/if}
-    {@render footer()}
+    <footer class="foot" class:solo={!flags['watch-time']}>
+      {#if flags['watch-time']}
+        <button class="stat" title="Watch time stats" onclick={() => go('stats')}>
+          <span class="stat-text">
+            <span><strong>{fmtMin(todayMin)}</strong> watched today{limitMin ? ` · ${fmtMin(limitMin)} limit` : ''}</span>
+            {#if limitMin}
+              <span class="meter" aria-hidden="true"><span style:width="{Math.min(100, (todayMin / limitMin) * 100)}%"></span></span>
+            {/if}
+          </span>
+          <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+      {/if}
+      <button class="ib" aria-label="Settings" title="Settings" onclick={() => go('settings')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </footer>
   </div>
 {/if}
 
@@ -363,9 +354,6 @@
   .stat:focus-visible .chev {
     opacity: 1;
     transform: translateX(2px);
-  }
-  .gear {
-    color: var(--text);
   }
 
   /* Another tab */
