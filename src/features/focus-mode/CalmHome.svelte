@@ -72,13 +72,13 @@
       <section aria-labelledby="calm-q" class="q">
         <h2 id="calm-q">Continue your queue</h2>
         <div class="next">
-          <button class="th" aria-label="Play {first.title}" onclick={() => actions.play(first.videoId)}>
+          <button class="ytp-plain ytp-thumb th" aria-label="Play {first.title}" onclick={() => actions.play(first.videoId)}>
             <img src={thumbUrl(first.videoId)} alt="" />
-            <span class="ov"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg></span>
-            {#if first.duration}<span class="dur">{fmtClock(first.duration)}</span>{/if}
+            <span class="ytp-thumb-ov"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg></span>
+            {#if first.duration}<span class="ytp-dur dur">{fmtClock(first.duration)}</span>{/if}
           </button>
           <div class="info">
-            <h3>{first.title}</h3>
+            <h3 class="ytp-clamp2">{first.title}</h3>
             {#if first.channelName}
               <div class="ch">
                 <span class="av" aria-hidden="true">{initials(first.channelName)}</span>
@@ -105,13 +105,13 @@
           <ul aria-label="Also in your queue" bind:this={list}>
             {#each listed as v (v.videoId)}
               <li>
-                <button class="nx" aria-label="Play {v.title}, {v.channelName}" onclick={() => actions.play(v.videoId)}>
-                  <span class="sth">
+                <button class="ytp-plain nx" aria-label="Play {v.title}, {v.channelName}" onclick={() => actions.play(v.videoId)}>
+                  <span class="ytp-thumb sth">
                     <img src={thumbUrl(v.videoId)} alt="" loading="lazy" />
-                    {#if v.duration}<span class="dur sm">{fmtClock(v.duration)}</span>{/if}
+                    {#if v.duration}<span class="ytp-dur">{fmtClock(v.duration)}</span>{/if}
                   </span>
                   <span class="txt">
-                    <span class="t">{v.title}</span>
+                    <span class="ytp-clamp2 t">{v.title}</span>
                     <span class="c">{v.channelName}</span>
                   </span>
                 </button>
@@ -128,7 +128,7 @@
         <div class="grid">
           {#each s.groups as g (g.id)}
             <button
-              class="grp"
+              class="ytp-plain grp"
               aria-label="Show {g.name} feed, {channelsLabel(g.channels)}"
               onclick={() => actions.openGroup(g.id)}
             >
@@ -194,78 +194,25 @@
   .g {
     margin-top: 40px;
   }
-  /* Button reset at class specificity, so the rules below can set backgrounds. */
-  .th,
-  .nx,
-  .grp {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    font: inherit;
-    color: inherit;
-    background: none;
-    text-align: left;
-    cursor: pointer;
-  }
   .next {
     display: flex;
     gap: 16px;
     height: 202px;
   }
   .th {
-    position: relative;
-    flex: none;
     width: 359px;
     height: 202px;
     border-radius: 12px;
-    overflow: hidden;
-    background: var(--yt-sys-color-baseline--additive-background);
   }
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: filter 0.12s ease;
-  }
-  .th:hover img {
-    filter: brightness(0.7);
-  }
-  .ov {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    opacity: 0;
-    transition: opacity 0.12s ease;
-  }
-  .ov svg {
+  .th svg {
     width: 40px;
     height: 40px;
     fill: currentColor;
   }
-  .th:hover .ov,
-  .th:focus-visible .ov {
-    opacity: 1;
-  }
   .dur {
-    position: absolute;
     right: 8px;
     bottom: 8px;
     padding: 1px 4px;
-    border-radius: 4px;
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 500;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.8);
-  }
-  .dur.sm {
-    right: 4px;
-    bottom: 4px;
-    padding: 0 4px;
   }
   .info {
     flex: 1;
@@ -279,11 +226,6 @@
     font-size: 18px;
     line-height: 26px;
     font-weight: 500;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
   .ch,
   .meta {
@@ -353,13 +295,8 @@
     filter: brightness(0.8);
   }
   .sth {
-    position: relative;
-    flex: none;
     width: 135px;
     height: 76px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--yt-sys-color-baseline--additive-background);
   }
   .txt {
     min-width: 0;
@@ -372,11 +309,6 @@
     font-size: 14px;
     line-height: 18px;
     font-weight: 500;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
   .c {
     font-size: 12px;

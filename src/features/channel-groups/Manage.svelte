@@ -205,7 +205,7 @@
           ondragend={ro.end}
         >
           {#if ro.dragId && ro.dragId !== g.id && ro.overId === g.id}
-            <span class="drop" class:after={ro.after} aria-hidden="true"></span>
+            <span class="ytp-drop drop" class:is-after={ro.after} aria-hidden="true"></span>
           {/if}
           <button
             class="grip"
@@ -334,8 +334,7 @@
     border-radius: 8px; transition: background-color .1s, opacity .1s; }
   .row:hover { background: var(--yt-sys-color-baseline--additive-background); }
   .row.dragging { opacity: .35; }
-  .drop { position: absolute; left: 9px; right: 9px; top: -1px; height: 2px; border-radius: 2px; background: var(--yt-sys-color-baseline--call-to-action); }
-  .drop.after { top: auto; bottom: -1px; }
+  .drop { left: 9px; right: 9px; }
   .grip { width: 28px; height: 44px; flex: none; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 0; border-radius: 6px; background: none; color: var(--yt-sys-color-baseline--text-secondary); cursor: grab; }
   .grip:hover { color: var(--yt-sys-color-baseline--text-primary); }
@@ -373,5 +372,4 @@
   .undo { margin: 0; padding: 8px 10px; border: 0; border-radius: 18px; background: none; font: inherit; font-weight: 500; cursor: pointer;
     color: var(--yt-sys-color-baseline--call-to-action-inverse, #065fd4); }
   .undo:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
-  @media (prefers-reduced-motion: reduce) { .toast { animation: none; } .row, .mv { transition: none; } }
 </style>

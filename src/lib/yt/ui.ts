@@ -20,6 +20,8 @@ import { isTypingTarget } from './keys';
  * <input type="checkbox" role="switch" class="ytp-switch">, .ytp-tooltip (child of its trigger),
  * .ytp-sr (visually hidden, for live-region status text).
  * Player popovers: .ytp-player-menu (always dark, like YouTube's own player CSS).
+ * Lists: .ytp-plain (bare button), .ytp-thumb (+ img, .ytp-thumb-ov play overlay, .ytp-dur badge),
+ * .ytp-clamp2 (two-line clamp), .ytp-drop (+ .is-after) drag drop line on a position:relative row.
  */
 const T = (name: string) => `var(--yt-sys-color-baseline--${name})`;
 
@@ -89,6 +91,17 @@ export const NATIVE_CSS = `
 :hover>.ytp-tooltip,:focus-visible>.ytp-tooltip{opacity:1}
 
 .ytp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+.ytp-plain{margin:0;padding:0;border:0;font:inherit;color:inherit;background:none;text-align:left;cursor:pointer}
+.ytp-thumb{position:relative;flex:none;border-radius:8px;overflow:hidden;background:${T('additive-background')}}
+.ytp-thumb img{display:block;width:100%;height:100%;object-fit:cover;transition:filter .12s ease}
+.ytp-thumb:hover img{filter:brightness(.7)}
+.ytp-thumb-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transition:opacity .12s ease}
+.ytp-thumb:hover .ytp-thumb-ov,.ytp-thumb:focus-visible .ytp-thumb-ov{opacity:1}
+.ytp-dur{position:absolute;right:4px;bottom:4px;padding:0 4px;border-radius:4px;font-size:12px;line-height:16px;font-weight:500;color:#fff;background:rgba(0,0,0,.8)}
+.ytp-clamp2{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ytp-drop{position:absolute;left:8px;right:8px;top:-1px;height:2px;border-radius:2px;background:${T('call-to-action')}}
+.ytp-drop.is-after{top:auto;bottom:-1px}
 
 @media (prefers-reduced-motion:reduce){*,::before,::after,::backdrop{animation:none!important;transition:none!important}}
 `;

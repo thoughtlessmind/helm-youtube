@@ -75,7 +75,7 @@
     <div class="title-row">
       <h2>Queue</h2>
       <button
-        class="ib"
+        class="ytp-plain ib"
         aria-label={s.collapsed ? 'Expand queue' : 'Collapse queue'}
         title={s.collapsed ? 'Expand queue' : 'Collapse queue'}
         aria-expanded={!s.collapsed}
@@ -125,7 +125,7 @@
           ondragend={ro.end}
         >
           {#if ro.dragId && ro.dragId !== item.videoId && ro.overId === item.videoId}
-            <span class="drop" class:after={ro.after} aria-hidden="true"></span>
+            <span class="ytp-drop" class:is-after={ro.after} aria-hidden="true"></span>
           {/if}
           <div class="ind">
             <span class="ind-state">
@@ -138,7 +138,7 @@
               {/if}
             </span>
             <button
-              class="grip"
+              class="ytp-plain grip"
               data-grip={item.videoId}
               aria-label={`Reorder ${item.title}. Drag, or press up and down arrow keys.`}
               title="Drag to reorder, or use arrow keys"
@@ -150,19 +150,19 @@
               </svg>
             </button>
           </div>
-          <button class="thumb" class:dim={watched} aria-label={`Play now: ${item.title}`} onclick={() => actions.play(item.videoId)}>
+          <button class="ytp-plain ytp-thumb thumb" class:dim={watched} aria-label={`Play now: ${item.title}`} onclick={() => actions.play(item.videoId)}>
             <img src={thumbUrl(item.videoId)} alt="" draggable="false" loading="lazy" />
-            <span class="ov" aria-hidden="true">
+            <span class="ytp-thumb-ov" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
             </span>
-            {#if item.duration > 0}<span class="dur">{fmtClock(item.duration)}</span>{/if}
+            {#if item.duration > 0}<span class="ytp-dur">{fmtClock(item.duration)}</span>{/if}
           </button>
           <div class="meta" class:dim={watched}>
-            <div class="t">{item.title}</div>
+            <div class="ytp-clamp2 t">{item.title}</div>
             <div class="ch ellipsis">{item.channelName}</div>
           </div>
           <button
-            class="ib sm rm"
+            class="ytp-plain ib sm rm"
             aria-label={`Remove from queue: ${item.title}`}
             title="Remove from queue"
             onclick={() => remove(i, item.videoId)}
@@ -182,24 +182,12 @@
     --text: var(--yt-sys-color-baseline--text-primary);
     --muted: var(--yt-sys-color-baseline--text-secondary);
     --fill: var(--yt-sys-color-baseline--additive-background);
-    --cta: var(--yt-sys-color-baseline--call-to-action);
     border: 1px solid var(--yt-sys-color-baseline--outline);
     border-radius: 12px;
     overflow: hidden;
     background: var(--yt-sys-color-baseline--base-background);
     color: var(--text);
     font-family: Roboto, Arial, sans-serif;
-  }
-  .ib,
-  .thumb,
-  .grip {
-    font: inherit;
-    color: inherit;
-    background: none;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    cursor: pointer;
   }
   .head {
     display: flex;
@@ -305,19 +293,6 @@
   .row.dragging {
     opacity: 0.35;
   }
-  .drop {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    top: -1px;
-    height: 2px;
-    border-radius: 2px;
-    background: var(--cta);
-  }
-  .drop.after {
-    top: auto;
-    bottom: -1px;
-  }
   .ind {
     position: relative;
     flex: none;
@@ -386,49 +361,8 @@
     }
   }
   .thumb {
-    position: relative;
-    flex: none;
     width: 100px;
     height: 56px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--fill);
-  }
-  .thumb img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: filter 0.12s ease;
-  }
-  .thumb:hover img {
-    filter: brightness(0.7);
-  }
-  .ov {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    opacity: 0;
-    transition: opacity 0.12s ease;
-  }
-  .thumb:hover .ov,
-  .thumb:focus-visible .ov {
-    opacity: 1;
-  }
-  .dur {
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    padding: 0 4px;
-    border-radius: 4px;
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 500;
-    background: var(--yt-sys-color-baseline--static-overlay-background-heavy, rgba(0, 0, 0, 0.8));
-    color: #fff;
   }
   .meta {
     flex: 1;
@@ -444,11 +378,6 @@
     font-size: 14px;
     line-height: 20px;
     font-weight: 500;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
   .ch {
     font-size: 12px;
@@ -464,7 +393,6 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .eq span {
-      animation: none;
       transform: scaleY(0.7);
     }
   }
