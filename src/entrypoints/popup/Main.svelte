@@ -207,7 +207,7 @@
       {/if}
     {:else if queueOn && pending.length}
       {@const first = pending[0]}
-      <div class="lines-2 page-body">
+      <div class="page-body">
         <section aria-label="Nothing playing" class="idle-hero">
           <img class="ambient" src={thumbUrl(first.videoId)} alt="" aria-hidden="true" />
           <img class="art" src={thumbUrl(first.videoId)} alt="" />
@@ -250,7 +250,7 @@
         </section>
       </div>
     {:else}
-      <section aria-labelledby="nt-title" class="notab lines-2">
+      <section aria-labelledby="nt-title" class="notab">
         <div class="nt-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h12M3 12h12M3 18h8M17 15l5 3-5 3z"></path></svg>
         </div>
@@ -294,9 +294,6 @@
   /* Footer */
   .foot.solo {
     justify-content: flex-end;
-  }
-  .page:has(.lines-2) .foot {
-    border-top-color: var(--line-2);
   }
   .stat {
     flex-grow: 1;
@@ -464,7 +461,7 @@
   }
   .glass-btn {
     background: var(--glass-btn);
-    border: 1px solid var(--line-2);
+    border: 1px solid var(--line);
     color: var(--text);
     backdrop-filter: blur(16px);
   }
@@ -473,7 +470,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--line-2);
+    border-top: 1px solid var(--line);
   }
   .idle-head {
     display: flex;
@@ -516,7 +513,7 @@
     align-items: center;
     justify-content: center;
     background: var(--glass-btn);
-    border: 1px solid var(--line-2);
+    border: 1px solid var(--line);
     color: var(--muted);
   }
   .notab h1 {
@@ -550,7 +547,7 @@
     border-radius: 6px;
     vertical-align: -5px;
     background: var(--glass-btn);
-    border: 1px solid var(--line-2);
+    border: 1px solid var(--line);
     color: var(--text);
   }
   .nt-open {
