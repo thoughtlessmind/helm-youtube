@@ -1,4 +1,3 @@
-import type { FetchJsonResult } from '../lib/fetch-json';
 import { getPlayerTabId, setPlayerTabId } from '../lib/queue';
 
 // Content-script fetches run with youtube.com's origin and are blocked
@@ -23,15 +22,14 @@ export default defineBackground(() => {
       return true;
     }
     if (msg?.type !== 'fetch-json') return;
-    const fail: FetchJsonResult = { status: 0, data: null };
     const url = URL.parse(msg.url);
     if (!url || !ALLOWED_HOSTS.has(url.hostname)) {
-      sendResponse(fail);
+      sendResponse(null);
       return;
     }
     fetch(url)
-      .then(async (res) => ({ status: res.status, data: res.ok ? await res.json() : null }))
-      .then(sendResponse, () => sendResponse(fail));
+      .then((res) => (res.ok ? res.json() : null))
+      .then(sendResponse, () => sendResponse(null));
     return true; // keep the channel open for the async response
   });
 });

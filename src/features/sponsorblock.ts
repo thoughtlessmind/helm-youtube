@@ -192,7 +192,7 @@ const feature: Feature = {
       const cats = encodeURIComponent(JSON.stringify(CATEGORIES));
       let data: Segment[] | null;
       try {
-        ({ data } = await fetchJson<Segment[]>(`${API}?videoID=${encodeURIComponent(id)}&categories=${cats}`));
+        data = await fetchJson<Segment[]>(`${API}?videoID=${encodeURIComponent(id)}&categories=${cats}`);
       } catch {
         return; // extension context gone
       }

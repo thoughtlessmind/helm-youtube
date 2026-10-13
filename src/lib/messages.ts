@@ -16,7 +16,7 @@ export interface PlayerState {
 /** popup → content script (`browser.tabs.sendMessage`). */
 export type TabMessage =
   | { type: 'player-state' } // → PlayerState | null
-  | { type: 'player-control'; action: 'play' | 'pause' | 'toggle' }
+  | { type: 'player-control'; action: 'play' | 'pause' }
   | { type: 'player-seek'; to?: number; by?: number } // absolute or relative seconds
   | { type: 'play-video'; videoId: string } // SPA-navigate this tab to the video
   | { type: 'open-manage-groups' }; // handled by channel-groups when it's on
