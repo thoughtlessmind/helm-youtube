@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-YouTube Pro — a Manifest V3 Chrome extension that layers UX improvements and power-user features on top of youtube.com. Not an ad blocker, downloader, or TOS-violating tool. See `README.md` for the pitch and `features-v2.md` for the feature list (`features.md` is deprecated; cuts are recorded in `features-removed.md`).
+Helm (store name: **Helm for YouTube**; never put "YouTube" first — trademark) — a Manifest V3 Chrome extension that layers UX improvements and power-user features on top of youtube.com. Not an ad blocker, downloader, or TOS-violating tool. See `README.md` for the pitch and `features-v2.md` for the feature list (`features.md` is deprecated; cuts are recorded in `features-removed.md`).
 
 ## Stack
 

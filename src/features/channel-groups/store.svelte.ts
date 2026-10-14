@@ -13,10 +13,10 @@ export interface Group {
   channels: Record<string, string>;
 }
 
-export const KEY = 'local:ytpro:channel-groups';
+export const KEY = 'local:helm:channel-groups';
 export const FAV = 'favorites';
 /** sessionStorage key of the group picked on a feed (focus-mode's calm home writes it too). */
-export const feedKey = (pathname: string) => `ytpro:group:${pathname}`;
+export const feedKey = (pathname: string) => `helm:group:${pathname}`;
 
 class Store {
   /** Always contains Favorites. Replaced (never mutated) on every change. */

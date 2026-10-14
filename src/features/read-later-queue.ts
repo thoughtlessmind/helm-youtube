@@ -38,8 +38,8 @@ import { getVideo, isAdShowing, onVideoEvent, watchMetaCurrent } from '../lib/yt
 import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelte';
 
 /**
- * Global queue (features-v2.md → "Global queue"). One list in `local:ytpro:queue` shared by every
- * tab; only the *player tab* (`session:ytpro:player-tab`, or every tab while unset) shows the
+ * Global queue (features-v2.md → "Global queue"). One list in `local:helm:queue` shared by every
+ * tab; only the *player tab* (`session:helm:player-tab`, or every tab while unset) shows the
  * watch-page panel and auto-advances. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts),
  * the button under a hover preview's mute / CC, and `Q`. Every tab marks a queued video ✓ when it starts playing.
  */

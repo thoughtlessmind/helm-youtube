@@ -140,7 +140,7 @@
       </section>
     {/if}
 
-    <p class="foot">Focus mode is on · change it in YouTube Pro settings</p>
+    <p class="foot">Focus mode is on · change it in Helm settings</p>
   {/if}
 </div>
 

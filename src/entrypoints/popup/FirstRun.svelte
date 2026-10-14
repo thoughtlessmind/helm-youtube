@@ -55,7 +55,7 @@
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
     </span>
     <div class="hello-text">
-      <h1>YouTube Pro is on</h1>
+      <h1>Helm is on</h1>
       <p>Good defaults are already working. Nothing else to set up.</p>
     </div>
   </header>

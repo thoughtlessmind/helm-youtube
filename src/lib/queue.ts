@@ -20,9 +20,9 @@ export interface QueueItem {
   playedAt?: number;
 }
 
-export const QUEUE_KEY = 'local:ytpro:queue' as const;
+export const QUEUE_KEY = 'local:helm:queue' as const;
 /** Tab that plays the queue (the "player tab"). Session-scoped: gone on browser restart. */
-export const PLAYER_TAB_KEY = 'session:ytpro:player-tab' as const;
+export const PLAYER_TAB_KEY = 'session:helm:player-tab' as const;
 
 export const thumbUrl = (videoId: string) => `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
 export const watchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;

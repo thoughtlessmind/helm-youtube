@@ -39,9 +39,9 @@ const svg = (paths: string, attrs = '') =>
 
 /** Revealed cards (toggle on): dimmed, with a "Hidden · reason" badge on the thumbnail. */
 const PAGE_CSS = `
-[${REASON}]:not([data-yt-pro-hidden-by]) { position: relative; }
-[${REASON}]:not([data-yt-pro-hidden-by]) > * { opacity: .4; }
-[${REASON}]:not([data-yt-pro-hidden-by])::before {
+[${REASON}]:not([data-helm-hidden-by]) { position: relative; }
+[${REASON}]:not([data-helm-hidden-by]) > * { opacity: .4; }
+[${REASON}]:not([data-helm-hidden-by])::before {
   content: "Hidden · " attr(${REASON});
   position: absolute; z-index: 1; top: 8px; left: 8px;
   padding: 2px 8px 2px 24px; border-radius: 4px;

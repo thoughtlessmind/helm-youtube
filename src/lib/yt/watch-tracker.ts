@@ -8,8 +8,8 @@ import { getVideo, onVideoEvent, watchMetaCurrent } from './player';
  * player is playing AND the tab is visible. Hover/inline previews (home,
  * search) never count — only `/watch` and only YouTube's main player video.
  *
- *   local:ytpro:watch-tracker:log      { [YYYY-MM-DD]: DayStats } — last 90 days (the popup reads it)
- *   local:ytpro:watch-tracker:channels { [channelId]: { name, seconds } } — all time, no cap
+ *   local:helm:watch-tracker:log      { [YYYY-MM-DD]: DayStats } — last 90 days (the popup reads it)
+ *   local:helm:watch-tracker:channels { [channelId]: { name, seconds } } — all time, no cap
  *
  * Flushed every 15 s, on navigation and on pagehide.
  */
@@ -26,8 +26,8 @@ export type WatchLog = Record<string, DayStats>;
 /** All-time seconds per channel id (`UC…` or `@handle`, see lib/yt/video.ts). */
 export type ChannelTotals = Record<string, { name: string; seconds: number }>;
 
-export const LOG_KEY = 'local:ytpro:watch-tracker:log' as const;
-export const CHANNELS_KEY = 'local:ytpro:watch-tracker:channels' as const;
+export const LOG_KEY = 'local:helm:watch-tracker:log' as const;
+export const CHANNELS_KEY = 'local:helm:watch-tracker:channels' as const;
 const FLUSH_INTERVAL_MS = 15_000;
 const MAX_DAYS = 90;
 
@@ -93,7 +93,7 @@ function flush(): void {
   pendingSeconds = 0;
   writes = writes
     .then(() => record(seconds, ch))
-    .catch((err) => console.error('[youtube-pro] watch-tracker: write failed', err));
+    .catch((err) => console.error('[helm] watch-tracker: write failed', err));
 }
 
 const stop = () => {

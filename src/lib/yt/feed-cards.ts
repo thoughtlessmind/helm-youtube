@@ -11,7 +11,7 @@
  *    (older builds: `ytd-compact-video-renderer`, `ytd-grid-video-renderer`).
  *
  * Multi-feature hiding: a card can be hidden by several features at once.
- * `data-yt-pro-hidden-by` holds the space-separated set of feature ids;
+ * `data-helm-hidden-by` holds the space-separated set of feature ids;
  * `display:none` is cleared only when the set is empty.
  */
 
@@ -45,7 +45,7 @@ const TIME = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/;
 /** Resume bar on a thumbnail = the signed-in user has watched (some of) it. */
 const WATCHED = 'ytd-thumbnail-overlay-resume-playback-renderer, yt-thumbnail-overlay-progress-bar-view-model';
 
-const HIDDEN_BY_ATTR = 'data-yt-pro-hidden-by';
+const HIDDEN_BY_ATTR = 'data-helm-hidden-by';
 
 export function enumerateVideoCards(root: ParentNode = document): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(CARD_SELECTOR));

@@ -1,10 +1,10 @@
-# YouTube Pro — A Better YouTube Experience
+# Helm for YouTube
 
 A Chrome (and Firefox) extension that enhances the YouTube web experience by fixing the small UX annoyances and adding pro-level features the native site doesn't offer.
 
 ## What It Is
 
-YouTube Pro is a browser extension built for power users who spend a lot of time on YouTube and want it to work the way they actually use it — not the way the algorithm wants them to. It layers improvements on top of the native YouTube interface without replacing it.
+Helm is a browser extension built for power users who spend a lot of time on YouTube and want it to work the way they actually use it — not the way the algorithm wants them to. It layers improvements on top of the native YouTube interface without replacing it.
 
 The goal is twofold:
 
@@ -13,7 +13,7 @@ The goal is twofold:
 
 Every feature passes one rule: youtube.com doesn't already do it. See [`features-v2.md`](./features-v2.md).
 
-This is *not* an ad blocker, a downloader, or a TOS-violating tool. It works alongside YouTube and respects the platform.
+This is *not* an ad blocker, a downloader, or a TOS-violating tool. It works alongside YouTube and respects the platform. Helm is not affiliated with or endorsed by YouTube or Google.
 
 ## Who It's For
 

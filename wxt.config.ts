@@ -7,7 +7,8 @@ export default defineConfig({
   outDir: process.env.YTP_OUT_DIR ?? '.output',
   modules: ['@wxt-dev/module-svelte'],
   manifest: {
-    name: 'YouTube Pro',
+    name: 'Helm for YouTube',
+    short_name: 'Helm',
     description: 'A better YouTube experience — power-user features layered on top of youtube.com.',
     permissions: ['storage'],
     host_permissions: [

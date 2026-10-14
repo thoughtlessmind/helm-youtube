@@ -9,8 +9,8 @@ import { storage } from '#imports';
  * which is device-local and too large for the sync-storage quota — so the
  * cross-device story for that data is this manual export/import.
  *
- * A backup captures every YouTube Pro key from both storage areas; importing
- * writes them all back. Keys are filtered to YouTube Pro's own namespace so a
+ * A backup captures every Helm key from both storage areas; importing
+ * writes them all back. Keys are filtered to Helm's own namespace so a
  * backup never carries unrelated extension state.
  */
 
@@ -25,13 +25,13 @@ export interface BackupData {
   local: Record<string, unknown>;
 }
 
-/** True for storage keys owned by YouTube Pro (un-prefixed, as `snapshot` returns them). */
+/** True for storage keys owned by Helm (un-prefixed, as `snapshot` returns them). */
 function isOwnKey(key: string): boolean {
   return (
     key === 'featureFlags' ||
     key === 'extensionEnabled' ||
     key.startsWith('config:') ||
-    key.startsWith('ytpro:')
+    key.startsWith('helm:')
   );
 }
 
@@ -41,7 +41,7 @@ function pickOwn(snapshot: Record<string, unknown>): Record<string, unknown> {
   );
 }
 
-/** Collect every YouTube Pro setting and data blob into one object. */
+/** Collect every Helm setting and data blob into one object. */
 export async function exportBackup(): Promise<BackupData> {
   const [sync, local] = await Promise.all([
     storage.snapshot('sync'),
@@ -55,14 +55,14 @@ export async function exportBackup(): Promise<BackupData> {
   };
 }
 
-/** Validate that an arbitrary parsed object is a YouTube Pro backup. */
+/** Validate that an arbitrary parsed object is a Helm backup. */
 export const isBackupData = (v: any): v is BackupData =>
   v?.version === 1 && !!v.sync && typeof v.sync === 'object' && !!v.local && typeof v.local === 'object';
 
 /** Shape checks for keys a feature would crash on if a hand-edited backup broke them. */
 const LOCAL_SHAPES: Record<string, (v: unknown) => boolean> = {
-  'ytpro:queue': (v) => Array.isArray(v) && v.every((i) => typeof i?.videoId === 'string'),
-  'ytpro:channel-groups': (v) =>
+  'helm:queue': (v) => Array.isArray(v) && v.every((i) => typeof i?.videoId === 'string'),
+  'helm:channel-groups': (v) =>
     Array.isArray(v) && v.every((g) => typeof g?.id === 'string' && !!g.channels && typeof g.channels === 'object'),
 };
 

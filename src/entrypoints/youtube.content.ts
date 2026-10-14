@@ -46,7 +46,7 @@ export default defineContentScript({
           const result = await mod.default.setup(ctx);
           teardowns.set(id, typeof result === 'function' ? result : () => {});
         } catch (err) {
-          console.error(`[youtube-pro] feature "${id}" failed to load`, err);
+          console.error(`[helm] feature "${id}" failed to load`, err);
           devLog(`setup ${id}: ${(err as Error)?.stack ?? err}`);
         }
       }

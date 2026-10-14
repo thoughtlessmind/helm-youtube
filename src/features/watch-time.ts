@@ -18,12 +18,12 @@ import {
  * Watch time: tracking (lib/yt/watch-tracker.ts; stats live in the popup) plus two on-page bits:
  *   - Daily-limit banner at the top of the page content once today's total reaches
  *     `dailyLimitMinutes` (0 = off). Snooze 15 min / Dismiss for today, shared by every tab
- *     through `local:ytpro:watch-time-reminder`. Never pauses or blocks anything.
+ *     through `local:helm:watch-time-reminder`. Never pauses or blocks anything.
  *   - Channel pages: "• You've watched 6h 10m" in the header's meta line, with a tooltip.
  */
 
-const REMINDER_KEY = 'local:ytpro:watch-time-reminder' as const;
-const SPEED_KEY = 'local:ytpro:per-channel-speed' as const;
+const REMINDER_KEY = 'local:helm:watch-time-reminder' as const;
+const SPEED_KEY = 'local:helm:per-channel-speed' as const;
 const SNOOZE_MS = 15 * 60_000;
 
 interface Reminder {

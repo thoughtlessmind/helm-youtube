@@ -14,7 +14,7 @@
  *  - Favorites is a built-in group: its channels are pinned, starred, at the
  *    top of the guide's Subscriptions list.
  *
- * Storage: `local:ytpro:channel-groups` → Group[] (store.svelte.ts).
+ * Storage: `local:helm:channel-groups` → Group[] (store.svelte.ts).
  */
 
 import { mount, unmount, type Component } from 'svelte';

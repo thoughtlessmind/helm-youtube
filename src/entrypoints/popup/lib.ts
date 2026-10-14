@@ -8,7 +8,7 @@ export { getLog, isoDate, logItem, type WatchLog } from '../../lib/yt/watch-trac
 
 export type Page = 'main' | 'settings' | 'stats' | 'firstrun';
 
-export const FIRST_RUN_KEY = 'local:ytpro:first-run-seen' as const;
+export const FIRST_RUN_KEY = 'local:helm:first-run-seen' as const;
 
 /** The date `back` days before today (0 = today). */
 export function dayAgo(back: number): Date {

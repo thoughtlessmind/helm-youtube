@@ -10,7 +10,7 @@
  *   from (a no-op); YouTube's load-time resets are gated by `mediaSettled`
  *   (~500 ms after loadedmetadata — no user changes speed that fast).
  * - Saving the default rate for a channel deletes its override.
- * - Overrides live in `local:ytpro:per-channel-speed` (`channelId → rate`);
+ * - Overrides live in `local:helm:per-channel-speed` (`channelId → rate`);
  *   the channel-page watch-time tooltip reads it too.
  * - Player UI (board WatchPlayer): a "1.5×" chip in the controls opens a popover
  *   to step this channel's speed and the default, or reset the channel.
@@ -33,7 +33,7 @@ import {
   watchMetaCurrent,
 } from '../lib/yt/player';
 
-const STORAGE_KEY = 'local:ytpro:per-channel-speed';
+const STORAGE_KEY = 'local:helm:per-channel-speed';
 /** The Settings board's speed choices; the popover steps through them. */
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
 

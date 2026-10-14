@@ -102,7 +102,7 @@
 
   async function doExport() {
     const blob = new Blob([JSON.stringify(await exportBackup(), null, 2)], { type: 'application/json' });
-    saveFile(blob, `youtube-pro-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    saveFile(blob, `helm-backup-${new Date().toISOString().slice(0, 10)}.json`);
     backupStatus = 'Settings exported.';
   }
 
@@ -120,7 +120,7 @@
     try {
       const parsed = JSON.parse(await file.text());
       if (!isBackupData(parsed)) {
-        backupStatus = 'That file is not a YouTube Pro backup.';
+        backupStatus = 'That file is not a Helm backup.';
         return;
       }
       await importBackup(parsed);
@@ -144,7 +144,7 @@
         class="sw"
         type="checkbox"
         role="switch"
-        aria-label="YouTube Pro enabled"
+        aria-label="Helm enabled"
         checked={enabled}
         onchange={(e) => setEnabled(e.currentTarget.checked)}
       />
@@ -161,7 +161,7 @@
   <div class="scroll body">
     {#if !enabled}
       <div class="paused">
-        <span>YouTube Pro is paused. YouTube looks and works as normal.</span>
+        <span>Helm is paused. YouTube looks and works as normal.</span>
         <button class="btn-sm primary-sm" onclick={() => setEnabled(true)}>Resume</button>
       </div>
     {/if}
@@ -313,7 +313,7 @@
             </div>
             {#if backupStatus}<span class="muted note" role="status">{backupStatus}</span>{/if}
           </div>
-          <div class="version">YouTube Pro {version}</div>
+          <div class="version">Helm {version}</div>
         </section>
       {/if}
     </div>

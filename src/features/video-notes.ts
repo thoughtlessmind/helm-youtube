@@ -4,7 +4,7 @@
  * as you type, "Add 6:52" inserts the current time at the caret, Close/Esc returns focus to the
  * button. The card follows the video on SPA navigation and picks up edits from other tabs.
  *
- * Storage: `local:ytpro:video-notes` → Record<videoId, string> (blank notes are deleted).
+ * Storage: `local:helm:video-notes` → Record<videoId, string> (blank notes are deleted).
  */
 
 import { storage } from '#imports';
@@ -16,7 +16,7 @@ import { getVideo, onVideoEvent } from '../lib/yt/player';
 import { actionCss, placeAboveDescription, placeInActionRow } from '../lib/yt/action-row';
 
 type Notes = Record<string, string>;
-const KEY = 'local:ytpro:video-notes' as const;
+const KEY = 'local:helm:video-notes' as const;
 const DEBOUNCE_MS = 400;
 
 // The dot punches a hole in the icon (mask) instead of a ring in the button's colour, so it reads
