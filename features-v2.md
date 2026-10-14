@@ -30,7 +30,7 @@ P3 = small utility.
 | 14 | **Transcript download** | Export the transcript as `.txt` / `.srt` | Native shows the transcript, can't export it | `download-transcript` | — | P3 |
 | 15 | **A→B loop** | Loop a section with `[` `]` `\` | Native Loop is whole-video only | `loop-section` | — | P3 |
 | 16 | **Frame screenshot** | `S` saves the current frame as PNG | Not native | `screenshot-current-frame` | — | P3 |
-| 17 | **True black** | `#000` backgrounds for OLED | Native dark is `#0f0f0f` | `true-black-dark-mode` | — | P3 |
+| 17 | **Theme** | Preset palette + font + corner radius (Nord, Rosé, Forest, Solarized, Sepia, OLED Black, Terminal); follows YouTube's light/dark, single-mode presets override it | Native is Light / Dark / Device only | `theme` | — | P3 |
 
 ## Specs for features with open design
 

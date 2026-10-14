@@ -35,5 +35,5 @@ export const featureRegistry: Record<string, Loader> = {
   'watch-time': () => import('../features/watch-time'),
   'download-transcript': () => import('../features/download-transcript'),
   'screenshot-current-frame': () => import('../features/screenshot-current-frame'),
-  'true-black-dark-mode': () => import('../features/true-black-dark-mode'),
+  'theme': () => import('../features/theme'),
 };

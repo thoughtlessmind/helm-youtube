@@ -6,6 +6,7 @@
   import { saveFile } from '../../lib/download';
   import { sendToTab } from '../../lib/messages';
   import { KEY as GROUPS_KEY, withFavorites, type Group } from '../../features/channel-groups/store.svelte';
+  import { THEMES, themeById } from '../../features/theme/themes';
   import {
     FEATURE_CONFIG_DEFAULTS,
     extensionEnabled,
@@ -257,6 +258,30 @@
                             </label>
                           {/each}
                         </div>
+                      {:else if c.type === 'themes'}
+                        <div class="themes" role="radiogroup" aria-label={c.label}>
+                          {#each THEMES as t (t.id)}
+                            <label class="theme">
+                              <input
+                                type="radio"
+                                name="{f.id}-{c.key}"
+                                checked={themeById(String(val(f, c.key))).id === t.id}
+                                onchange={() => setOpt(f, c.key, t.id)}
+                              />
+                              <!-- Light pane fills the swatch; a dark pane is clipped over its lower-right half. -->
+                              <span class="swatch" aria-hidden="true" style:--tr={t.radius == null ? undefined : `${t.radius}px`}>
+                                {#each [t.light, t.dark].filter((p) => p !== undefined) as p, i (i)}
+                                  <span class="pane" style:background={p.bg} style:color={p.text}>
+                                    <span class="aa" style:font-family={t.font}>Aa<span class="pill" style:background={p.accent}></span></span>
+                                    <span class="bar" style:background={p.textMuted}></span>
+                                  </span>
+                                {/each}
+                              </span>
+                              <span class="t-name">{t.name}</span>
+                              <span class="t-tag">{t.light && t.dark ? 'Light · Dark' : t.light ? 'Light only' : 'Dark only'}</span>
+                            </label>
+                          {/each}
+                        </div>
                       {:else if c.type === 'manage-groups'}
                         <div class="field">
                           <span class="muted">{groupsLine}</span>
@@ -474,6 +499,101 @@
   .chip:has(input:focus-visible) {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+  }
+  .themes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .theme {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 4px 4px 6px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .theme:hover {
+    background: rgba(127, 127, 140, 0.1);
+  }
+  .theme:has(input:checked) {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .theme:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .theme input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    pointer-events: none;
+  }
+  .swatch {
+    position: relative;
+    display: grid;
+    height: 48px;
+    overflow: hidden;
+    /* The theme's own corner radius, scaled to swatch size; unset → YouTube's 12px. */
+    border-radius: min(10px, calc(var(--tr, 12px) / 2));
+  }
+  .swatch::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .pane {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 7px;
+  }
+  /* Dark half: the light pane's layout turned 180°, so the two never crowd the diagonal. */
+  .pane + .pane {
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    flex-direction: column-reverse;
+    align-items: flex-end;
+  }
+  .aa {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .pill {
+    width: 9px;
+    height: 5px;
+    border-radius: 3px;
+  }
+  .bar {
+    width: 18px;
+    height: 3px;
+    border-radius: 2px;
+  }
+  .t-name,
+  .t-tag {
+    padding: 0 3px;
+  }
+  .t-name {
+    margin-top: 5px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .t-tag {
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
   }
   .btn-sm {
     font-size: 12px;

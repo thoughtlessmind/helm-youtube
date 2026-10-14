@@ -29,7 +29,6 @@ Decided 2026-10-12 during the v2 feature audit. Kept list: [`features-v2.md`](./
 | `channel-stats` | Low value | Curiosity only; fragile scraping |
 | `multi-video-grid` | Low value | Niche, heavy (multiple embeds) |
 | `compare-videos` | Low value | Niche |
-| `theme-presets` | Low value | Cosmetic; native Light / Dark / Device |
 
 **Kept as a base, not removed:** `read-later-queue` becomes the Global queue.
 

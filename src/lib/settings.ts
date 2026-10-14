@@ -22,7 +22,7 @@ export const FEATURE_DEFAULTS = {
   'watch-time': false,
   'download-transcript': false,
   'screenshot-current-frame': true,
-  'true-black-dark-mode': false,
+  'theme': false,
 };
 
 export type FeatureFlags = Partial<Record<keyof typeof FEATURE_DEFAULTS, boolean>>;
@@ -54,6 +54,8 @@ export const FEATURE_CONFIG_DEFAULTS = {
   'volume-boost': { multiplier: 1.5 },
   /** 0 = no limit. */
   'watch-time': { dailyLimitMinutes: 120 },
+  /** A `THEMES` id from features/theme/themes.ts. */
+  'theme': { preset: 'nord' },
 };
 
 export type FeatureConfig = typeof FEATURE_CONFIG_DEFAULTS;

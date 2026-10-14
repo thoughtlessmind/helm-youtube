@@ -10,7 +10,7 @@ import { isTypingTarget } from './keys';
  * YouTube-native component kit. Every on-page surface lives in an open shadow root from
  * `createHost()`, so YouTube's CSS can't clobber it and these short `.ytp-*` names can't collide
  * with the player's own `.ytp-*` classes. Colors are YouTube's live `--yt-sys-color-baseline--*`
- * tokens (they flip with light/dark/true-black); sizes are YouTube's real CSS px.
+ * tokens (they flip with light/dark and the theme presets); sizes are YouTube's real CSS px.
  *
  * Buttons: .ytp-btn (tonal pill) + .is-primary (inverted, Subscribe-like) | .is-cta (blue fill,
  * dialog confirm) | .is-text (no fill) | .is-link (blue text) | .is-icon (square) | .is-sm (32px).

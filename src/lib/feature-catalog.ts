@@ -22,6 +22,8 @@ export type Control =
   | { type: 'keywords'; key: string; label: string; placeholder: string }
   | { type: 'length'; minKey: string; maxKey: string; label: string }
   | { type: 'manage-groups' }
+  /** Swatch-card radiogroup over `THEMES`; stores the theme id. */
+  | { type: 'themes'; key: string; label: string }
   /** Today / This week from the watch-time log. */
   | { type: 'watch-stats' };
 
@@ -206,8 +208,13 @@ export const CATALOG: CatalogSection[] = [
         icon: 'M4 5h16M4 10h16M4 15h8M17 13v8M14 18l3 3 3-3' },
       { id: 'screenshot-current-frame', name: 'Frame screenshot', desc: 'Press S to save the current frame as a PNG.',
         icon: 'M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 13m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0' },
-      { id: 'true-black-dark-mode', name: 'True black', desc: 'Pure black backgrounds for OLED screens.',
-        icon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z' },
+      {
+        id: 'theme',
+        name: 'Theme',
+        desc: 'Recolor YouTube: palette, font and corners.',
+        icon: 'M12 3a9 9 0 0 0 0 18c1 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.6-.4-1.1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4.1-4-7.6-9-7.6zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01',
+        controls: [{ type: 'themes', key: 'preset', label: 'Theme' }],
+      },
     ],
   },
 ];

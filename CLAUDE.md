@@ -70,7 +70,7 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 - For SPA route changes use `ctx.navigation.onNavigate(cb)`. Do NOT poll `location.href` or hook `popstate` — YouTube fires `yt-navigate-finish`.
 - Centralize selectors in `lib/yt/` so a YouTube redesign is a one-file fix. Prefer feature detection over class names.
 - No polyfills, no lodash, no moment. Modern Chrome only.
-- Injected UI lives in a **shadow root** from `createHost()` (YouTube's stylesheet clobbers un-scoped styles), placed in a YouTube slot — **no floating `position: fixed` buttons/panels, no extension branding on youtube.com**. Colors only from `--yt-sys-color-baseline--*` tokens so light/dark/true-black just work. Stateful UI may be a Svelte component with `<svelte:options css="injected" />` mounted into that root (see the top of `ui.ts`); unmount it in the teardown.
+- Injected UI lives in a **shadow root** from `createHost()` (YouTube's stylesheet clobbers un-scoped styles), placed in a YouTube slot — **no floating `position: fixed` buttons/panels, no extension branding on youtube.com**. Colors only from `--yt-sys-color-baseline--*` tokens so light/dark and the `theme` presets just work. Stateful UI may be a Svelte component with `<svelte:options css="injected" />` mounted into that root (see the top of `ui.ts`); unmount it in the teardown.
 
 ### Storage split
 
