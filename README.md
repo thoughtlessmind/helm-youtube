@@ -138,6 +138,10 @@ src/
 
 Each feature is a module with a `setup(ctx)` that returns a teardown function. To add a feature, and for the performance rules every feature must follow, see [`CLAUDE.md`](./CLAUDE.md).
 
+## License
+
+[MIT](./LICENSE)
+
 ## Disclaimer
 
 Helm is an independent project. It is not affiliated with, endorsed by, or sponsored by YouTube or Google LLC. YouTube is a trademark of Google LLC.
