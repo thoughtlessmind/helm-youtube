@@ -10,6 +10,7 @@ import {
   markPlayed,
   moveInQueue,
   removeFromQueue,
+  setPlayerTabId,
   upNext,
   watchQueue,
   watchUrl,
@@ -28,8 +29,8 @@ import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelt
 
 /**
  * Global queue (features-v2.md → "Global queue"). One list in `local:ytpro:queue` shared by every
- * tab; only the *player tab* (`session:ytpro:player-tab`) shows the watch-page panel and
- * auto-advances. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts)
+ * tab; only the *player tab* (`session:ytpro:player-tab`, or every tab while unset) shows the
+ * watch-page panel and auto-advances. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts)
  * and `Q`. Every tab marks a queued video ✓ when it starts playing.
  */
 
@@ -60,7 +61,13 @@ const feature: Feature = {
     // whoami answers once the SW has opened session storage to content scripts — ask it first.
     const tabId = await myTabId();
     let [items, config, playerTab] = await Promise.all([getQueue(), getConfig('read-later-queue'), getPlayerTabId()]);
-    const isPlayerTab = () => tabId !== null && playerTab === tabId;
+    // With no player tab yet (nothing started, or a browser restart) every tab is a candidate.
+    const isPlayerTab = () => tabId !== null && (playerTab === null || playerTab === tabId);
+    /** Starting a queued video makes this the player tab; the others then hide their panel. */
+    const start = (videoId: string) => {
+      if (tabId !== null && playerTab !== tabId) void setPlayerTabId(tabId);
+      playInThisTab(videoId);
+    };
 
     // ── Panel ──────────────────────────────────────────────────────────────
     let panel: { host: HTMLElement; app: { update(s: PanelState): void }; offObserver: () => void } | null = null;
@@ -103,7 +110,7 @@ const feature: Feature = {
           props: {
             initial: panelState(),
             actions: {
-              play: playInThisTab,
+              play: start,
               remove: (id) => void removeFromQueue(id),
               move: (id, to) => void moveInQueue(id, to),
               setAutoAdvance: (on) => void saveConfig({ autoAdvance: on }),
@@ -128,7 +135,7 @@ const feature: Feature = {
     const onEnded = () => {
       if (isAdShowing() || !isPlayerTab() || !config.autoAdvance) return;
       const next = upNext(items).find((i) => i.videoId !== getVideoId());
-      if (next) playInThisTab(next.videoId); // beats YouTube's autoplay countdown
+      if (next) start(next.videoId); // beats YouTube's autoplay countdown
     };
 
     // ── Adding ──────────────────────────────────────────────────────────────

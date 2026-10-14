@@ -70,6 +70,8 @@ short "Skipped sponsor · Undo" toast. API calls go through the service worker
   (`--yt-sys-color-baseline--*`) so it is native in light and dark. No extension branding.
   - Shown **only in the player tab** and **only while something is up next**; hidden in
     every other tab and once everything is watched. Collapsed/expanded is remembered.
+    With no player tab yet, every watch tab shows it; the first to start a queued item
+    (panel click or auto-advance) becomes the player tab.
   - Header: "Queue", position + "N up next", Auto-advance switch, "Clear watched",
     collapse. Rows: current (now-playing indicator), watched (✓, dimmed), upcoming
     (numbered). Click thumbnail = play now; remove on hover; reorder by drag, plus arrow
