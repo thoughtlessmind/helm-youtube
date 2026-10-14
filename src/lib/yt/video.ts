@@ -1,7 +1,7 @@
 /**
  * Identity helpers for "what am I looking at right now" — the current
  * watch-page video and the channel that owns it. Centralized so features
- * (per-channel speed, video notes/tags, etc.) agree on how a video and a
+ * (per-channel speed, video notes, etc.) agree on how a video and a
  * channel are identified, and so a YouTube redesign is a one-file fix.
  */
 

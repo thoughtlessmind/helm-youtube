@@ -1,11 +1,11 @@
 import { storage } from '#imports';
 
 /**
- * Backup & restore — "export everything as a single JSON" (Phase 4).
+ * Backup & restore — "export everything as a single JSON".
  *
  * Feature flags and per-feature config already roam across devices for free
- * because they live in `chrome.storage.sync`. Bulky data (notes, tags,
- * dashboards, the watch queue, analytics) lives in `chrome.storage.local`,
+ * because they live in `chrome.storage.sync`. Bulky data (notes, channel
+ * groups, the watch queue, watch time) lives in `chrome.storage.local`,
  * which is device-local and too large for the sync-storage quota — so the
  * cross-device story for that data is this manual export/import.
  *

@@ -1,6 +1,6 @@
 # Features — removed
 
-Decided 2026-10-12 during the v2 feature audit. Kept list: [`features-v2.md`](./features-v2.md).
+Decided 2026-10-12 during the v2 feature audit. Kept list: [`features.md`](./features.md).
 "Native" means the equivalent was confirmed on the live youtube.com UI that day.
 
 ## Built, then removed
@@ -32,16 +32,17 @@ Decided 2026-10-12 during the v2 feature audit. Kept list: [`features-v2.md`](./
 
 **Kept as a base, not removed:** `read-later-queue` becomes the Global queue.
 
-## Supporting code removed with them
+## Options cut from kept features (2026-10-13 UI pass)
 
-| Item | Only used by |
+| Option | Reason |
 |---|---|
-| `src/lib/yt/chrome-ai.ts` | ai-summarize, ai-ask, ai-chapters |
-| `src/lib/yt/embed.ts` | multi-video-grid, compare-videos |
-| `src/lib/yt/playlist.ts` | bulk-watch-later |
-| `src/lib/yt/relative-date.ts` | history-search, channel-stats |
-| `returnyoutubedislikeapi.com` host permission + service-worker allowlist entry | dislike-count |
-| Registry, flag, default, config and catalog entries | each removed module |
+| Grid density → "hide card info" | Kept settings to what the reviewed design shows |
+| Feed filters → "dim watched" | Folded into the single "Hide videos I've watched" checkbox |
+| Playback speed → choices above 2× | Kept settings to what the reviewed design shows |
+| Volume boost → 100% / 175% / 250% steps | Kept settings to what the reviewed design shows |
+| SponsorBlock → "sponsor-free length" badge | No slot for it in the design or the surface table |
+| Focus mode → "hide description" (from the old distraction-free mode) | Not carried over |
+| Channel groups → JSON export of groups | The global backup in Settings covers it |
 
 ## Planned, never built — dropped
 
