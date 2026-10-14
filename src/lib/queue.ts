@@ -77,6 +77,25 @@ export async function moveInQueue(videoId: string, toIndex: number): Promise<voi
   });
 }
 
+/**
+ * A copy of `items` with `item` in `currentId`'s slot and `currentId` one step down, up next again.
+ * Unchanged when `currentId` isn't queued or `item` already is.
+ */
+export function takeSlot(items: readonly QueueItem[], item: QueueItem, currentId: string): QueueItem[] {
+  const next = items.slice();
+  const at = next.findIndex((i) => i.videoId === currentId);
+  if (at >= 0 && !next.some((i) => i.videoId === item.videoId)) {
+    next.splice(at, 1, item, { ...next[at], playedAt: undefined });
+  }
+  return next;
+}
+
+/** `item` is playing now (✓) in place of the queued `currentId`. */
+export async function playInPlaceOf(item: Omit<QueueItem, 'addedAt' | 'playedAt'>, currentId: string): Promise<void> {
+  const now = Date.now();
+  await update((items) => takeSlot(items, { ...item, addedAt: now, playedAt: now }, currentId));
+}
+
 /** Moves to right after `afterVideoId` (or to the front of the unplayed items) and clears playedAt. */
 export async function playNext(videoId: string, afterVideoId?: string | null): Promise<void> {
   await update((items) => {

@@ -64,6 +64,10 @@ short "Skipped sponsor · Undo" toast. API calls go through the service worker
   first unplayed item plays there (overrides YouTube's autoplay). No unplayed items, or a
   video ending in any other tab → native behavior. Only the player tab advances, so two
   tabs can never race for the same next item.
+- **Detour:** opening a non-queued video in the player tab while a queued one is unfinished
+  puts it in that one's slot (✓, playing); the interrupted one moves down a step, unplayed.
+  After a queued video *ends*, whatever opens next (YouTube autoplay)
+  is native and not queued.
 - **Watch-page panel:** our own panel in the slot YouTube uses for its queue (top of the
   watch page's right column, above recommendations), built to look like YouTube's: same
   type, row height, thumbnail size, and **only YouTube's theme tokens**

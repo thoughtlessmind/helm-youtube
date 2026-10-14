@@ -9,6 +9,7 @@ import {
   getPlayerTabId,
   markPlayed,
   moveInQueue,
+  playInPlaceOf,
   removeFromQueue,
   setPlayerTabId,
   upNext,
@@ -64,8 +65,11 @@ const feature: Feature = {
     // With no player tab yet (nothing started, or a browser restart) every tab is a candidate.
     const isPlayerTab = () => tabId !== null && (playerTab === null || playerTab === tabId);
     /** Starting a queued video makes this the player tab; the others then hide their panel. */
-    const start = (videoId: string) => {
+    const claim = () => {
       if (tabId !== null && playerTab !== tabId) void setPlayerTabId(tabId);
+    };
+    const start = (videoId: string) => {
+      claim();
       playInThisTab(videoId);
     };
 
@@ -78,6 +82,7 @@ const feature: Feature = {
     const panelState = (): PanelState => ({
       items,
       currentId: getVideoId(),
+      paused: getVideo()?.paused ?? true,
       autoAdvance: config.autoAdvance,
       collapsed: config.panelCollapsed,
     });
@@ -130,12 +135,43 @@ const feature: Feature = {
     // ── Played ✓ + auto-advance (main <video> only; ads and previews ignored) ──
     const notePlaying = () => {
       const id = getVideoId();
-      if (id && !isAdShowing() && items.some((i) => i.videoId === id && !i.playedAt)) void markPlayed(id);
+      if (!id || isAdShowing() || !items.some((i) => i.videoId === id && !i.playedAt)) return;
+      claim(); // the tab that last started a queued video, however it was opened, plays the queue
+      void markPlayed(id);
     };
+    /** Last video to play to its end here: what opens after it (autoplay) doesn't take its slot. */
+    let endedId: string | null = null;
     const onEnded = () => {
-      if (isAdShowing() || !isPlayerTab() || !config.autoAdvance) return;
+      if (isAdShowing()) return;
+      endedId = getVideoId();
+      if (!isPlayerTab() || !config.autoAdvance) return;
       const next = upNext(items).find((i) => i.videoId !== getVideoId());
       if (next) start(next.videoId); // beats YouTube's autoplay countdown
+    };
+
+    // ── Opening another video over a queued one ──────────────────────────────
+    /** Queue fields for the watch page's video. Right after SPA navigation the page still shows the previous one's. */
+    const describe = async (videoId: string) => {
+      if (!watchMetaCurrent()) return lookup(videoId);
+      const v = getVideo();
+      return {
+        videoId,
+        title: watchTitle(),
+        channelName: getWatchChannel()?.name ?? '',
+        duration: v && !isAdShowing() && Number.isFinite(v.duration) ? Math.round(v.duration) : 0,
+      };
+    };
+
+    /** Video this tab was last on (kept across non-watch pages: the miniplayer may still play it). */
+    let lastId = getVideoId();
+    /** A non-queued video opened while a queued one was unfinished takes its slot; that one moves down. */
+    const onSwitch = async () => {
+      const prev = lastId;
+      const id = (lastId = getVideoId() ?? lastId);
+      if (!id || !prev || id === prev || prev === endedId || !isPlayerTab()) return;
+      if (items.some((i) => i.videoId === id) || !items.some((i) => i.videoId === prev)) return;
+      claim();
+      await playInPlaceOf(await describe(id), prev);
     };
 
     // ── Adding ──────────────────────────────────────────────────────────────
@@ -152,16 +188,7 @@ const feature: Feature = {
 
     const offQ = onKey('q', async () => {
       const videoId = getVideoId();
-      if (!videoId) return;
-      // Right after SPA navigation the page still shows the previous video's metadata.
-      if (!watchMetaCurrent()) return void add(await lookup(videoId));
-      const v = getVideo();
-      void add({
-        videoId,
-        title: watchTitle(),
-        channelName: getWatchChannel()?.name ?? '',
-        duration: v && !isAdShowing() && Number.isFinite(v.duration) ? Math.round(v.duration) : 0,
-      });
+      if (videoId) void add(await describe(videoId));
     });
 
     // From the main world's ⋮ → "Add to queue" redirect.
@@ -181,6 +208,8 @@ const feature: Feature = {
       offQ,
       onVideoEvent('playing', notePlaying),
       onVideoEvent('ended', onEnded),
+      onVideoEvent('play', render),
+      onVideoEvent('pause', render),
       watchQueue((v) => {
         items = v;
         render();
@@ -195,6 +224,7 @@ const feature: Feature = {
         render();
       }),
       ctx.navigation.onNavigate(() => {
+        void onSwitch();
         if (getVideo()?.paused === false) notePlaying();
         render();
       }),

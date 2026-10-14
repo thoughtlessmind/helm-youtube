@@ -6,6 +6,8 @@
   export interface PanelState {
     items: QueueItem[];
     currentId: string | null;
+    /** The current video is paused: the now-playing bars freeze, muted. */
+    paused: boolean;
     autoAdvance: boolean;
     collapsed: boolean;
   }
@@ -130,7 +132,7 @@
           <div class="ind">
             <span class="ind-state">
               {#if isCurrent}
-                <span class="eq" role="img" aria-label="Now playing"><span></span><span></span><span></span></span>
+                <span class="eq" class:paused={s.paused} role="img" aria-label={s.paused ? 'Paused' : 'Now playing'}><span></span><span></span><span></span></span>
               {:else if watched}
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Watched"><path d="M20 6L9 17l-5-5" /></svg>
               {:else}
@@ -344,6 +346,13 @@
     background: currentColor;
     transform-origin: bottom;
     animation: eq 0.9s ease-in-out infinite;
+  }
+  /* Frozen mid-bounce, so the bars keep their uneven heights. */
+  .eq.paused {
+    color: var(--muted);
+  }
+  .eq.paused span {
+    animation-play-state: paused;
   }
   .eq span:nth-child(2) {
     animation-delay: -0.3s;
