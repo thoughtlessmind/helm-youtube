@@ -22,7 +22,16 @@ import { getConfig, setConfig, watchConfig, type FeatureConfig } from '../lib/se
 import { onKey } from '../lib/yt/keys';
 import { flashToast } from '../lib/yt/toast';
 import { createHost } from '../lib/yt/ui';
-import { VIDEO_CARD, cardChannel, cardDurationSeconds, cardTitle } from '../lib/yt/feed-cards';
+import {
+  PREVIEW_BUTTONS,
+  PREVIEW_BUTTON_CLASS,
+  PREVIEW_ICON_CLASS,
+  VIDEO_CARD,
+  cardChannel,
+  cardDurationSeconds,
+  cardTitle,
+  previewVideoId,
+} from '../lib/yt/feed-cards';
 import { getVideoId, getWatchChannel, isWatchPage } from '../lib/yt/video';
 import { playInThisTab, watchTitle } from '../lib/yt/player-bridge';
 import { getVideo, isAdShowing, onVideoEvent, watchMetaCurrent } from '../lib/yt/player';
@@ -31,13 +40,16 @@ import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelt
 /**
  * Global queue (features-v2.md → "Global queue"). One list in `local:ytpro:queue` shared by every
  * tab; only the *player tab* (`session:ytpro:player-tab`, or every tab while unset) shows the
- * watch-page panel and auto-advances. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts)
- * and `Q`. Every tab marks a queued video ✓ when it starts playing.
+ * watch-page panel and auto-advances. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts),
+ * the button under a hover preview's mute / CC, and `Q`. Every tab marks a queued video ✓ when it starts playing.
  */
 
 /** Agent T7's Focus-mode CSS keeps #secondary visible while it contains this id. */
 const HOST_ID = 'ytp-queue-panel';
 const VIDEO_ID = /^[\w-]{11}$/;
+/** YouTube's own "Add to queue" glyph (from its thumbnail hover toggle). */
+const QUEUE_ICON =
+  '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" style="display:block"><path d="M2 2.864v6.277a.5.5 0 00.748.434L9 6.002 2.748 2.43A.5.5 0 002 2.864ZM21 5h-9a1 1 0 100 2h9a1 1 0 100-2Zm0 6H9a1 1 0 000 2h12a1 1 0 000-2Zm0 6H9a1 1 0 000 2h12a1 1 0 000-2Z"/></svg>';
 
 /** Title/channel/duration of a video from a card on the page, else from oEmbed. */
 async function lookup(videoId: string): Promise<Omit<QueueItem, 'addedAt' | 'playedAt'>> {
@@ -191,6 +203,25 @@ const feature: Feature = {
       if (videoId) void add(await describe(videoId));
     });
 
+    // A third round button under the hover preview's mute / CC. Light DOM with YouTube's own
+    // classes, not a shadow host, so it is styled exactly like them (size, dimming, variants).
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.className = PREVIEW_BUTTON_CLASS;
+    previewBtn.ariaLabel = previewBtn.title = 'Add to queue'; // title: mute / CC use native tooltips too
+    previewBtn.style.cssText = 'display:block;padding:0;border:0;cursor:pointer';
+    previewBtn.innerHTML = `<div class="${PREVIEW_ICON_CLASS}">${QUEUE_ICON}</div>`;
+    previewBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // the preview opens the video on click
+      const videoId = previewVideoId(previewBtn);
+      if (videoId) await add(await lookup(videoId));
+    });
+    const placePreviewBtn = () => {
+      const stack = document.querySelector(PREVIEW_BUTTONS);
+      if (stack && stack.lastElementChild !== previewBtn) stack.append(previewBtn);
+    };
+
     // From the main world's ⋮ → "Add to queue" redirect.
     const onMessage = async (e: MessageEvent) => {
       const d = e.data;
@@ -206,6 +237,7 @@ const feature: Feature = {
 
     const offs = [
       offQ,
+      ctx.observer.onChange(placePreviewBtn),
       onVideoEvent('playing', notePlaying),
       onVideoEvent('ended', onEnded),
       onVideoEvent('play', render),
@@ -230,9 +262,11 @@ const feature: Feature = {
       }),
     ];
     render();
+    placePreviewBtn();
 
     return () => {
       for (const off of offs) off();
+      previewBtn.remove();
       window.removeEventListener('message', onMessage);
       delete html.dataset.ytpNativeAdd;
       unmountPanel();

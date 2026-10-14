@@ -1,5 +1,6 @@
 import type { Feature } from '../lib/features';
 import { getConfig, watchConfig } from '../lib/settings';
+import { PREVIEW_BUTTONS } from '../lib/yt/feed-cards';
 import { addStyle } from '../lib/yt/ui';
 
 const ITEM = 'ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *)';
@@ -69,6 +70,18 @@ ${ITEM} #metadata-line span,
 ${ITEM} ytd-channel-name #text {
   font-size: clamp(10px, 3.89cqi, 14px) !important;
   line-height: 1.43em !important;
+}
+
+/* Buttons on a hovered thumbnail scale the same way: YouTube's hover toggles (in the card) and
+   the hover preview's mute / CC / queue stack. The preview is one overlay outside the cards, so
+   its thumbnail-sized controls box is the container there. tan(atan2(a, b)) = a / b as a plain
+   number. Floored at half size (YouTube's own small variant) so three still fit a short thumbnail. */
+yt-inline-player-controls {
+  container-type: inline-size;
+}
+${ITEM} .ytThumbnailHoverOverlayToggleActionsViewModelButton,
+${PREVIEW_BUTTONS} {
+  zoom: clamp(0.5, tan(atan2(100cqi, 360px)), 1);
 }
 `;
 }

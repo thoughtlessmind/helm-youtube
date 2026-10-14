@@ -92,6 +92,23 @@ export function cardWatched(card: HTMLElement): boolean {
   return card.querySelector(WATCHED) !== null;
 }
 
+// ─── Hover preview: one ytd-video-preview overlay YouTube moves onto the hovered card ───
+
+/** The preview's mute / CC button stack, and the classes that style its round buttons. */
+export const PREVIEW_BUTTONS = '.ytInlinePlayerControlsTopRightControls';
+export const PREVIEW_BUTTON_CLASS = 'ytInlinePlayerControlsTopRightControlsCircleButton';
+export const PREVIEW_ICON_CLASS = 'ytInlinePlayerControlsButtonIcon';
+
+const VIDEO_LINK = 'a[href*="/watch?"], a[href*="/shorts/"]';
+
+/** Id of the video the hover preview around `el` is playing (read on use: the overlay is reused). */
+export function previewVideoId(el: Element): string | null {
+  const a = el.closest(`ytd-video-preview, ${CARD_SELECTOR}`)?.querySelector<HTMLAnchorElement>(VIDEO_LINK);
+  const url = URL.parse(a?.href ?? '');
+  const id = url?.searchParams.get('v') ?? url?.pathname.match(/^\/shorts\/([\w-]+)/)?.[1];
+  return id && /^[\w-]{11}$/.test(id) ? id : null;
+}
+
 function hiddenBy(card: HTMLElement): Set<string> {
   return new Set((card.getAttribute(HIDDEN_BY_ATTR) ?? '').split(' ').filter(Boolean));
 }
