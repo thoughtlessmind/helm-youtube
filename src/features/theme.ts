@@ -131,9 +131,12 @@ export function themeCss(theme: Theme): string {
     css = rule('html,html [dark],html [light]', [...modeVars, ...decls((theme.light ?? theme.dark)!)]);
     css += `html{color-scheme:${theme.light ? 'light' : 'dark'}!important}`; // scrollbars, native inputs
   }
-  // Hard-coded colors: html's own background, and the search box (light, or `…Dark` classes set by JS).
+  // Hard-coded colors: html's own background, the search box (light, or `…Dark` classes set by JS),
+  // and a hovered card's title/metadata, inlined from the thumbnail in a shade for YouTube's own mode.
   const t = (name: string) => `var(${SYS}${name})!important`;
   css += `html{background-color:${t('base-background')}}
+.ytLockupMetadataViewModelTitle:not(.ytLockupMetadataViewModelOverlay *){color:${t('text-primary')}}
+.ytLockupMetadataViewModelMetadata:not(.ytLockupMetadataViewModelOverlay *){color:${t('text-secondary')}}
 .ytSearchboxComponentInputBox{background-color:${t('base-background')};border-color:${t('outline')}}
 .ytSearchboxComponentInputBox.ytSearchboxComponentInputBoxHasFocus{border-color:${t('call-to-action')}}
 .ytSearchboxComponentSearchButton{background-color:${t('additive-background')};border-color:${t('outline')}}`;
