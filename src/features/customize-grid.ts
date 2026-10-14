@@ -5,6 +5,7 @@ import { addStyle } from '../lib/yt/ui';
 const ITEM = 'ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *)';
 
 function buildCSS(cols: number): string {
+  if (!cols) return ''; // 0 = YouTube default: its own responsive grid, untouched
   // YouTube's media queries override its own items-per-row var at narrow
   // viewports, so we set grid-template-columns explicitly. The CSS vars
   // are kept in sync for any internal YT calc that still reads them.
@@ -25,7 +26,7 @@ ytd-rich-grid-renderer {
 ytd-rich-grid-renderer #contents.ytd-rich-grid-renderer {
   display: grid !important;
   grid-template-columns: repeat(${cols}, minmax(0, 1fr)) !important;
-  gap: 16px 8px !important;
+  gap: 16px !important; /* YouTube's own; the hover box bleeds 12px past each card */
   grid-auto-flow: dense !important;
 }
 

@@ -87,7 +87,7 @@ export const CATALOG: CatalogSection[] = [
             type: 'select',
             key: 'columnsPerRow',
             label: 'Videos per row',
-            options: opts([[3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8']]),
+            options: opts([[0, 'Reset'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8']]),
           },
         ],
       },
