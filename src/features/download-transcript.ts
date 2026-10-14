@@ -9,12 +9,13 @@ import { fmtClock } from '../lib/format';
 import { saveFile } from '../lib/download';
 import { flashToast } from '../lib/yt/toast';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
-import { createHost, icon, menuKeys, openPopover } from '../lib/yt/ui';
+import { createHost, icon, menuKeys, openPopover, pageTooltip } from '../lib/yt/ui';
 import { actionCss, placeInActionRow } from '../lib/yt/action-row';
 import { watchTitle } from '../lib/yt/player-bridge';
 import { fetchTranscript, hasTranscript, type TranscriptSegment } from '../lib/yt/transcript';
 
-const DOWNLOAD = icon('<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>');
+/** A text page with a down arrow: the transcript's text, not the video. */
+const TRANSCRIPT = icon('<path d="M14 3H7.5A1.5 1.5 0 0 0 6 4.5v15A1.5 1.5 0 0 0 7.5 21h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M14 3v4h4"/><path d="M9 9h2.5M9 12h6"/><path d="M12 14.5v4M10 16.5l2 2 2-2"/>');
 const TXT = icon('<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3H14l4 4v12.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19.5z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15.5h6"/>');
 const SRT = icon('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 12.5h3M12.5 12.5h4.5M7 15.5h6M15.5 15.5h1.5"/>');
 const COPY = icon('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>');
@@ -45,7 +46,7 @@ const feature: Feature = {
 
   setup(ctx) {
     const { host, root } = createHost('ytp-transcript', CSS, `
-      <button class="ytp-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Transcript" title="Download or copy the transcript">${DOWNLOAD}<span>Transcript</span></button>
+      <button class="ytp-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Transcript">${TRANSCRIPT}<span>Transcript</span></button>
       <div class="ytp-menu" popover>
         <p id="state" hidden>No transcript for this video</p>
         <div role="menu" aria-label="Transcript">
@@ -55,6 +56,7 @@ const feature: Feature = {
         </div>
       </div>`);
     const btn = root.querySelector('button')!;
+    pageTooltip(btn, 'Download or copy transcript');
     const panel = root.querySelector<HTMLElement>('.ytp-menu')!;
     const menu = panel.querySelector<HTMLElement>('[role=menu]')!;
     const state = root.getElementById('state')!;

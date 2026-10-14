@@ -16,10 +16,12 @@ const DESCRIPTION = 'ytd-watch-metadata #description';
  * buttons, so ours give way first when it's tight: icon only, then hidden — YouTube's buttons
  * are never pushed out of the row. `full` = the labelled pill's width in px (fixed English labels
  * in Roboto 14/500, so a constant holds). flex-shrink ∝ (full − 36) / full makes all our pills
- * reach icon size together.
+ * reach icon size together. Height follows the row (stretched host), so the pills match YouTube's
+ * buttons whether they're 36px or 40px tall.
  */
 export const actionCss = (full: number) => `
 :host{flex:0 ${((full - 36) / full).toFixed(3)} ${full}px;min-width:0;margin-right:8px;container-type:inline-size;overflow:clip;overflow-clip-margin:4px}
+.ytp-btn{height:100%;border-radius:var(--ytp-radius,999px)}
 .ytp-btn:has(>svg){width:100%}
 @container (width < ${full - 1}px){.ytp-btn:has(>svg){padding:0}.ytp-btn>span{display:none}}
 @container (width < 36px){.ytp-btn{visibility:hidden}}

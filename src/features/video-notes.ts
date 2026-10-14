@@ -11,7 +11,7 @@ import { storage } from '#imports';
 import type { Feature } from '../lib/features';
 import { fmtClock } from '../lib/format';
 import { getVideoId, isWatchPage } from '../lib/yt/video';
-import { createHost, icon } from '../lib/yt/ui';
+import { createHost, icon, pageTooltip } from '../lib/yt/ui';
 import { getVideo, onVideoEvent } from '../lib/yt/player';
 import { actionCss, placeAboveDescription, placeInActionRow } from '../lib/yt/action-row';
 
@@ -55,8 +55,9 @@ const feature: Feature = {
     let writes = Promise.resolve();
     let offTime = () => {};
 
-    const btnHost = createHost('ytp-notes', BTN_CSS, `<button class="ytp-btn" type="button" aria-pressed="false" aria-label="Notes" title="Private note for this video">${NOTE_ICON}<span>Notes</span></button>`);
+    const btnHost = createHost('ytp-notes', BTN_CSS, `<button class="ytp-btn" type="button" aria-pressed="false" aria-label="Notes">${NOTE_ICON}<span>Notes</span></button>`);
     const btn = btnHost.root.querySelector('button')!;
+    pageTooltip(btn, 'Private note for this video');
     const iconBody = btn.querySelector('g')!;
 
     const card = createHost('ytp-note-card', CARD_CSS, `

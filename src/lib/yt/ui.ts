@@ -31,11 +31,11 @@ export const NATIVE_CSS = `
 [popover]{margin:0;inset:auto;border:0;padding:0;color:inherit;background:none;overflow:auto}
 [popover]:focus{outline:none}
 
-.ytp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 16px;box-sizing:border-box;margin:0;border:0;border-radius:18px;font:inherit;font-size:14px;font-weight:500;line-height:20px;white-space:nowrap;color:${T('text-primary')};background:${T('additive-background')};cursor:pointer;transition:background-color .1s}
+.ytp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 16px;box-sizing:border-box;margin:0;border:0;border-radius:var(--ytp-radius,18px);font:inherit;font-size:14px;font-weight:500;line-height:20px;white-space:nowrap;color:${T('text-primary')};background:${T('additive-background')};cursor:pointer;transition:background-color .1s}
 .ytp-btn:hover,.ytp-btn[aria-expanded="true"],.ytp-btn[aria-pressed="true"]{background:${T('mono-tonal-hover')}}
 .ytp-btn:has(>svg:first-child){padding-left:12px}
 .ytp-btn svg{width:24px;height:24px;flex:none}
-.ytp-btn.is-sm{height:32px;padding:0 12px;border-radius:16px}
+.ytp-btn.is-sm{height:32px;padding:0 12px;border-radius:var(--ytp-radius,16px)}
 .ytp-btn.is-sm svg{width:20px;height:20px}
 .ytp-btn.is-icon{width:36px;padding:0;border-radius:50%}
 .ytp-btn.is-sm.is-icon{width:32px}
@@ -50,13 +50,13 @@ export const NATIVE_CSS = `
 .ytp-btn:disabled{color:${T('text-disabled')};cursor:default;pointer-events:none}
 .ytp-btn.is-primary:disabled,.ytp-btn.is-cta:disabled{background:${T('additive-background')}}
 
-.ytp-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;box-sizing:border-box;margin:0;border:0;border-radius:8px;font:inherit;font-size:14px;font-weight:500;line-height:20px;white-space:nowrap;color:${T('text-primary')};background:${T('additive-background')};cursor:pointer;transition:background-color .1s,color .1s}
+.ytp-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;box-sizing:border-box;margin:0;border:0;border-radius:var(--ytp-radius,8px);font:inherit;font-size:14px;font-weight:500;line-height:20px;white-space:nowrap;color:${T('text-primary')};background:${T('additive-background')};cursor:pointer;transition:background-color .1s,color .1s}
 .ytp-chip:hover{background:${T('mono-tonal-hover')}}
 .ytp-chip[aria-pressed="true"],.ytp-chip[aria-selected="true"]{background:${T('inverted-background')};color:${T('text-primary-inverse')}}
 .ytp-chip[aria-pressed="true"]:hover,.ytp-chip[aria-selected="true"]:hover{background:${T('inverted-background-hover')}}
 .ytp-chip svg{width:20px;height:20px;flex:none}
 
-.ytp-menu{padding:8px 0;border-radius:12px;background:${T('menu-background')};box-shadow:0 4px 32px ${T('shadow-medium')}}
+.ytp-menu{padding:8px 0;border-radius:var(--ytp-radius,12px);background:${T('menu-background')};box-shadow:0 4px 32px ${T('shadow-medium')}}
 .ytp-player-menu{padding:8px 0;border-radius:12px;background:rgba(28,28,28,.9);color:#fff;text-shadow:0 0 2px rgba(0,0,0,.5)}
 .ytp-menu-item{display:flex;align-items:center;gap:16px;width:100%;min-height:40px;padding:0 20px 0 16px;box-sizing:border-box;margin:0;border:0;font:inherit;font-size:14px;line-height:20px;text-align:left;white-space:nowrap;color:inherit;background:none;cursor:pointer}
 .ytp-menu-item:hover,.ytp-menu-item:focus-visible{background:${T('additive-background')}}
@@ -74,7 +74,7 @@ export const NATIVE_CSS = `
 .ytp-dialog h2{margin:0;font-size:20px;line-height:28px;font-weight:500}
 .ytp-dialog footer{display:flex;justify-content:flex-end;gap:8px}
 
-.ytp-input{box-sizing:border-box;width:100%;height:36px;padding:0 12px;margin:0;border:1px solid transparent;border-radius:8px;outline:none;font:inherit;font-size:14px;color:${T('text-primary')};background:${T('additive-background')};transition:border-color .1s,box-shadow .1s}
+.ytp-input{box-sizing:border-box;width:100%;height:36px;padding:0 12px;margin:0;border:1px solid transparent;border-radius:var(--ytp-radius,8px);outline:none;font:inherit;font-size:14px;color:${T('text-primary')};background:${T('additive-background')};transition:border-color .1s,box-shadow .1s}
 .ytp-input::placeholder{color:${T('text-secondary')}}
 .ytp-input:focus{border-color:${T('call-to-action')}}
 .ytp-input.is-underline{height:auto;padding:6px 0;border-width:0 0 1px;border-color:${T('text-disabled')};border-radius:0;background:none}
@@ -89,11 +89,12 @@ export const NATIVE_CSS = `
 :has(>.ytp-tooltip){position:relative}
 .ytp-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;translate:-50% 0;z-index:1;padding:6px 10px;border-radius:4px;background:rgba(28,28,28,.9);color:#fff;font-size:12px;line-height:16px;font-weight:500;white-space:nowrap;text-shadow:none;pointer-events:none;opacity:0;transition:opacity .1s}
 :hover>.ytp-tooltip,:focus-visible>.ytp-tooltip{opacity:1}
+.ytp-tip{position:fixed;padding:8px;border-radius:4px;background:#606060;color:#fff;font-size:12px;line-height:18px;font-weight:400;white-space:nowrap;pointer-events:none}
 
 .ytp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
 .ytp-plain{margin:0;padding:0;border:0;font:inherit;color:inherit;background:none;text-align:left;cursor:pointer}
-.ytp-thumb{position:relative;flex:none;border-radius:8px;overflow:hidden;background:${T('additive-background')}}
+.ytp-thumb{position:relative;flex:none;border-radius:var(--ytp-radius,8px);overflow:hidden;background:${T('additive-background')}}
 .ytp-thumb img{display:block;width:100%;height:100%;object-fit:cover;transition:filter .12s ease}
 .ytp-thumb:hover img{filter:brightness(.7)}
 .ytp-thumb-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transition:opacity .12s ease}
@@ -108,6 +109,34 @@ export const NATIVE_CSS = `
 
 /** Keys our UI consumes; everything else still reaches YouTube's hotkeys. */
 const OWN_KEYS = new Set(['Enter', ' ', 'Escape']);
+
+/**
+ * YouTube's page tooltip for `el` (grey bubble 16px below, centred) on hover / keyboard focus. Top
+ * layer, so a clipping host can't cut it; skipped while `el`'s own menu is open. `el` must already
+ * be in its shadow root.
+ */
+export function pageTooltip(el: HTMLElement, text: string): void {
+  const tip = document.createElement('div');
+  tip.className = 'ytp-tip';
+  tip.popover = 'manual';
+  tip.textContent = text;
+  tip.setAttribute('aria-hidden', 'true');
+  el.after(tip);
+  const show = () => {
+    if (el.getAttribute('aria-expanded') === 'true') return;
+    tip.showPopover();
+    const r = el.getBoundingClientRect();
+    const w = tip.offsetWidth;
+    tip.style.left = `${Math.max(8, Math.min(r.left + r.width / 2 - w / 2, innerWidth - 8 - w))}px`;
+    tip.style.top = `${r.bottom + 16}px`;
+  };
+  const hide = () => tip.matches(':popover-open') && tip.hidePopover();
+  el.addEventListener('pointerenter', show);
+  el.addEventListener('pointerleave', hide);
+  el.addEventListener('focus', () => el.matches(':focus-visible') && show());
+  el.addEventListener('blur', hide);
+  el.addEventListener('click', hide);
+}
 
 /** Stroke icon; `extra` attributes come first, so they win over the defaults (e.g. ' stroke-width="2"'). */
 export const icon = (d: string, extra = '') =>

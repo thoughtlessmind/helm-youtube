@@ -82,6 +82,9 @@ const ROUNDED = [
   'ytd-multi-page-menu-renderer',
   '.ytChipShapeChip',
   'yt-chip-cloud-chip-renderer',
+  // Rim light over the whole like | dislike pair; the ones inside single buttons inherit their corners.
+  '.ytSegmentedLikeDislikeButtonViewModelLightShape',
+  '.ytSegmentedLikeDislikeButtonViewModelLightShape *',
   '.ytSpecButtonShapeNextHost:not(.ytSpecButtonShapeNextIconButton,.ytSpecButtonShapeNextIconOnlyDefault,.ytSpecButtonShapeNextSegmentedStart,.ytSpecButtonShapeNextSegmentedEnd)',
   '.yt-spec-button-shape-next:not(.yt-spec-button-shape-next--icon-button,.yt-spec-button-shape-next--segmented-start,.yt-spec-button-shape-next--segmented-end)',
 ].join(',');
@@ -89,7 +92,9 @@ const ROUNDED = [
 const SEG_START = '.ytSpecButtonShapeNextSegmentedStart,.yt-spec-button-shape-next--segmented-start';
 const SEG_END = '.ytSpecButtonShapeNextSegmentedEnd,.yt-spec-button-shape-next--segmented-end';
 
+// --ytp-radius reaches lib/yt/ui.ts's shadow roots, which these selectors can't.
 const radiusCss = (r: number) => `
+html{--ytp-radius:${r}px}
 ${ROUNDED}{border-radius:${r}px!important}
 :is(${ROUNDED},${SEG_START},${SEG_END}) :is(yt-touch-feedback-shape,.ytSpecTouchFeedbackShapeStroke,.ytSpecTouchFeedbackShapeFill,.ytSpecTouchFeedbackShapeHoverEffect){border-radius:inherit!important}
 :is(${SEG_START},.ytSearchboxComponentInputBox){border-radius:${r}px 0 0 ${r}px!important}
