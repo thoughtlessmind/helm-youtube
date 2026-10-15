@@ -1,4 +1,9 @@
-# Helm for YouTube
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="branding/logo-dark.png">
+    <img src="branding/logo-light.png" alt="Helm for YouTube" width="420">
+  </picture>
+</h1>
 
 **Take the helm back from the algorithm.** Helm is a lightweight Chrome extension that removes YouTube's noise and adds the power-user features youtube.com is missing: a queue that works across tabs, channel groups, per-channel speed, sponsor skipping, notes and watch-time stats.
 
@@ -137,6 +142,8 @@ src/
 ```
 
 Each feature is a module with a `setup(ctx)` that returns a teardown function. To add a feature, and for the performance rules every feature must follow, see [`CLAUDE.md`](./CLAUDE.md).
+
+Brand assets (icon source, logos, Chrome Web Store promo tiles) are in [`branding/`](./branding).
 
 ## License
 
