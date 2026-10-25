@@ -1,12 +1,16 @@
 /**
- * Main-world helper for the Global queue. Polymer/lockup data (`.data`, `componentProps`) and
- * YouTube's own `yt-navigate` handler are only reachable from the page's JS world, so this tiny
- * script does two things and talks to the isolated world over `window.postMessage`:
+ * Main-world helper for the Global queue and the player. Polymer/lockup data (`.data`,
+ * `componentProps`), the player's API and YouTube's own `yt-navigate` handler are only reachable
+ * from the page's JS world, so this tiny script does three things and talks to the isolated world
+ * over `window.postMessage` (c: a DOM event and attribute):
  *  a) ⋮ → "Add to queue": while <html data-ytp-native-add="1"> (set by read-later-queue), the
  *     click is swallowed and `{ source: 'ytp', type: 'queue-add', videoId }` posted instead.
  *     Matching is locale-independent (icon / command data, never menu text); anything that
  *     doesn't match runs YouTube's native behaviour untouched.
  *  b) `{ source: 'ytp', type: 'navigate', videoId }` → SPA navigation to that video.
+ *  c) `ytp-player-video` event on document → the player's own video id and its channel (owner
+ *     URL, name) on <html data-ytp-player-video / -owner / -author>, set before dispatchEvent
+ *     returns (lib/yt/player.ts: the miniplayer plays videos the URL doesn't name).
  * No extension APIs here (main world has none).
  */
 const VIDEO_ID = /^[\w-]{11}$/;
@@ -77,6 +81,17 @@ export default defineContentScript({
     // Capture on window runs before every YouTube listener (they sit on the items / document).
     window.addEventListener('click', onActivate, true);
     window.addEventListener('keydown', onActivate, true);
+
+    document.addEventListener('ytp-player-video', () => {
+      const player = document.querySelector('#movie_player') as Json;
+      const id = player?.getVideoData?.()?.video_id;
+      const ok = typeof id === 'string' && VIDEO_ID.test(id);
+      const res = ok && player.getPlayerResponse?.();
+      const own = res?.videoDetails?.videoId === id; // the response may still be the previous video's
+      html.dataset.ytpPlayerVideo = ok ? id : '';
+      html.dataset.ytpPlayerOwner = (own && res.microformat?.playerMicroformatRenderer?.ownerProfileUrl) || '';
+      html.dataset.ytpPlayerAuthor = (own && res.videoDetails.author) || '';
+    });
 
     window.addEventListener('message', (e) => {
       const d = e.data;

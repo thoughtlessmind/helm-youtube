@@ -1,5 +1,5 @@
 import type { YTContext } from './context';
-import { getVideoId } from './video';
+import { channelIdFromHref, getVideoId, type ChannelRef } from './video';
 
 /**
  * The watch player's chrome, shared by the player features (speed chip, screenshot, A→B loop,
@@ -23,12 +23,46 @@ export const isAdShowing = () => !!getPlayer()?.classList.contains('ad-showing')
 /**
  * On /watch the URL leads: it changes at yt-navigate-start, before the new video loads, while
  * ytd-watch-flexy[video-id] — and the title/owner/length under it — lags until after
- * yt-navigate-finish. Elsewhere (miniplayer) the flexy attribute still names the playing video.
+ * yt-navigate-finish. In the miniplayer the flexy attribute keeps the video it opened on, even
+ * after the miniplayer moves on (queue auto-advance, autoplay).
  */
 const flexyVideoId = () => document.querySelector('ytd-watch-flexy')?.getAttribute('video-id') || null;
 
-/** Video of the watch player (the URL's on /watch, else the miniplayer's). */
-export const playerVideoId = () => getVideoId() ?? flexyVideoId();
+const miniplayerOpen = () => !!document.querySelector('ytd-app[miniplayer-is-active]');
+
+/**
+ * Nothing in this world names the miniplayer's video, so the player is asked:
+ * youtube-main.content.ts answers the event synchronously on <html data-ytp-player-*>.
+ */
+const askPlayer = () => {
+  document.dispatchEvent(new Event('ytp-player-video'));
+  return document.documentElement.dataset;
+};
+
+/**
+ * Video of the watch player: the URL's on /watch, else the open miniplayer's (null once it's
+ * closed — the player still holds its last video then). Flexy is the fallback without the
+ * main-world script.
+ */
+export const playerVideoId = () => {
+  const id = getVideoId();
+  if (id || !miniplayerOpen()) return id;
+  return askPlayer().ytpPlayerVideo || flexyVideoId();
+};
+
+/** The open miniplayer's channel, keyed like getWatchChannel (null elsewhere, or before the player knows). */
+export function miniplayerChannel(): ChannelRef | null {
+  if (!miniplayerOpen()) return null;
+  const { ytpPlayerOwner, ytpPlayerAuthor } = askPlayer();
+  const id = channelIdFromHref(ytpPlayerOwner);
+  return id ? { id, name: ytpPlayerAuthor ?? '' } : null;
+}
+
+/** The open miniplayer's title and channel lines ('' elsewhere). */
+export const miniplayerText = (line: 'title' | 'channel') =>
+  document
+    .querySelector(`ytd-app[miniplayer-is-active] ytd-miniplayer ${line === 'title' ? '.ytdMiniplayerInfoBarTitle' : '.ytdMiniplayerInfoBarSubtitleText'}`)
+    ?.textContent?.trim() ?? '';
 
 /** Watch metadata (title, channel, length) has caught up with the URL's video. */
 export const watchMetaCurrent = () => {

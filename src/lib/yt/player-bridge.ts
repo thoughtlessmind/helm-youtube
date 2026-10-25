@@ -1,6 +1,6 @@
 import type { PlayerState, TabMessage } from '../messages';
-import { getVideoId, getWatchChannel } from './video';
-import { getVideo, watchMetaCurrent } from './player';
+import { getWatchChannel, isWatchPage } from './video';
+import { getVideo, miniplayerText, playerVideoId, watchMetaCurrent } from './player';
 
 /** The watch page's title, or '' while the page still shows the previous video's metadata. */
 export const watchTitle = () =>
@@ -25,13 +25,14 @@ export function playInThisTab(videoId: string): void {
 }
 
 function playerState(): PlayerState | null {
-  const videoId = getVideoId();
+  const videoId = playerVideoId();
   const v = getVideo();
   if (!videoId || !v) return null;
+  const onWatch = isWatchPage();
   return {
     videoId,
-    title: watchTitle(),
-    channelName: (watchMetaCurrent() && getWatchChannel()?.name) || '',
+    title: onWatch ? watchTitle() : miniplayerText('title'),
+    channelName: onWatch ? (watchMetaCurrent() && getWatchChannel()?.name) || '' : miniplayerText('channel'),
     currentTime: v.currentTime,
     duration: Number.isFinite(v.duration) ? v.duration : 0,
     paused: v.paused,

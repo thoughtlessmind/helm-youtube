@@ -1,17 +1,17 @@
 import { storage } from '#imports';
 import type { YTContext } from './context';
-import { getWatchChannel, isWatchPage, type ChannelRef } from './video';
-import { getVideo, onVideoEvent, watchMetaCurrent } from './player';
+import { getWatchChannel, type ChannelRef } from './video';
+import { getVideo, miniplayerChannel, onVideoEvent, playerVideoId, watchMetaCurrent } from './player';
 
 /**
- * Measures real watch time: wall-clock seconds while the watch page's main
- * player is playing AND the tab is visible. Hover/inline previews (home,
- * search) never count — only `/watch` and only YouTube's main player video.
+ * Measures real watch time: wall-clock seconds while YouTube's main player
+ * (on `/watch` or in the miniplayer) is playing AND the tab is visible.
+ * Hover/inline previews (home, search) never count.
  *
  *   local:helm:watch-tracker:log      { [YYYY-MM-DD]: DayStats } — last 90 days (the popup reads it)
  *   local:helm:watch-tracker:channels { [channelId]: { name, seconds } } — all time, no cap
  *
- * Flushed every 15 s, on navigation and on pagehide.
+ * Flushed every 15 s, when the video changes and on pagehide.
  */
 
 export interface DayStats {
@@ -39,8 +39,8 @@ let lastTick: number | null = null;
 /** Tail of the storage write chain — writes run one at a time so none is lost. */
 let writes: Promise<void> = Promise.resolve();
 
-/** The watch page's channel, or null while its metadata still shows the previous video's (SPA nav). */
-const currentChannel = () => (watchMetaCurrent() ? getWatchChannel() : null);
+/** The watch page's channel (null while its metadata still shows the previous video's), else the miniplayer's. */
+const currentChannel = () => (watchMetaCurrent() ? getWatchChannel() : miniplayerChannel());
 
 export function isoDate(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -103,9 +103,19 @@ const stop = () => {
 
 /** Starts tracking; returns stop (flushes and removes every listener). */
 export function startTracking(ctx: YTContext): () => void {
-  /** Count exactly while the main watch-page video (never a hover preview) plays in a visible tab. */
+  /** Video the counted time belongs to: the watch page's or the miniplayer's, never a hover preview's. */
+  let videoId: string | null = null;
+  /** Count exactly while that video plays in a visible tab. */
   const sync = () => {
-    const video = isWatchPage() ? getVideo() : null;
+    const id = playerVideoId();
+    if (id !== videoId) {
+      stop(); // time so far belongs to the previous video's channel
+      videoId = id;
+      channel = currentChannel();
+    } else {
+      channel ??= currentChannel(); // watch metadata (channel) renders late
+    }
+    const video = id ? getVideo() : null;
     const counting = !!video && !video.paused && !document.hidden;
     if (counting && lastTick === null) lastTick = Date.now();
     else if (!counting) stopCounting();
@@ -113,21 +123,14 @@ export function startTracking(ctx: YTContext): () => void {
 
   document.addEventListener('visibilitychange', sync);
   window.addEventListener('pagehide', stop);
-  const offNav = ctx.navigation.onNavigate(() => {
-    stop(); // time so far belongs to the previous page's channel
-    channel = currentChannel();
-    sync();
-  });
+  // The miniplayer moves on (queue, autoplay) without a navigation: play catches that.
+  const offNav = ctx.navigation.onNavigate(sync);
   // YouTube may swap the <video>; watch metadata (channel) renders late.
-  const offChange = ctx.observer.onChange(() => {
-    channel ??= currentChannel();
-    sync();
-  });
+  const offChange = ctx.observer.onChange(sync);
   const offPlay = onVideoEvent('play', sync);
   const offPause = onVideoEvent('pause', sync);
   const flushTimer = setInterval(flush, FLUSH_INTERVAL_MS);
 
-  channel = currentChannel();
   sync();
 
   return () => {

@@ -34,7 +34,7 @@ import {
 } from '../lib/yt/feed-cards';
 import { getVideoId, getWatchChannel, isWatchPage } from '../lib/yt/video';
 import { playInThisTab, watchTitle } from '../lib/yt/player-bridge';
-import { getVideo, isAdShowing, onVideoEvent, watchMetaCurrent } from '../lib/yt/player';
+import { getVideo, isAdShowing, onVideoEvent, playerVideoId, watchMetaCurrent } from '../lib/yt/player';
 import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelte';
 
 /**
@@ -144,9 +144,9 @@ const feature: Feature = {
       place(panel.host);
     };
 
-    // ── Played ✓ + auto-advance (main <video> only; ads and previews ignored) ──
+    // ── Played ✓ + auto-advance (main <video>, miniplayer included; ads and previews ignored) ──
     const notePlaying = () => {
-      const id = getVideoId();
+      const id = playerVideoId();
       if (!id || isAdShowing() || !items.some((i) => i.videoId === id && !i.playedAt)) return;
       claim(); // the tab that last started a queued video, however it was opened, plays the queue
       void markPlayed(id);
@@ -155,9 +155,9 @@ const feature: Feature = {
     let endedId: string | null = null;
     const onEnded = () => {
       if (isAdShowing()) return;
-      endedId = getVideoId();
+      endedId = playerVideoId();
       if (!isPlayerTab() || !config.autoAdvance) return;
-      const next = upNext(items).find((i) => i.videoId !== getVideoId());
+      const next = upNext(items).find((i) => i.videoId !== endedId);
       if (next) start(next.videoId); // beats YouTube's autoplay countdown
     };
 
@@ -174,12 +174,12 @@ const feature: Feature = {
       };
     };
 
-    /** Video this tab was last on (kept across non-watch pages: the miniplayer may still play it). */
-    let lastId = getVideoId();
+    /** Video this tab's player was last on (kept while no player shows one). */
+    let lastId = playerVideoId();
     /** A non-queued video opened while a queued one was unfinished takes its slot; that one moves down. */
     const onSwitch = async () => {
       const prev = lastId;
-      const id = (lastId = getVideoId() ?? lastId);
+      const id = (lastId = playerVideoId() ?? lastId);
       if (!id || !prev || id === prev || prev === endedId || !isPlayerTab()) return;
       if (items.some((i) => i.videoId === id) || !items.some((i) => i.videoId === prev)) return;
       claim();
