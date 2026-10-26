@@ -74,11 +74,13 @@
 
   const val = (f: CatalogEntry, key: string) => cfg[f.id]?.[key];
 
-  function setOpt(f: CatalogEntry, key: string, value: unknown) {
+  async function setOpt(f: CatalogEntry, key: string, value: unknown) {
     const id = f.id as ConfigId;
-    const next = { ...$state.snapshot(cfg[id]), [key]: value };
+    // Merge into what's stored now, not what loaded on open: the page writes some keys itself
+    // (speed chip's rate, queue panel's collapsed state, channel-groups' youtubeChips).
+    const next = { ...(await getConfig(id)), [key]: value };
     cfg[id] = next;
-    void setConfig(id, next as never);
+    await setConfig(id, next as never);
   }
 
   const minutes = (v: string) => Math.max(0, Math.floor(Number(v)) || 0);
@@ -196,6 +198,7 @@
                           <input
                             type="text"
                             placeholder={c.placeholder}
+                            maxlength="2000"
                             value={String(val(f, c.key) ?? '')}
                             onchange={(e) => setOpt(f, c.key, e.currentTarget.value.trim())}
                             style:width="160px"

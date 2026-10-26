@@ -117,6 +117,7 @@
       class="btn primary open"
       onclick={() => {
         void openYouTube(false);
+        void storage.setItem(FIRST_RUN_KEY, true);
         opened = true;
       }}
     >

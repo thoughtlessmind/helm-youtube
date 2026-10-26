@@ -3,7 +3,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { initials } from '../../lib/format';
-  import type { Group } from './store.svelte';
+  import { isDuplicateName, type Group } from './store.svelte';
 
   interface Props {
     group: Group | null;
@@ -30,7 +30,8 @@
   });
   const shown = $derived(all.filter(([id, n]) => `${n} ${id}`.toLowerCase().includes(q.trim().toLowerCase())));
   const count = $derived(Object.keys(picked).length);
-  const canSave = $derived(!!name.trim() && count > 0);
+  const dup = $derived(isDuplicateName(name, initial?.id ?? null));
+  const canSave = $derived(!!name.trim() && count > 0 && !dup);
 
   onMount(() => nameInput.focus());
 
@@ -71,6 +72,7 @@
       type="text"
       maxlength="40"
       placeholder="e.g. Learning"
+      aria-invalid={dup}
       onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), submit())}
     />
   </label>
@@ -101,7 +103,9 @@
   </div>
 
   <footer>
-    <span class="hint small">{canSave ? '' : 'Add a name and at least one channel'}</span>
+    <span class="hint small" class:err={dup}>
+      {dup ? 'Another group already has this name' : canSave ? '' : 'Add a name and at least one channel'}
+    </span>
     <button class="ytp-btn is-text" type="button" onclick={onCancel}>Cancel</button>
     <button class="ytp-btn is-cta" type="button" disabled={!canSave} onclick={submit}>{group ? 'Save' : 'Create'}</button>
   </footer>
@@ -135,4 +139,5 @@
   .none { margin: 0; padding: 16px 9px; font-size: 14px; color: var(--yt-sys-color-baseline--text-secondary); }
   footer { display: flex; align-items: center; gap: 8px; }
   .hint { flex: 1 1 auto; }
+  .hint.err { color: var(--yt-sys-color-baseline--error-indicator); }
 </style>

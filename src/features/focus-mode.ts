@@ -34,22 +34,22 @@ const CSS: Record<Surface, string> = {
 ytd-browse[page-subtype="home"] ytd-rich-grid-renderer { display: none !important; }`,
 
   /**
-   * #secondary also hosts engagement panels (transcript, chapters), live chat and our queue
-   * panel; panels never load while it's display:none. So only the recommendations are hidden
-   * and the column collapses unless one of those is there. Also hides the end-screen "Up next".
+   * #secondary also hosts engagement panels (transcript, chapters), live chat, a playlist /
+   * YouTube's queue and our queue panel; panels never load while it's display:none. So only the
+   * recommendations are hidden and the column collapses unless one of those is there (the
+   * "Show once" line shows only when #related sits below the player). The autoplay "Up next"
+   * countdown stays, so autoplay can still be cancelled.
    */
   recommendations: `
 ytd-watch-next-secondary-results-renderer,
 ytd-watch-flexy ytd-merch-shelf-renderer,
-ytd-watch-flexy ytd-ticket-shelf-renderer,
-.ytp-autonav-endscreen-upnext-container,
-.ytp-autonav-endscreen-upnext-cancel-button,
-.ytp-upnext {
+ytd-watch-flexy ytd-ticket-shelf-renderer {
   display: none !important;
 }
 ytd-watch-flexy[role="main"] #secondary:not(:has(
   ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"],
   ytd-live-chat-frame,
+  ytd-playlist-panel-renderer:not([hidden]),
   #ytp-queue-panel
 )) {
   display: none !important;

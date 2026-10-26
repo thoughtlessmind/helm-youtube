@@ -8,7 +8,13 @@ export function createNavigationBus() {
 
   const handler = () => {
     const url = location.href;
-    for (const l of listeners) l(url);
+    for (const l of listeners) {
+      try {
+        l(url);
+      } catch (err) {
+        console.error('[helm] navigation listener failed', err);
+      }
+    }
   };
 
   document.addEventListener('yt-navigate-finish', handler);

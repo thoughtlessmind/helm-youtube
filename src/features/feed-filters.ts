@@ -1,9 +1,10 @@
 /**
  * Feed filters: hide video cards by title keyword, by length, and already
- * watched ones — on every surface with video cards.
+ * watched ones — on every surface with video cards except History and the
+ * You page (they list what you watched; "hide watched" would empty them).
  *
  * - Each hidden card carries its reason in `data-ytp-filtered` and is hidden
- *   through the shared feed-cards coordinator (channel-groups hides cards too).
+ *   through the shared feed-cards coordinator.
  * - Cards with no parseable length (live, Shorts, premieres) pass the length filter.
  * - On Home / Subscriptions the feed chip row gets an "N hidden by filters"
  *   toggle: it shows the hidden cards dimmed with their reason for this
@@ -31,6 +32,10 @@ import { addStyle } from '../lib/yt/ui';
 
 const ID = 'feed-filters';
 const REASON = 'data-ytp-filtered';
+/** History and the You page (legacy /feed/library): never filtered. */
+const UNFILTERED = /^\/feed\/(history|you|library)\b/;
+/** The pages YouTube keeps around, hidden, after you leave them. */
+const BACKGROUND_PAGE = 'ytd-page-manager > [hidden]';
 
 const EYE_OFF =
   '<path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-2.16 3.19"/><path d="M6.6 6.6C3.6 8.6 2 12 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M2 2l20 20"/>';
@@ -110,8 +115,10 @@ const feature: Feature = {
     };
 
     function filterAll() {
+      const unfiltered = UNFILTERED.test(location.pathname);
       for (const card of enumerateVideoCards()) {
-        const why = reason(card);
+        // There, the shown page's cards stay visible; background pages keep their state for the way back.
+        const why = unfiltered && !card.closest(BACKGROUND_PAGE) ? null : reason(card);
         if (why) card.setAttribute(REASON, why);
         else card.removeAttribute(REASON);
         if (why && !reveal) hideCard(card, ID);
@@ -127,6 +134,7 @@ const feature: Feature = {
         .filter(Boolean);
       minSec = Math.max(0, cfg.minMinutes) * 60;
       maxSec = Math.max(0, cfg.maxMinutes) * 60;
+      if (maxSec && minSec > maxSec) [minSec, maxSec] = [maxSec, minSec]; // min > max would hide every timed card
       hideWatched = cfg.hideWatched;
       filterAll();
     };
@@ -135,7 +143,7 @@ const feature: Feature = {
     const unsubs = [
       watchConfig('feed-filters', apply),
       ctx.observer.onChange(filterAll),
-      onCardsChanged(renderToggle), // channel-groups hiding changes the count
+      onCardsChanged(renderToggle), // another feature's hiding changes the count
       ctx.navigation.onNavigate(() => {
         reveal = false;
         filterAll();

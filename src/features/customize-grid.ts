@@ -6,6 +6,8 @@ import { addStyle } from '../lib/yt/ui';
 const ITEM = 'ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *)';
 
 function buildCSS(cols: number): string {
+  // Goes into page CSS and a hand-edited backup can put anything here: an integer within the popup's 0–8.
+  cols = Math.min(8, Math.max(0, Math.round(Number(cols)) || 0));
   if (!cols) return ''; // 0 = YouTube default: its own responsive grid, untouched
   // YouTube's media queries override its own items-per-row var at narrow
   // viewports, so we set grid-template-columns explicitly. The CSS vars

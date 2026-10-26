@@ -32,8 +32,13 @@ export default defineContentScript({
 
       for (const [id, off] of teardowns) {
         if (!enabled.has(id)) {
-          off();
           teardowns.delete(id);
+          try {
+            off();
+          } catch (err) {
+            console.error(`[helm] feature "${id}" failed to tear down`, err);
+            devLog(`teardown ${id}: ${(err as Error)?.stack ?? err}`);
+          }
         }
       }
 
@@ -55,7 +60,9 @@ export default defineContentScript({
     // One sync at a time: a toggle (or the kill switch) arriving mid-setup
     // must not double-set-up a feature or miss tearing one down.
     let queue = Promise.resolve();
-    const sync = (ids: string[]) => (queue = queue.then(() => apply(ids)));
+    // A rejected link would skip every later sync, so the chain never rejects.
+    const sync = (ids: string[]) =>
+      (queue = queue.then(() => apply(ids)).catch((err) => console.error('[helm] feature sync failed', err)));
 
     // Extension updated/reloaded: this script is orphaned (storage and
     // messaging throw). Remove everything it added so the page is plain YouTube.
@@ -69,6 +76,9 @@ export default defineContentScript({
       ctx.observer.destroy();
       ctx.navigation.destroy();
     });
+    // WXT only notices invalidation when `isInvalid` is read, and storage
+    // changes (the other reader) stop after an update — so poll it on DOM changes.
+    ctx.observer.onChange(() => void wxt.isInvalid);
 
     sync(await getEnabledFeatures());
     watchEnabledFeatures(sync);
