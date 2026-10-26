@@ -5,8 +5,11 @@
  *  - Group pill next to Subscribe on watch and channel pages: a popover with
  *    a checkbox per group, inline "New group" and "Manage groups".
  *  - Home / Subscriptions: a group switcher in the chip-bar slot ("All" + one
- *    chip per non-empty group, "New group", "Manage groups"). A chip hides
- *    cards from channels outside the group. The choice per feed lives in
+ *    chip per non-empty group, "New group", "Manage groups"). Where YouTube has
+ *    its own chips, a toggle at the strip's right end swaps back to them (config
+ *    `youtubeChips`; no group while they show). A group chip puts its channels'
+ *    latest videos, newest first, in YouTube's own grid as native cards (the
+ *    MAIN-world lib/yt/group-grid.ts; GroupFeed stands in while they load). The choice per feed lives in
  *    sessionStorage `feedKey(pathname)` (focus-mode's calm home writes it too).
  *  - Manage groups: an in-page modal (reorder, rename, edit channels,
  *    delete + Undo, new group). Also opened by the popup (`open-manage-groups`
@@ -20,28 +23,27 @@
 import { mount, unmount, type Component } from 'svelte';
 import type { Feature } from '../lib/features';
 import type { TabMessage } from '../lib/messages';
+import { getConfig, setConfig, watchConfig } from '../lib/settings';
 import {
   cardChannel,
   currentFeed,
   dropFeedBarPart,
   enumerateVideoCards,
   feedBarPart,
-  hideCard,
-  isCardHidden,
-  onCardsChanged,
-  unhideAllCards,
-  unhideCard,
+  feedChipBar,
+  feedGrid,
 } from '../lib/yt/feed-cards';
 import { addStyle, createHost, showDialog } from '../lib/yt/ui';
 import { watchMetaCurrent } from '../lib/yt/player';
 import { channelIdFromHref, getWatchChannel, isWatchPage, type ChannelRef } from '../lib/yt/video';
 import ChipBar from './channel-groups/ChipBar.svelte';
 import Editor from './channel-groups/Editor.svelte';
+import GroupFeed from './channel-groups/GroupFeed.svelte';
+import { channelIds } from './channel-groups/channel-ids';
 import GroupPill from './channel-groups/GroupPill.svelte';
 import Manage from './channel-groups/Manage.svelte';
 import {
   FAV,
-  channelCount,
   createGroup,
   feedKey,
   loadGroups,
@@ -54,6 +56,8 @@ import {
 const ID = 'channel-groups';
 const MANAGE_HASH = '#ytp-manage-groups';
 const FAV_ATTR = 'data-ytp-favorite';
+/** On a feed's `ytd-browse` while GroupFeed stands in for its grid (loading, empty, failed). */
+const GROUP_FEED_ATTR = 'data-ytp-group-feed';
 
 // ── Selectors ───────────────────────────────────────────────────────────────
 const WATCH_SUBSCRIBE = 'ytd-watch-metadata #owner #subscribe-button';
@@ -66,8 +70,12 @@ const GUIDE_ENTRY = 'ytd-guide-entry-renderer';
 
 const STAR_SVG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3.2l2.7 5.5 6 .9-4.35 4.2 1.03 6L12 16.95 6.62 19.8l1.03-6L3.3 9.6l6-.9z'/%3E%3C/svg%3E";
-/** ★ after a pinned favorite's name in the guide (light DOM, so a page-level style). */
-const GUIDE_CSS = `
+/**
+ * Light DOM, so page-level: ★ after a pinned favorite's name in the guide; YouTube's grid (and its
+ * "load more" spinner) out of the way while GroupFeed stands in for it.
+ */
+const PAGE_CSS = `
+[${GROUP_FEED_ATTR}] ytd-rich-grid-renderer > #contents { display: none !important; }
 [${FAV_ATTR}] .title::after {
   content: "★" / ", in Favorites";
   display: inline-block; width: 11px; height: 11px; margin-left: 5px; vertical-align: -1px; overflow: hidden;
@@ -128,9 +136,10 @@ const feature: Feature = {
   async setup(ctx) {
     let pill: { host: HTMLElement; app: ReturnType<typeof mount> } | null = null;
     let chipBar: { target: HTMLElement; app: ReturnType<typeof mount> } | null = null;
+    let groupFeed: { host: HTMLElement; app: ReturnType<typeof mount> } | null = null;
     let dialog: HTMLDialogElement | null = null;
 
-    const guideStyle = addStyle(GUIDE_CSS);
+    const pageStyle = addStyle(PAGE_CSS);
 
     // ── Dialogs ───────────────────────────────────────────────────────────
 
@@ -222,52 +231,93 @@ const feature: Feature = {
       syncFeed();
     }
 
+    function swapChips(): void {
+      store.youtubeChips = !store.youtubeChips;
+      void setConfig(ID, { youtubeChips: store.youtubeChips });
+      syncFeed();
+    }
+
     function syncFeed(): void {
       const feed = currentFeed();
       if (!feed) return;
-      const part = feedBarPart('groups');
+      store.chipBar = !!feedChipBar(feed);
+      const part = feedBarPart('groups', !(store.chipBar && store.youtubeChips));
       if (part && chipBar?.target !== part) {
         if (chipBar) void unmount(chipBar.app);
         chipBar = {
           target: part,
           app: mount(ChipBar, {
             target: part,
-            props: { onPick: selectGroup, onNew: () => openEditor(null), onEdit: openEditor, onManage: openManage },
+            props: { onPick: selectGroup, onNew: () => openEditor(null), onManage: openManage, onSwap: swapChips },
           }),
         };
       }
-
       store.selected = sessionStorage.getItem(feedKey(location.pathname)) ?? '';
-      const group = activeGroup();
-      for (const card of enumerateVideoCards(feed)) {
-        // Cards whose channel we can't read (ads, not yet rendered) stay visible.
-        const ch = cardChannel(card);
-        if (group && (ch.id || ch.name) && !memberKey(group, ch)) hideCard(card, ID);
-        else unhideCard(card, ID);
+      syncGrid(feed);
+      feed.toggleAttribute(GROUP_FEED_ATTR, !!store.active && store.gridStatus !== 'ok'); // no-op when unchanged
+      // In the grid's place (after it: the row may sit right before it, on Subscriptions).
+      const grid = feedGrid(feed);
+      if (grid) {
+        if (!groupFeed) {
+          const { host, root } = createHost('ytp-group-feed');
+          const onRetry = () => {
+            gridAsked = '';
+            syncFeed();
+          };
+          groupFeed = { host, app: mount(GroupFeed, { target: root, props: { onEdit: openEditor, onRetry } }) };
+        }
+        if (grid.nextElementSibling !== groupFeed.host) grid.after(groupFeed.host);
       }
-      updateEmpty();
     }
 
-    const activeGroup = () => store.groups.find((g) => g.id === store.selected && channelCount(g) > 0);
+    // ── Group grid: asks the MAIN world (lib/yt/group-grid.ts) ────────────
 
+    let gridSeq = 0;
+    /** Feed + member keys last asked for; cleared on navigation (Back may restore a cached page). */
+    let gridAsked = '';
     /**
-     * "No new videos from channels in …" when the group (plus any filters, ours or CSS like
-     * hide-shorts) hides every card. Visible cards whose channel we can't read (ads) don't count;
-     * at least one card must be hidden so a feed that hasn't rendered its bylines yet isn't "empty".
+     * The `gridAsked` the grid last showed ('ok'). Re-asking for it after Back skips the skeleton,
+     * which would hide the grid (and collapse the page) while YouTube restores the scroll position.
      */
-    function updateEmpty(): void {
-      const feed = currentFeed();
-      const cards = feed ? enumerateVideoCards(feed) : [];
-      const shown = cards.filter((c) => !isCardHidden(c) && c.checkVisibility());
-      // ponytail: a fully hidden Home grid keeps YouTube loading more pages until a match shows up.
-      store.empty =
-        !!activeGroup() &&
-        shown.length < cards.length &&
-        shown.every((c) => {
-          const ch = cardChannel(c);
-          return !ch.id && !ch.name;
-        });
+    let gridShown = '';
+
+    const askGrid = (seq: number, feed: string | null, ids: string[] | null) =>
+      window.postMessage({ source: 'ytp', type: 'group-grid', seq, feed, ids }, location.origin);
+
+    const setGridStatus = (status: typeof store.gridStatus) => {
+      store.gridStatus = status;
+      gridShown = status === 'ok' ? gridAsked : '';
+      syncFeed();
+    };
+
+    function syncGrid(feed: HTMLElement): void {
+      // ponytail: waits for the MAIN-world script (it sets this before listening); without it, loads forever.
+      if (!document.documentElement.dataset.ytpMain) return;
+      if (!feedGrid(feed)?.firstElementChild) return; // the grid's data (and its targetId) not there yet
+      const subtype = feed.getAttribute('page-subtype');
+      const keys = Object.keys(store.active?.channels ?? {}).sort();
+      const asked = `${subtype}|${keys.join()}`;
+      if (asked === gridAsked) return;
+      gridAsked = asked;
+      const seq = ++gridSeq;
+      if (!keys.length) {
+        gridShown = '';
+        return askGrid(seq, subtype, null);
+      }
+      if (asked !== gridShown) store.gridStatus = 'loading';
+      channelIds(keys).then(
+        (ids) => seq === gridSeq && (ids.length ? askGrid(seq, subtype, ids) : setGridStatus('error')),
+        () => seq === gridSeq && setGridStatus('error'),
+      );
     }
+
+    const onGridStatus = (e: MessageEvent) => {
+      const d = e.data;
+      if (e.source !== window || d?.source !== 'ytp' || d.type !== 'group-grid-status' || d.seq !== gridSeq) return;
+      if (!['loading', 'ok', 'empty', 'error'].includes(d.status)) return;
+      setGridStatus(d.status);
+    };
+    window.addEventListener('message', onGridStatus);
 
     // ── Guide: Favorites pinned first ─────────────────────────────────────
 
@@ -317,12 +367,16 @@ const feature: Feature = {
     };
     browser.runtime.onMessage.addListener(onMessage);
 
+    store.youtubeChips = (await getConfig(ID)).youtubeChips;
     const unsubs = [
       await loadGroups(sync),
+      watchConfig(ID, (cfg) => {
+        store.youtubeChips = cfg.youtubeChips;
+        syncFeed();
+      }),
       ctx.observer.onChange(sync),
-      onCardsChanged(updateEmpty), // feed-filters hiding can empty the feed too
       ctx.navigation.onNavigate(() => {
-        unhideAllCards(ID);
+        gridAsked = '';
         sync();
       }),
     ];
@@ -336,6 +390,8 @@ const feature: Feature = {
     return () => {
       unsubs.forEach((off) => off());
       browser.runtime.onMessage.removeListener(onMessage);
+      window.removeEventListener('message', onGridStatus);
+      askGrid(++gridSeq, null, null); // YouTube's own contents back, on every feed
       closeDialog();
       if (pill) {
         void unmount(pill.app);
@@ -343,10 +399,14 @@ const feature: Feature = {
       }
       if (chipBar) void unmount(chipBar.app);
       dropFeedBarPart('groups');
-      guideStyle.remove();
+      if (groupFeed) {
+        void unmount(groupFeed.app);
+        groupFeed.host.remove();
+      }
+      document.querySelectorAll(`[${GROUP_FEED_ATTR}]`).forEach((el) => el.removeAttribute(GROUP_FEED_ATTR));
+      pageStyle.remove();
       document.querySelectorAll(`[${FAV_ATTR}]`).forEach((el) => el.removeAttribute(FAV_ATTR));
       restoreGuide();
-      unhideAllCards(ID);
       store.page = null;
     };
   },

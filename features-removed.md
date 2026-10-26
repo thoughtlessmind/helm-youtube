@@ -51,7 +51,7 @@ Decided 2026-10-12 during the v2 feature audit. Kept list: [`features.md`](./fea
 | One-click "favorite playlist" thumbnail button | Native ⋮ → Save to playlist |
 | Per-channel notification preferences | Native subscription bell (All / Personalized / None) |
 | Stop homepage reshuffle / preserve scroll on back | Native SPA already restores both |
-| OAuth custom-feed mode for dashboards | Requires OAuth; Channel groups filter mode covers it |
+| OAuth custom-feed mode for dashboards | Requires OAuth; Channel groups' per-group feed covers it |
 | Smart views, per-view settings, export/import of views | Complexity without proven need |
 | Companion mobile app | Separate platform |
 | Public preset marketplace | Needs a hosted backend |

@@ -16,7 +16,7 @@
  */
 
 import { channelIdFromHref } from './video';
-import { createHost } from './ui';
+import { addStyle, createHost } from './ui';
 
 const CARD_SELECTOR = [
   'ytd-rich-item-renderer',
@@ -160,10 +160,6 @@ export function hiddenByOther(card: HTMLElement, featureId: string): boolean {
   return ids.size > 0;
 }
 
-export function isCardHidden(card: HTMLElement): boolean {
-  return card.hasAttribute(HIDDEN_BY_ATTR);
-}
-
 export function unhideAllCards(featureId: string): void {
   document
     .querySelectorAll<HTMLElement>(`[${HIDDEN_BY_ATTR}~="${featureId}"]`)
@@ -186,47 +182,83 @@ export function currentFeed(): HTMLElement | null {
 
 export type FeedBarPart = 'groups' | 'filters';
 
+/** The feed's card grid, or null before it renders. */
+export function feedGrid(feed = currentFeed()): HTMLElement | null {
+  return feed?.querySelector<HTMLElement>('ytd-rich-grid-renderer > #contents') ?? null;
+}
+
+/** YouTube's own chip bar on the feed, or null (e.g. Subscriptions has none). */
+export function feedChipBar(feed = currentFeed()): HTMLElement | null {
+  return feed?.querySelector<HTMLElement>(YT_CHIP_BAR) ?? null;
+}
+
 const BAR_ID = 'ytp-feed-bar';
 const BAR_CSS = `
-  :host { display: block; width: 100%; } /* the grid is a centered flex column */
+  :host { display: block; width: 100%; min-width: 0; } /* a centered flex column, or the chip strip's flex item */
+  :host([data-at="end"]) { width: auto; flex: none; margin-left: auto; }
   .row { display: flex; align-items: flex-start; gap: 12px; }
   .row:has(> :not([hidden])) { padding: 12px 0; }
-  [data-part="groups"] { flex: 1 1 auto; min-width: 0; }
+  :host([data-at="end"]) .row:has(> :not([hidden])) { padding-left: 12px; }
+  [data-part="groups"] { display: contents; } /* its chips fill the row, its toggle ends it */
   [data-part="filters"] { order: 1; flex: none; margin-left: auto; }
 `;
+/**
+ * YouTube's chips step aside while our row replaces them. With our row at the strip's end, YouTube's
+ * right scroll arrow (absolute, at the strip's edge) moves to the end of its own chips.
+ */
+const STRIP_CSS = `
+:is(#chips-content, chip-bar-view-model):has(> #${BAR_ID}[data-at="replace"]) > :not(#${BAR_ID}) { display: none !important; }
+#chips-content:has(> #${BAR_ID}[data-at="end"]) > #scroll-container { anchor-name: --ytp-chips; }
+#chips-content:has(> #${BAR_ID}[data-at="end"]) > #right-arrow { right: anchor(--ytp-chips right); }
+`;
 
-let bar: { host: HTMLElement; row: HTMLElement } | null = null;
-/** YouTube's chip bar we hid to put the group switcher in its slot. */
-let hiddenChipBar: HTMLElement | null = null;
+type Bar = { host: HTMLElement; row: HTMLElement; style: HTMLStyleElement };
+let bar: Bar | null = null;
 
-function restoreChipBar(): void {
-  if (hiddenChipBar) hiddenChipBar.style.display = '';
-  hiddenChipBar = null;
+/** YouTube's chip strip on the feed, if it has one. */
+const chipStrip = (feed = currentFeed()) => {
+  const chips = feedChipBar(feed);
+  return chips?.querySelector<HTMLElement>('#chips-content') ?? chips;
+};
+
+/**
+ * Puts the row in YouTube's chip strip: in place of its chips while a part
+ * asks to replace them, else at the strip's right end. Signed in, the strip is
+ * pinned under the masthead (`position: fixed`, over ytd-app's frosted-glass
+ * band), so anything in-flow above the chip bar would be hidden beneath it.
+ * Without a chip bar, the row sits right above the grid.
+ */
+function placeBar({ host, row }: Bar, strip: HTMLElement | null, grid: HTMLElement | null): void {
+  const replace = !!row.querySelector(':scope > [data-replace]');
+  const at = strip ? (replace ? 'replace' : 'end') : 'grid';
+  if (host.dataset.at !== at) host.dataset.at = at; // even a same-value write is a mutation
+  if (!strip) {
+    if (grid && host.nextElementSibling !== grid) grid.before(host);
+  } else if (replace) {
+    if (strip.firstElementChild !== host) strip.prepend(host);
+  } else if (strip.lastElementChild !== host) strip.append(host);
 }
 
 /**
- * The element `part` renders into, inside the feed's chip-bar slot: the
- * group switcher replaces YouTube's chip bar (one row, as on the boards);
- * without a chip bar (Subscriptions) the row sits right above the grid.
+ * The element `part` renders into, in the feed's chip strip (see placeBar);
+ * `replaceChips` hides YouTube's chips while this part is shown.
  * Null off Home/Subscriptions or before the grid renders. Idempotent and
  * cheap — call it on every DOM change; it re-inserts the row if YouTube
  * re-rendered the slot. Set `hidden` on the part while it has nothing to show.
  */
-export function feedBarPart(part: FeedBarPart): HTMLElement | null {
+export function feedBarPart(part: FeedBarPart, replaceChips = false): HTMLElement | null {
   const feed = currentFeed();
-  const grid = feed?.querySelector('ytd-rich-grid-renderer');
-  const chips = feed?.querySelector<HTMLElement>(YT_CHIP_BAR) ?? null;
-  const anchor = chips ?? grid?.querySelector(':scope > #contents');
-  if (!anchor?.parentElement) return null;
+  const strip = chipStrip(feed);
+  const grid = feedGrid(feed);
+  if (!strip && !grid?.parentElement) return null;
 
   if (!bar) {
     const { host, root } = createHost(BAR_ID, BAR_CSS);
     const row = document.createElement('div');
     row.className = 'row';
     root.append(row);
-    bar = { host, row };
+    bar = { host, row, style: addStyle(STRIP_CSS) };
   }
-  if (bar.host.nextElementSibling !== anchor) anchor.before(bar.host);
 
   let el = bar.row.querySelector<HTMLElement>(`:scope > [data-part="${part}"]`);
   if (!el) {
@@ -234,15 +266,8 @@ export function feedBarPart(part: FeedBarPart): HTMLElement | null {
     el.dataset.part = part;
     bar.row.append(el);
   }
-
-  const replaceChips = !!chips && !!bar.row.querySelector(':scope > [data-part="groups"]');
-  if (hiddenChipBar !== (replaceChips ? chips : null)) {
-    restoreChipBar();
-    if (replaceChips && chips) {
-      chips.style.display = 'none';
-      hiddenChipBar = chips;
-    }
-  }
+  el.toggleAttribute('data-replace', replaceChips);
+  placeBar(bar, strip, grid);
   return el;
 }
 
@@ -250,9 +275,12 @@ export function feedBarPart(part: FeedBarPart): HTMLElement | null {
 export function dropFeedBarPart(part: FeedBarPart): void {
   if (!bar) return;
   bar.row.querySelector(`:scope > [data-part="${part}"]`)?.remove();
-  if (part === 'groups') restoreChipBar();
-  if (!bar.row.children.length) {
-    bar.host.remove();
-    bar = null;
+  if (bar.row.children.length) {
+    const feed = currentFeed();
+    placeBar(bar, chipStrip(feed), feedGrid(feed)); // gives YouTube its chips back
+    return;
   }
+  bar.host.remove();
+  bar.style.remove();
+  bar = null;
 }

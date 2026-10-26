@@ -34,7 +34,7 @@ Dev loop gotchas:
 src/
 ├── entrypoints/
 │   ├── youtube.content.ts       # Isolated-world content script — bootstraps the registry
-│   ├── youtube-main.content.ts  # Tiny MAIN-world helper for the queue (⋮ → Add to queue, SPA navigate)
+│   ├── youtube-main.content.ts  # Small MAIN-world helper: queue (⋮ → Add to queue, SPA navigate), channel-group grid (lib/yt/group-grid.ts)
 │   ├── background.ts            # Service worker
 │   └── popup/                   # Toolbar popup (Svelte)
 ├── features/                 # ONE MODULE PER FEATURE (<id>.ts, plus an <id>/ folder for Svelte parts), lazy-imported
@@ -86,7 +86,7 @@ The content script reads enabled flags from `chrome.storage.sync`, dynamic-impor
 ### Storage split
 
 - `chrome.storage.sync` → `featureFlags`, `extensionEnabled`, `config:<id>` (small, roams across devices)
-- `chrome.storage.local` → bulky data under `helm:*`: queue, notes, channel groups, per-channel speed, watch time
+- `chrome.storage.local` → bulky data under `helm:*`: queue, notes, channel groups, per-channel speed, watch time, `@handle` → `UC…` id cache
 - `chrome.storage.session` → `helm:player-tab`
 - Always use the wxt `storage` helper (`storage.getItem('sync:key')` / `storage.watch(...)`), not raw `chrome.storage`.
 

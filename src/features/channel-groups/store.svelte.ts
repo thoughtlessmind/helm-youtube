@@ -27,8 +27,18 @@ class Store {
   onChannelPage = $state(false);
   /** Selected group id on the current feed ('' = All). */
   selected = $state('');
-  /** The selected group hides every card in the feed. */
-  empty = $state(false);
+  /** The feed has YouTube's own chips to switch to. */
+  chipBar = $state(false);
+  /** Show YouTube's chips there instead of the group switcher (config). */
+  youtubeChips = $state(false);
+  /** The active group's videos in YouTube's grid: on their way, there, none, or failed. */
+  gridStatus = $state<'loading' | 'ok' | 'empty' | 'error'>('loading');
+
+  /** The group whose videos replace the feed: selected, non-empty, and not swapped out for YouTube's chips. */
+  get active(): Group | undefined {
+    if (this.chipBar && this.youtubeChips) return undefined;
+    return this.groups.find((g) => g.id === this.selected && channelCount(g) > 0);
+  }
 }
 export const store = new Store();
 

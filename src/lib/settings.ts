@@ -41,6 +41,8 @@ export const FEATURE_CONFIG_DEFAULTS = {
     maxMinutes: 0,
     hideWatched: true,
   },
+  /** Home's chip strip shows YouTube's own topic chips instead of the group switcher. */
+  'channel-groups': { youtubeChips: false },
   'customize-grid': { columnsPerRow: 5 },
   'playback-speed': { rate: 1.25, perChannel: true },
   /** SponsorBlock categories to auto-skip. */

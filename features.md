@@ -20,7 +20,7 @@ P3 = small utility.
 | 5 | **Playback speed** | A default speed, plus per-channel overrides that are remembered | Speed resets; no per-channel memory | `playback-speed` | P1 |
 | 6 | **SponsorBlock auto-skip** | Auto-skips crowd-sourced sponsor / self-promo / interaction / intro / outro segments, shown on the progress bar, with Undo | Not native (Premium "Jump ahead" is not sponsor skipping) | `sponsorblock` | P1 |
 | 7 | **Global queue** | One persistent queue shared by every YouTube tab/window in the profile | Native queue is per-tab and lost on reload | `read-later-queue` | P1 |
-| 8 | **Channel groups** | Group channels (favorites = a group), filter Subscriptions/home by group | Subscriptions are one flat list | `channel-groups` | P2 |
+| 8 | **Channel groups** | Group channels (favorites = a group); a group chip on Home/Subscriptions shows just its channels' latest videos, as native cards in YouTube's own grid | Subscriptions are one flat list | `channel-groups` | P2 |
 | 9 | **Hide end-screen cards** | Removes the suggested-video overlay in the last ~20 s | No native off switch | `hide-end-screen-cards` | P2 |
 | 10 | **Auto-dismiss "Still watching?"** | Auto-confirms the pause prompt | Not native | `auto-dismiss-still-watching` | P2 |
 | 11 | **Volume boost** | Amplify above 100% for quiet videos | Native caps at 100%; Stable volume only normalizes | `volume-boost` | P2 |
@@ -105,7 +105,7 @@ No floating buttons: every on-page control sits in one of YouTube's own places.
 | Watch page right column | Queue panel (player tab only, only while something is up next) |
 | Thumbnail hover preview | "Add to queue" button, next to YouTube's mute / CC |
 | Channel page | all-time watch time for that channel |
-| Home chip bar | channel-group switcher + "N hidden by filters" toggle; "+ New group" dialog |
+| Home chip bar | channel-group switcher (replaces YouTube's chips; a toggle at the strip's right end swaps back) + "N hidden by filters" toggle; "+ New group" dialog |
 | Home feed (Focus mode) | calm replacement: continue queue, channel groups, "show once" |
 | Any page, top of content | daily-limit reminder (Snooze / Dismiss) |
 | Page bottom-left | YouTube-style toasts for confirmations |

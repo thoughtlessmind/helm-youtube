@@ -173,7 +173,7 @@ export const CATALOG: CatalogSection[] = [
       {
         id: 'channel-groups',
         name: 'Channel groups',
-        desc: 'Group channels and filter your feed by group.',
+        desc: 'Group channels, then pick a group on Home to see just its latest videos.',
         icon: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
         controls: [{ type: 'manage-groups' }],
       },

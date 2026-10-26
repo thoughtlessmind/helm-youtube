@@ -1,18 +1,22 @@
 /**
- * Main-world helper for the Global queue and the player. Polymer/lockup data (`.data`,
- * `componentProps`), the player's API and YouTube's own `yt-navigate` handler are only reachable
- * from the page's JS world, so this tiny script does three things and talks to the isolated world
- * over `window.postMessage` (c: a DOM event and attribute):
+ * Main-world helper for the Global queue and channel groups. Polymer/lockup data (`.data`,
+ * `componentProps`), `ytcfg` and YouTube's own `yt-navigate` / `yt-action` handlers are only
+ * reachable from the page's JS world, so this small script does four things and talks to the
+ * isolated world over `window.postMessage` (d: a DOM event and attribute):
  *  a) ⋮ → "Add to queue": while <html data-ytp-native-add="1"> (set by read-later-queue), the
  *     click is swallowed and `{ source: 'ytp', type: 'queue-add', videoId }` posted instead.
  *     Matching is locale-independent (icon / command data, never menu text); anything that
  *     doesn't match runs YouTube's native behaviour untouched.
  *  b) `{ source: 'ytp', type: 'navigate', videoId }` → SPA navigation to that video.
- *  c) `ytp-player-video` event on document → the player's own video id and its channel (owner
+ *  c) `{ source: 'ytp', type: 'group-grid', … }` → a channel group in the feed's own grid
+ *     (lib/yt/group-grid.ts).
+ *  d) `ytp-player-video` event on document → the player's own video id and its channel (owner
  *     URL, name) on <html data-ytp-player-video / -owner / -author>, set before dispatchEvent
  *     returns (lib/yt/player.ts: the miniplayer plays videos the URL doesn't name).
  * No extension APIs here (main world has none).
  */
+import { installGroupGrid } from '../lib/yt/group-grid';
+
 const VIDEO_ID = /^[\w-]{11}$/;
 const QUEUE_LIST = 'PLAYLIST_EDIT_LIST_TYPE_QUEUE';
 const QUEUE_ICON = 'ADD_TO_QUEUE_TAIL';
@@ -81,6 +85,8 @@ export default defineContentScript({
     // Capture on window runs before every YouTube listener (they sit on the items / document).
     window.addEventListener('click', onActivate, true);
     window.addEventListener('keydown', onActivate, true);
+
+    installGroupGrid();
 
     document.addEventListener('ytp-player-video', () => {
       const player = document.querySelector('#movie_player') as Json;

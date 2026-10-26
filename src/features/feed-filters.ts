@@ -20,6 +20,7 @@ import {
   dropFeedBarPart,
   enumerateVideoCards,
   feedBarPart,
+  feedGrid,
   hiddenByOther,
   hideCard,
   onCardsChanged,
@@ -101,7 +102,7 @@ const feature: Feature = {
       const n = feed
         ? [...feed.querySelectorAll<HTMLElement>(`[${REASON}]`)].filter((c) => !hiddenByOther(c, ID)).length
         : 0;
-      part.hidden = n === 0;
+      part.hidden = n === 0 || !feedGrid()?.checkVisibility(); // a group feed or the calm home stands in for it
       const label = reveal ? `Hide filtered (${n})` : `${n} hidden by filter${n === 1 ? '' : 's'}`;
       if (toggle.textContent === label) return;
       toggle.innerHTML = `${svg(reveal ? EYE : EYE_OFF)}<span>${label}</span>`;

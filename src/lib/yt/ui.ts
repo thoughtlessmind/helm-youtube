@@ -113,17 +113,17 @@ const OWN_KEYS = new Set(['Enter', ' ', 'Escape']);
 /**
  * YouTube's page tooltip for `el` (grey bubble 16px below, centred) on hover / keyboard focus. Top
  * layer, so a clipping host can't cut it; skipped while `el`'s own menu is open. `el` must already
- * be in its shadow root.
+ * be in its shadow root. `text` may be a function, read on each show. Returns a remover.
  */
-export function pageTooltip(el: HTMLElement, text: string): void {
+export function pageTooltip(el: HTMLElement, text: string | (() => string)): () => void {
   const tip = document.createElement('div');
   tip.className = 'ytp-tip';
   tip.popover = 'manual';
-  tip.textContent = text;
   tip.setAttribute('aria-hidden', 'true');
   el.after(tip);
   const show = () => {
     if (el.getAttribute('aria-expanded') === 'true') return;
+    tip.textContent = typeof text === 'string' ? text : text();
     tip.showPopover();
     const r = el.getBoundingClientRect();
     const w = tip.offsetWidth;
@@ -136,6 +136,7 @@ export function pageTooltip(el: HTMLElement, text: string): void {
   el.addEventListener('focus', () => el.matches(':focus-visible') && show());
   el.addEventListener('blur', hide);
   el.addEventListener('click', hide);
+  return () => tip.remove();
 }
 
 /** Stroke icon; `extra` attributes come first, so they win over the defaults (e.g. ' stroke-width="2"'). */

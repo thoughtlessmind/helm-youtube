@@ -47,7 +47,7 @@ Every feature can be switched on or off, and configured, from the toolbar popup.
 | Feature | What it does |
 |---|---|
 | **Queue** | One queue shared by every YouTube tab and window. It survives reloads and restarts. Add videos with YouTube's own "Add to queue", the button on a thumbnail's hover preview, or `Q`. It plays the next video automatically. |
-| **Channel groups** | Groups your channels and filters Subscriptions and Home by group. |
+| **Channel groups** | Groups your channels. Pick a group on Home or Subscriptions to see only its channels' latest videos, newest first. |
 | **Video notes** | Keeps a private note on any video. Notes save automatically. |
 
 ### Watch time
@@ -129,7 +129,7 @@ After you change the manifest or the service worker, reload the extension in `ch
 src/
 ├── entrypoints/
 │   ├── youtube.content.ts       # Content script: loads the enabled features
-│   ├── youtube-main.content.ts  # Small page-world helper for the queue
+│   ├── youtube-main.content.ts  # Small page-world helper for the queue and channel groups
 │   ├── background.ts            # Service worker
 │   └── popup/                   # Toolbar popup (Svelte)
 ├── features/                # One module per feature, loaded only when enabled
