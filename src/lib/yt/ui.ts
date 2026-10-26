@@ -124,7 +124,11 @@ export function pageTooltip(el: HTMLElement, text: string | (() => string)): () 
   const show = () => {
     if (el.getAttribute('aria-expanded') === 'true') return;
     tip.textContent = typeof text === 'string' ? text : text();
-    tip.showPopover();
+    try {
+      tip.showPopover();
+    } catch {
+      return; // focus came back mid-transition of another popover (a menu closing): skip this one
+    }
     const r = el.getBoundingClientRect();
     const w = tip.offsetWidth;
     tip.style.left = `${Math.max(8, Math.min(r.left + r.width / 2 - w / 2, innerWidth - 8 - w))}px`;

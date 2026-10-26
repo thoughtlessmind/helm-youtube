@@ -156,6 +156,8 @@ const feature: Feature = {
     const onEnded = () => {
       if (isAdShowing()) return;
       endedId = playerVideoId();
+      // Queued after it started playing (so `playing` never marked it): watched now.
+      if (endedId && items.some((i) => i.videoId === endedId && !i.playedAt)) void markPlayed(endedId);
       if (!isPlayerTab() || !config.autoAdvance) return;
       const next = upNext(items).find((i) => i.videoId !== endedId);
       if (next) start(next.videoId); // beats YouTube's autoplay countdown

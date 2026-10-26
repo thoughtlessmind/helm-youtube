@@ -135,6 +135,8 @@ export function themeCss(theme: Theme): string {
       .map(([name, value]) => `${name}:${value}`);
     css = rule('html,html [dark],html [light]', [...modeVars, ...decls((theme.light ?? theme.dark)!)]);
     css += `html{color-scheme:${theme.light ? 'light' : 'dark'}!important}`; // scrollbars, native inputs
+    // Dark YouTube's Ambient mode glow would paint over a light preset's page.
+    if (theme.light) css += '#cinematics,#cinematics-container{display:none!important}';
   }
   // Hard-coded colors: html's own background, the search box (light, or `…Dark` classes set by JS),
   // and a hovered card's title/metadata, inlined from the thumbnail in a shade for YouTube's own mode.
