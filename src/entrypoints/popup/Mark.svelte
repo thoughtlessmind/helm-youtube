@@ -2,7 +2,7 @@
   let { size = 22 }: { size?: number } = $props();
 </script>
 
-<!-- branding/icon.svg's H▶, on the accent. -->
+<!-- branding/icon.svg's H▶, on the accent. A parent recolors it with --mk-bg / --mk-fg (greyed while paused). -->
 <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
   <rect class="bg" x="1" y="1" width="22" height="22" rx="6"></rect>
   <g class="fg">
@@ -18,9 +18,9 @@
     flex-shrink: 0;
   }
   .bg {
-    fill: var(--accent);
+    fill: var(--mk-bg, var(--accent));
   }
   .fg {
-    fill: var(--on-accent);
+    fill: var(--mk-fg, var(--on-accent));
   }
 </style>

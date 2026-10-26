@@ -12,10 +12,12 @@
     watchUrl,
     type QueueItem,
   } from '../../lib/queue';
-  import { getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
+  import { extensionEnabled, getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
   import Mark from './Mark.svelte';
   import NowPlaying from './NowPlaying.svelte';
+  import Paused from './Paused.svelte';
   import QueueList from './QueueList.svelte';
+  import ThemeChip from './ThemeChip.svelte';
   import {
     fmtClock,
     fmtMin,
@@ -40,6 +42,8 @@
   let loaded = $state(false);
   let queue = $state<QueueItem[]>([]);
   let flags = $state<FeatureFlags>({});
+  let enabled = $state(true);
+  let themePreset = $state('');
   let limitMin = $state(0);
   let log = $state<WatchLog>({});
   let playerTabId = $state<number | null>(null);
@@ -75,12 +79,25 @@
   }
 
   onMount(() => {
-    const offs = [watchQueue((q) => (queue = q)), logItem.watch((l) => (log = l))];
-    void Promise.all([getQueue(), getFlags(), getConfig('watch-time'), getLog()]).then(([q, f, wt, l]) => {
+    const offs = [
+      watchQueue((q) => (queue = q)),
+      logItem.watch((l) => (log = l)),
+      extensionEnabled.watch((on) => (enabled = on)),
+    ];
+    void Promise.all([
+      getQueue(),
+      getFlags(),
+      getConfig('watch-time'),
+      getConfig('theme'),
+      getLog(),
+      extensionEnabled.getValue(),
+    ]).then(([q, f, wt, th, l, on]) => {
       queue = q;
       flags = f;
       limitMin = wt.dailyLimitMinutes;
+      themePreset = th.preset;
       log = l;
+      enabled = on;
       void poll();
     });
     const timer = setInterval(poll, 1000);
@@ -155,6 +172,11 @@
     await focusTab(tab);
   }
 
+  async function resume() {
+    enabled = true;
+    await extensionEnabled.setValue(true);
+  }
+
   async function turnOnQueue() {
     await setFlag('read-later-queue', true);
     flags = await getFlags();
@@ -177,10 +199,12 @@
 
 {#if loaded}
   <div class="page">
-    <h1 class="sr-only">Helm</h1>
+    {#if enabled}<h1 class="sr-only">Helm</h1>{/if}
     <header class="top">
-      <span class="brand"><Mark />Helm</span>
-      {#if flags['watch-time']}
+      <span class="brand" class:off={!enabled}><Mark />Helm</span>
+      {#if enabled}<ThemeChip bind:on={flags.theme} bind:preset={themePreset} />{/if}
+      <!-- Watch time doesn't count while paused. -->
+      {#if enabled && flags['watch-time']}
         <button
           class="time"
           title="Watch time"
@@ -198,9 +222,19 @@
       </button>
     </header>
 
-    {#if st && shown}
+    {#if !enabled}
+      <Paused
+        {st}
+        {pending}
+        {flags}
+        onToggle={() => shown && toggle(shown)}
+        onGoto={() => shown && focusTab(shown)}
+        onResume={resume}
+      />
+    {:else if st && shown}
       <NowPlaying
         {st}
+        big={queueOn && !nextItem}
         fromQueue={queue.some((q) => q.videoId === st.videoId)}
         nextLabel={nextItem ? `Next: ${nextItem.title}` : 'Queue finished. YouTube autoplay takes over.'}
         nextDisabled={!nextItem}
@@ -312,6 +346,11 @@
     font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.01em;
+  }
+  /* Paused: the mark loses its color. */
+  .brand.off {
+    --mk-bg: var(--s3);
+    --mk-fg: var(--muted);
   }
   .time {
     height: 32px;

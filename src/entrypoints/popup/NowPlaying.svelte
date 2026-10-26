@@ -5,6 +5,7 @@
 
   let {
     st,
+    big = false,
     fromQueue,
     nextLabel,
     nextDisabled,
@@ -17,6 +18,8 @@
     onGoto,
   }: {
     st: PlayerState;
+    /** Nothing left in the queue: the player takes the room (16:9 art on top, no card). */
+    big?: boolean;
     fromQueue: boolean;
     nextLabel: string;
     nextDisabled: boolean;
@@ -41,7 +44,8 @@
   const rates = $derived(SPEEDS.includes(st.rate) ? SPEEDS : [...SPEEDS, st.rate].sort((a, b) => a - b));
 </script>
 
-<section aria-label="Now playing" class="np">
+<section aria-label="Now playing" class="np" class:big>
+  {#if big}<img class="art" src={art} alt="" />{/if}
   <div class="np-status">
     <span class="eq" class:paused={st.paused} aria-hidden="true"><span></span><span></span><span></span></span>
     <span class:playing={!st.paused}>{st.paused ? 'Paused' : 'Playing'}</span>
@@ -57,7 +61,7 @@
     </button>
   </div>
   <div class="video">
-    <img class="art" src={art} alt="" />
+    {#if !big}<img class="art" src={art} alt="" />{/if}
     <div class="text">
       <div class="np-title">{st.title}</div>
       <div class="np-ch">{st.channelName}</div>
@@ -119,6 +123,21 @@
     border-radius: 20px;
     background: var(--s1);
     flex-shrink: 0;
+  }
+  .big {
+    margin: 0;
+    padding: 4px 16px 0;
+    border-radius: 0;
+    background: none;
+  }
+  .big .art {
+    width: 348px;
+    height: 196px;
+    border-radius: 12px;
+  }
+  .big .np-title {
+    font-size: 16px;
+    line-height: 22px;
   }
   .playing {
     color: var(--accent-text);

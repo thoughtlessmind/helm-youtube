@@ -26,7 +26,6 @@
     new Date(Date.now() + sec * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const sub = $derived.by(() => {
     const n = shown.length;
-    if (!n) return st && fromQueue ? 'Nothing after this one. YouTube autoplay takes over.' : '';
     const queued = shown.reduce((s, i) => s + i.duration, 0);
     if (!st || !fromQueue) return `${n} queued${queued ? ` · ${fmtDuration(queued)}` : ''}`;
     const known = st.duration > 0 && shown.every((i) => i.duration > 0);
@@ -64,14 +63,14 @@
   });
 </script>
 
-<section aria-label="Up next" class="q">
-  <div class="q-head">
-    <h2>Up next</h2>
-    {#if watched}<button class="txtbtn" onclick={() => clearPlayed(currentId)}>Clear {watched} watched</button>{/if}
-  </div>
-  {#if sub}<div class="q-sub">{sub}</div>{/if}
+{#if shown.length}
+  <section aria-label="Up next" class="q">
+    <div class="q-head">
+      <h2>Up next</h2>
+      {#if watched}<button class="txtbtn" onclick={() => clearPlayed(currentId)}>Clear {watched} watched</button>{/if}
+    </div>
+    <div class="q-sub">{sub}</div>
 
-  {#if shown.length}
     <div class="tl" aria-hidden="true">
       {#each segs as s (s.id)}<span class={s.cls} style:flex-grow={s.grow}><i style:width="{s.fill}%"></i></span>{/each}
     </div>
@@ -125,20 +124,64 @@
         </li>
       {/each}
     </ol>
-  {:else}
-    <div class="slot">
-      <p>Videos you queue land here, shared by every YouTube tab.</p>
-      <div class="how">
-        <span class="kbd" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="5" r="2" fill="currentColor"></circle><circle cx="12" cy="12" r="2" fill="currentColor"></circle><circle cx="12" cy="19" r="2" fill="currentColor"></circle></svg></span>
-        <span>On any video, open its menu and choose Add to queue</span>
+    <div class="sr-only" role="status">{announce}</div>
+  </section>
+{:else}
+  <!-- Nothing left to play: one hint row pinned to the bottom; the player above takes the room. -->
+  <section aria-label="Up next" class="qline">
+    <kbd class="kbd">Q</kbd>
+    <div class="ql-text">
+      <div class="ql-head">
+        <h2>Nothing queued</h2>
+        {#if watched}<button class="txtbtn" onclick={() => clearPlayed(currentId)}>Clear {watched} watched</button>{/if}
       </div>
-      <div class="how"><kbd class="kbd">Q</kbd><span>Or press Q while a video plays</span></div>
+      <p>Press Q on a video, or choose Add to queue in its menu.</p>
     </div>
-  {/if}
-  <div class="sr-only" role="status">{announce}</div>
-</section>
+  </section>
+{/if}
 
 <style>
+  .qline {
+    margin: auto 12px 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: var(--s1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .qline .kbd {
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .ql-text {
+    flex-grow: 1;
+    min-width: 0;
+  }
+  .ql-head {
+    display: flex;
+    align-items: center;
+    height: 18px;
+  }
+  .ql-head h2 {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+  }
+  .ql-head .txtbtn {
+    margin: 0 -8px 0 auto;
+  }
+  .qline p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--muted);
+  }
   .tl {
     display: flex;
     gap: 2px;

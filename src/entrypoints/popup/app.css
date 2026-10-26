@@ -18,6 +18,9 @@
   --s1: #111;
   --s2: #1c1c1c;
   --s3: #2a2a2a;
+  /* A bottom sheet, and a card one step up from it (or from an options panel). */
+  --sheet: #1c1c1c;
+  --raised: #2a2a2a;
   --rule: #1f1f1f;
   --text: #fff;
   --muted: #b4b4b4;
@@ -43,6 +46,8 @@
     --s1: #f4f4f4;
     --s2: #ececec;
     --s3: #e2e2e2;
+    --sheet: #fff;
+    --raised: #f4f4f4;
     --rule: #e6e6e6;
     --text: #0f0f0f;
     --muted: #555;
@@ -479,21 +484,6 @@ button:disabled {
   line-height: 18px;
   color: var(--muted);
 }
-.how {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  line-height: 18px;
-}
-.how .kbd {
-  width: 28px;
-  height: 28px;
-  margin: 0;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
 /* Equalizer bars next to "Playing". */
 @keyframes eq {
   0%,
