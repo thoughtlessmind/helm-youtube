@@ -225,7 +225,7 @@ const feature: Feature = {
     // From the main world's ⋮ → "Add to queue" redirect.
     const onMessage = async (e: MessageEvent) => {
       const d = e.data;
-      if (e.source !== window || d?.source !== 'ytp' || d.type !== 'queue-add') return;
+      if (e.source !== window || e.origin !== location.origin || d?.source !== 'ytp' || d.type !== 'queue-add') return;
       if (typeof d.videoId !== 'string' || !VIDEO_ID.test(d.videoId) || !config.nativeAdd) return;
       await add(await lookup(d.videoId));
     };

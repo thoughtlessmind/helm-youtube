@@ -42,6 +42,15 @@ const SKIP_COLOR = '#86a98f';
 const CATEGORIES = Object.keys(CATS) as Category[];
 const NOTE = 'skipped automatically';
 
+/**
+ * First 4 hex chars of the video id's SHA-256: SponsorBlock's privacy-preserving lookup answers for
+ * every video sharing the prefix, so the server never learns which one is playing.
+ */
+async function hashPrefix(videoId: string): Promise<string> {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(videoId));
+  return [...new Uint8Array(hash, 0, 2)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Inside .ytp-progress-bar: above the played/markers layers (z 40), below the scrubber (z 43).
 const BAR_CSS = `
 :host{position:absolute;inset:0;z-index:42;pointer-events:none}
@@ -182,14 +191,15 @@ const feature: Feature = {
       hideToast();
       render();
       const cats = encodeURIComponent(JSON.stringify(CATEGORIES));
-      let data: Segment[] | null;
+      let data: { videoID: string; segments: Segment[] }[] | null;
       try {
-        data = await fetchJson<Segment[]>(`${API}?videoID=${encodeURIComponent(id)}&categories=${cats}`);
+        data = await fetchJson(`${API}/${await hashPrefix(id)}?categories=${cats}`);
       } catch {
         return; // extension context gone
       }
       if (videoId !== id || !Array.isArray(data)) return; // navigated meanwhile, or 404 = none
-      segs = data.filter((s) => CATEGORIES.includes(s.category)); // actionTypes defaults to [skip]
+      const segments = data.find((v) => v.videoID === id)?.segments ?? [];
+      segs = segments.filter((s) => CATEGORIES.includes(s.category)); // actionTypes defaults to [skip]
       render();
     };
 

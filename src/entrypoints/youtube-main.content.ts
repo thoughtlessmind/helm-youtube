@@ -57,7 +57,7 @@ function queuedVideoId(target: Element): string | null {
 }
 
 export default defineContentScript({
-  matches: ['*://*.youtube.com/*'],
+  matches: ['https://www.youtube.com/*'],
   world: 'MAIN',
   runAt: 'document_idle',
   globalName: false,

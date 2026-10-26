@@ -23,7 +23,7 @@ export default defineBackground(() => {
     }
     if (msg?.type !== 'fetch-json') return;
     const url = URL.parse(msg.url);
-    if (!url || !ALLOWED_HOSTS.has(url.hostname)) {
+    if (!url || url.protocol !== 'https:' || !ALLOWED_HOSTS.has(url.hostname)) {
       sendResponse(null);
       return;
     }

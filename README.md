@@ -100,13 +100,13 @@ Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpack
 
 ## Privacy and permissions
 
-Helm has no account, no server and no analytics.
+Helm has no account, no server and no analytics. Full policy: [PRIVACY.md](./PRIVACY.md).
 
 | Permission | Why |
 |---|---|
 | `storage` | Saves your settings (synced through your browser profile) and your data: the queue, notes, channel groups and watch time. This data stays on your device. |
-| `youtube.com` | Runs Helm's features on YouTube pages. |
-| `sponsor.ajay.app` | Fetches sponsor segments from SponsorBlock. This happens only when **Skip sponsors** is on, and only the ID of the video you're watching is sent. |
+| `www.youtube.com` | Runs Helm's features on YouTube pages, and loads titles and your channel groups' latest videos from YouTube itself. |
+| `sponsor.ajay.app` | Fetches sponsor segments from SponsorBlock, only when **Skip sponsors** is on. Only a 4-character hash prefix of the video ID is sent, never the ID itself. |
 
 Helm is not an ad blocker or a downloader, and it doesn't change how YouTube serves video.
 

@@ -32,7 +32,7 @@ export const fmtMin = (min: number) => fmtDuration(min * 60);
 
 /** Every YouTube tab, most recently used first. Host permission gives url/title. */
 export async function youtubeTabs() {
-  const tabs = await browser.tabs.query({ url: '*://*.youtube.com/*' });
+  const tabs = await browser.tabs.query({ url: 'https://www.youtube.com/*' });
   return tabs.sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0));
 }
 

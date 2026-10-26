@@ -4,7 +4,7 @@ import { getEnabledFeatures, watchEnabledFeatures } from '../lib/settings';
 import { installPlayerBridge } from '../lib/yt/player-bridge';
 
 export default defineContentScript({
-  matches: ['*://*.youtube.com/*'],
+  matches: ['https://www.youtube.com/*'],
   runAt: 'document_idle',
   async main(wxt) {
     const ctx = createYTContext();
