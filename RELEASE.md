@@ -23,7 +23,7 @@ Status: `[x]` done · `[ ]` open · `[~]` partial / see issue sheet. Issues foun
 - [x] Content scripts limited to `www.youtube.com` (#5)
 - [x] No remote code; no `eval` / `new Function`; default CSP
 - [~] Privacy: every request listed in `PRIVACY.md`; needs a public URL + "Privacy practices" tab answers (#4)
-- [x] Trademark (#2): "YouTube" never first in the name; no YouTube logo or red play button in icon / promo art; "not affiliated with YouTube" line in the listing
+- [x] Trademark (#2): "YouTube" never first in the name; no YouTube logo in icon / promo art; "not affiliated with YouTube" line in the listing. The H▶ mark is on YouTube red `#FF0033` by choice: accepted risk, see #2
 - [x] Single-purpose statement written
 - [x] Listing assets: 128×128 icon, 5 screenshots (1280×800), promo tiles (440×280, 1400×560), long description — all 24-bit PNG, no alpha
 - [x] README and `features.md` match shipped behaviour; LICENSE present
@@ -78,12 +78,12 @@ Per feature
 ## Issue sheet
 
 Severity: **P0** blocks release · **P1** fix before release · **P2** nice to have.
-Status: open · fixing · fixed · deferred · won't fix.
+Status: open · fixing · fixed · deferred · won’t fix · accepted risk.
 
 | ID | Sev | Area | Issue | Found by | Status | Fix |
 |---|---|---|---|---|---|---|
 | 1 | P0 | Channel groups (WIP) | YouTube's RSS feeds 404 for every channel, so every group showed "No recent videos" | live test (signed in) | fixed | Sort by the cards' relative date ("4 days ago") parsed with `Intl.RelativeTimeFormat`, verified on 26 UI languages; RSS request dropped (`group-grid.ts`) |
-| 2 | P0 | Store / branding | Icon, promo tiles and README logos were YouTube's logo mark (red rounded square + white play triangle) — trademark / impersonation rejection risk | store audit | fixed | New mark: a bold "H" whose crossbar runs into a forward arrow, white on indigo `#3D4FD6` (concept from Codex imagegen, rebuilt as vector). Pixel-snapped 16 / 32 px variants (`branding/icon-16.svg`, `icon-32.svg`; 48 renders from the 32 grid); icons, promo tiles and logos regenerated |
+| 2 | P0 | Store / branding | Icon, promo tiles and README logos were YouTube's logo mark (red rounded square + white play triangle) — trademark / impersonation rejection risk | store audit | accepted risk | New mark: a bold "H" whose crossbar runs into a forward arrow, white on indigo `#3D4FD6` (concept from Codex imagegen, rebuilt as vector). Pixel-snapped 16 / 32 px variants (`branding/icon-16.svg`, `icon-32.svg`; 48 renders from the 32 grid); icons, promo tiles and logos regenerated. 2026-10-26: recolored to YouTube red `#FF0033` to match popup v2 (owner's call). Still a red rounded square with a white forward shape, so the review risk is back: accepted risk; revert to `#3D4FD6` if the store objects |
 | 3 | P0 | Store listing | No screenshots (≥ 1 at 1280×800 required) | store audit | fixed | `branding/screenshots/`: queue panel, speed chip + SponsorBlock bar, channel-group grid, focus-mode calm home, popup — 1280×800 24-bit PNG, YouTube dark, signed out (script: `/tmp/cc/youtube-pro/shots/shots.js`) |
 | 4 | P0 | Privacy | No privacy policy (required: SponsorBlock lookups leave the browser) | store audit | fixed | `PRIVACY.md`; needs a public URL (GitHub file / Pages) in the dashboard |
 | 5 | P1 | Manifest | `*://*.youtube.com/*` also ran on music., studio., m., accounts.; default 1.25× speed would speed up YouTube Music | store audit | fixed | `https://www.youtube.com/*` in host permissions, both content scripts, popup tab query |

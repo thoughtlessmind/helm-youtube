@@ -96,7 +96,7 @@ export default defineContentScript({
       const id = player?.getVideoData?.()?.video_id;
       const ok = typeof id === 'string' && VIDEO_ID.test(id);
       const res = ok && player.getPlayerResponse?.();
-      const own = res?.videoDetails?.videoId === id; // the response may still be the previous video's
+      const own = ok && res?.videoDetails?.videoId === id; // the response may still be the previous video's
       html.dataset.ytpPlayerVideo = ok ? id : '';
       html.dataset.ytpPlayerOwner = (own && res.microformat?.playerMicroformatRenderer?.ownerProfileUrl) || '';
       html.dataset.ytpPlayerAuthor = (own && res.videoDetails.author) || '';
