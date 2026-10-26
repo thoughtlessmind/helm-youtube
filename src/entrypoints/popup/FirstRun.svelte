@@ -1,8 +1,8 @@
 <script lang="ts">
   import { storage } from '#imports';
   import { ALL_FEATURES, type FeatureId } from '../../lib/feature-catalog';
-  import { FEATURE_CONFIG_DEFAULTS, getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
-  import { FIRST_RUN_KEY, openYouTube, type Page } from './lib';
+  import { FEATURE_CONFIG_DEFAULTS, FEATURE_DEFAULTS, getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
+  import { FIRST_RUN_KEY, SUGGESTIONS, openYouTube, type Page } from './lib';
   import Mark from './Mark.svelte';
 
   let { go }: { go: (p: Page) => void } = $props();
@@ -21,20 +21,20 @@
   // Default-on features, phrased as what changed on YouTube (and what it says once turned off).
   const DEFAULTS = $derived<{ id: FeatureId; keys?: string[]; on: string; off: string }[]>([
     { id: 'hide-shorts', on: 'Shorts are gone from your feeds', off: 'Shorts show in your feeds' },
+    { id: 'hide-playables', on: 'Playables are gone from your feeds', off: 'Playables show in your feeds' },
+    { id: 'sponsorblock', on: 'Sponsor reads are skipped', off: 'Sponsor reads play' },
     rate === 1
       ? { id: 'playback-speed', on: 'Your speed is remembered per channel', off: 'Speed resets with every video' }
       : { id: 'playback-speed', on: `Videos start at ${rate}× speed`, off: 'Videos start at normal speed' },
     { id: 'hide-end-screen-cards', on: 'End-screen cards are hidden', off: 'End-screen cards show' },
     { id: 'auto-dismiss-still-watching', on: '“Still watching?” is answered for you', off: '“Still watching?” can pause videos' },
+    { id: 'watch-time', on: 'Your watch time is counted locally', off: 'Watch time isn’t counted' },
+    { id: 'read-later-queue', keys: ['Q'], on: 'adds a video to your queue', off: 'The queue is off' },
     { id: 'loop-section', keys: ['[', ']'], on: 'loop a section', off: 'Section loop keys are off' },
     { id: 'screenshot-current-frame', keys: ['S'], on: 'saves a frame', off: 'Frame saving is off' },
+    { id: 'download-transcript', on: 'Any video’s transcript can be saved', off: 'Transcript download is off' },
   ]);
-  const PICKS: { id: FeatureId; name: string; desc: string }[] = [
-    { id: 'read-later-queue', name: 'Global queue', desc: 'One queue shared by every YouTube tab.' },
-    { id: 'sponsorblock', name: 'SponsorBlock auto-skip', desc: 'Skips sponsor reads and filler.' },
-    { id: 'focus-mode', name: 'Focus mode', desc: 'Hides feeds and recommendations.' },
-    { id: 'watch-time', name: 'Watch time', desc: 'Daily stats with a gentle limit.' },
-  ];
+  const PICKS = SUGGESTIONS.filter((s) => !FEATURE_DEFAULTS[s.id]);
 
   const onCount = $derived(DEFAULTS.filter((f) => flags[f.id]).length);
   const pickCount = $derived(PICKS.filter((f) => flags[f.id]).length);

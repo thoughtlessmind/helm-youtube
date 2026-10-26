@@ -1,3 +1,4 @@
+import type { FeatureId } from '../../lib/feature-catalog';
 import { fmtDuration } from '../../lib/format';
 import { isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
 
@@ -10,6 +11,17 @@ export { getLog, isoDate, logItem, type WatchLog } from '../../lib/yt/watch-trac
 export type Page = 'main' | 'settings' | `settings:${string}` | 'stats' | 'firstrun';
 
 export const FIRST_RUN_KEY = 'local:helm:first-run-seen' as const;
+
+/** Features to suggest while they're off: first run lists the ones off by default, the idle popup any that are off. */
+export const SUGGESTIONS: { id: FeatureId; name: string; desc: string }[] = [
+  { id: 'read-later-queue', name: 'Global queue', desc: 'One queue shared by every YouTube tab.' },
+  { id: 'watch-time', name: 'Watch time', desc: 'Daily stats with a gentle limit.' },
+  { id: 'sponsorblock', name: 'SponsorBlock auto-skip', desc: 'Skips sponsor reads and filler.' },
+  { id: 'theme', name: 'YouTube theme', desc: 'Recolor YouTube: palette, font and corners.' },
+  { id: 'focus-mode', name: 'Focus mode', desc: 'Hides feeds and recommendations.' },
+  { id: 'channel-groups', name: 'Channel groups', desc: 'Pick a group on Home to see just its videos.' },
+  { id: 'video-notes', name: 'Video notes', desc: 'Keep a private note on any video.' },
+];
 
 /** The date `back` days before today (0 = today). */
 export function dayAgo(back: number): Date {

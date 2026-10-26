@@ -12,9 +12,11 @@
     watchUrl,
     type QueueItem,
   } from '../../lib/queue';
+  import type { FeatureId } from '../../lib/feature-catalog';
   import { extensionEnabled, getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
   import Mark from './Mark.svelte';
   import NowPlaying from './NowPlaying.svelte';
+  import Idle from './Idle.svelte';
   import Paused from './Paused.svelte';
   import QueueList from './QueueList.svelte';
   import ThemeChip from './ThemeChip.svelte';
@@ -47,7 +49,8 @@
   let limitMin = $state(0);
   let log = $state<WatchLog>({});
   let playerTabId = $state<number | null>(null);
-  let tabCount = $state(0);
+  /** The most recently used YouTube tab, for "Go to tab" when nothing plays. */
+  let lastTab = $state.raw<Awaited<ReturnType<typeof youtubeTabs>>[number] | null>(null);
   /** The tab the card shows: the player tab, else the most recently used tab with a video. */
   let shown = $state<Playing | null>(null);
   /** Another tab that is playing ("Also playing in another tab"). Sticky once shown. */
@@ -68,7 +71,7 @@
       );
       const live = states.filter((t): t is Playing => !!t.state);
       playerTabId = ptab;
-      tabCount = tabs.length;
+      lastTab = tabs[0] ?? null;
       shown = live.find((t) => t.id === ptab) ?? live[0] ?? null;
       const rest = live.filter((t) => t.id !== shown?.id);
       other = rest.find((t) => t.id === other?.id) ?? rest.find((t) => !t.state.paused) ?? null;
@@ -177,9 +180,9 @@
     await extensionEnabled.setValue(true);
   }
 
-  async function turnOnQueue() {
-    await setFlag('read-later-queue', true);
-    flags = await getFlags();
+  async function setOn(id: FeatureId, on: boolean) {
+    flags[id] = on;
+    await setFlag(id, on);
   }
 </script>
 
@@ -188,7 +191,7 @@
     <div class="q-head"><h2>Up next</h2></div>
     <div class="slot">
       <p>The queue is off. Turn it on to line up videos across every YouTube tab.</p>
-      <div><button class="pill ghost" onclick={turnOnQueue}>Turn on the queue</button></div>
+      <div><button class="pill ghost" onclick={() => setOn('read-later-queue', true)}>Turn on the queue</button></div>
     </div>
   </section>
 {/snippet}
@@ -323,15 +326,9 @@
         </section>
       {/if}
     {:else}
-      <section aria-label="Nothing playing" class="empty">
-        <span class="lab">Nothing playing</span>
-        <h2>{tabCount ? 'No video is playing on YouTube' : 'No YouTube tab is open'}</h2>
-        <button class="pill" onclick={() => openYouTube()}>Open YouTube{@render openIcon()}</button>
-      </section>
+      <Idle {flags} {queue} {log} {limitMin} tab={lastTab} {go} onPlay={playItem} onToggle={setOn} />
       {#if queueOn}
         <QueueList bind:items={queue} st={null} onPlay={playItem} />
-      {:else}
-        {@render queueOff()}
       {/if}
     {/if}
   </div>
@@ -444,23 +441,5 @@
     display: flex;
     gap: 8px;
     margin-top: 14px;
-  }
-
-  /* Nothing playing, queue empty */
-  .empty {
-    margin: 0 12px;
-    padding: 16px;
-    border-radius: 20px;
-    background: var(--s1);
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .empty h2 {
-    margin: 4px 0 14px;
-    font-size: 15px;
-    line-height: 20px;
-    font-weight: 600;
   }
 </style>
