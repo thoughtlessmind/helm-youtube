@@ -25,7 +25,7 @@ Status: `[x]` done · `[ ]` open · `[~]` partial / see issue sheet. Issues foun
 - [~] Privacy: every request listed in `PRIVACY.md`; needs a public URL + "Privacy practices" tab answers (#4)
 - [x] Trademark (#2): "YouTube" never first in the name; no YouTube logo or red play button in icon / promo art; "not affiliated with YouTube" line in the listing
 - [x] Single-purpose statement written
-- [~] Listing assets: 128×128 icon, promo tiles (440×280, 1400×560) and long description done; still need ≥ 1 screenshot at 1280×800 (#3)
+- [x] Listing assets: 128×128 icon, 5 screenshots (1280×800), promo tiles (440×280, 1400×560), long description — all 24-bit PNG, no alpha
 - [x] README and `features.md` match shipped behaviour; LICENSE present
 
 ## 3. Live testing (load `.output/chrome-mv3/` unpacked)
@@ -84,7 +84,7 @@ Status: open · fixing · fixed · deferred · won't fix.
 |---|---|---|---|---|---|---|
 | 1 | P0 | Channel groups (WIP) | YouTube's RSS feeds 404 for every channel, so every group showed "No recent videos" | live test (signed in) | fixed | Sort by the cards' relative date ("4 days ago") parsed with `Intl.RelativeTimeFormat`, verified on 26 UI languages; RSS request dropped (`group-grid.ts`) |
 | 2 | P0 | Store / branding | Icon, promo tiles and README logos were YouTube's logo mark (red rounded square + white play triangle) — trademark / impersonation rejection risk | store audit | fixed | New mark: a bold "H" whose crossbar runs into a forward arrow, white on indigo `#3D4FD6` (concept from Codex imagegen, rebuilt as vector). Pixel-snapped 16 / 32 px variants (`branding/icon-16.svg`, `icon-32.svg`; 48 renders from the 32 grid); icons, promo tiles and logos regenerated |
-| 3 | P0 | Store listing | No screenshots (≥ 1 at 1280×800 required) | store audit | open | Capture 3–5: queue panel, group grid, speed chip + SponsorBlock bar, popup, focus mode |
+| 3 | P0 | Store listing | No screenshots (≥ 1 at 1280×800 required) | store audit | fixed | `branding/screenshots/`: queue panel, speed chip + SponsorBlock bar, channel-group grid, focus-mode calm home, popup — 1280×800 24-bit PNG, YouTube dark, signed out (script: `/tmp/cc/youtube-pro/shots/shots.js`) |
 | 4 | P0 | Privacy | No privacy policy (required: SponsorBlock lookups leave the browser) | store audit | fixed | `PRIVACY.md`; needs a public URL (GitHub file / Pages) in the dashboard |
 | 5 | P1 | Manifest | `*://*.youtube.com/*` also ran on music., studio., m., accounts.; default 1.25× speed would speed up YouTube Music | store audit | fixed | `https://www.youtube.com/*` in host permissions, both content scripts, popup tab query |
 | 6 | P1 | Privacy | SponsorBlock got the raw video ID of every video watched | store audit | fixed | Hash-prefix endpoint (`/skipSegments/<sha256[0:4]>`), match filtered locally; verified live |
@@ -135,6 +135,7 @@ Status: open · fixing · fixed · deferred · won't fix.
 | 51 | P2 | UI kit | Keyboard-picking a Transcript menu item throws `InvalidStateError` (tooltip `showPopover` while the menu popover closes); download still works | live test | fixed | `pageTooltip` skips the show when another popover is mid-transition |
 | 52 | P2 | Dev tooling | The dev-only `data-ytp-errors` mirror stayed empty while CDP caught an isolated-world exception, so CLAUDE.md's advice to rely on it is unreliable | live test | deferred | Investigate isolated-world `error` events; meanwhile use CDP / the extension's error page |
 | 53 | P2 | Focus mode | Calm home footer said "change it in Helm settings" (extension branding on youtube.com) | live test | fixed | "change it in the extension's settings" |
+| 54 | P2 | Hide Shorts | The collapsed mini guide still showed "Shorts": its label moved to the inner link, and the selector was English-only | screenshot run | fixed | Match the `/shorts` link in both guides |
 
 ---
 
