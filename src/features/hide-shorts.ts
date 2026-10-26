@@ -2,9 +2,9 @@ import type { Feature } from '../lib/features';
 import { addStyle } from '../lib/yt/ui';
 
 const CSS = `
-/* Sidebar nav entries (full + mini guide) */
-ytd-guide-entry-renderer:has(a[title="Shorts"]),
-ytd-mini-guide-entry-renderer[aria-label="Shorts"] {
+/* Sidebar nav entries (full + mini guide); the link, not its label, so any UI language */
+ytd-guide-entry-renderer:has(a[href^="/shorts"], a[title="Shorts"]),
+ytd-mini-guide-entry-renderer:has(a[href^="/shorts"]) {
   display: none !important;
 }
 
