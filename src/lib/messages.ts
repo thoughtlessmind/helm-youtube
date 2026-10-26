@@ -18,6 +18,7 @@ export type TabMessage =
   | { type: 'player-state' } // → PlayerState | null
   | { type: 'player-control'; action: 'play' | 'pause' }
   | { type: 'player-seek'; to?: number; by?: number } // absolute or relative seconds
+  | { type: 'player-rate'; rate: number } // playback speed, e.g. 1.5
   | { type: 'play-video'; videoId: string } // SPA-navigate this tab to the video
   | { type: 'open-manage-groups' }; // handled by channel-groups when it's on
 

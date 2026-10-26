@@ -11,6 +11,7 @@
     onToggle,
     onSeek,
     onSeekBy,
+    onRate,
     onPrev,
     onNext,
     onGoto,
@@ -22,6 +23,7 @@
     onToggle: () => void;
     onSeek: (to: number) => void;
     onSeekBy: (by: number) => void;
+    onRate: (rate: number) => void;
     onPrev: () => void;
     onNext: () => void;
     onGoto: () => void;
@@ -33,13 +35,23 @@
   const pos = $derived(Math.min(scrub ?? st.currentTime, dur || Infinity));
   const pct = $derived(dur ? `${((pos / dur) * 100).toFixed(2)}%` : '0%');
   const art = $derived(thumbUrl(st.videoId));
+
+  /** YouTube's own speed menu; a rate set elsewhere (e.g. 2.5) joins the list so it still shows. */
+  const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  const rates = $derived(SPEEDS.includes(st.rate) ? SPEEDS : [...SPEEDS, st.rate].sort((a, b) => a - b));
 </script>
 
 <section aria-label="Now playing" class="np">
   <div class="np-status">
     <span class="eq" class:paused={st.paused} aria-hidden="true"><span></span><span></span><span></span></span>
     <span class:playing={!st.paused}>{st.paused ? 'Paused' : 'Playing'}</span>
-    <span>· {st.rate}×{fromQueue ? ' · From queue' : ''}</span>
+    <span class="rate">
+      <select aria-label="Playback speed" title="Playback speed" onchange={(e) => onRate(Number(e.currentTarget.value))}>
+        {#each rates as r (r)}<option value={r} selected={r === st.rate}>{r}×</option>{/each}
+      </select>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </span>
+    {#if fromQueue}<span>· From queue</span>{/if}
     <button class="ib sm goto" aria-label="Go to the player tab" title="Go to the player tab" onclick={onGoto}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path></svg>
     </button>
@@ -111,6 +123,37 @@
   .playing {
     color: var(--accent-text);
     font-weight: 500;
+  }
+  /* Speed: a native select dressed as a chip, one step up from the card. */
+  .rate {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text);
+  }
+  .rate select {
+    appearance: none;
+    height: 24px;
+    padding: 0 22px 0 9px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--s2);
+    color: inherit;
+    font: inherit;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .rate select:hover {
+    background: var(--s3);
+  }
+  .rate svg {
+    position: absolute;
+    right: 7px;
+    width: 12px;
+    height: 12px;
+    pointer-events: none;
   }
   .goto {
     margin-left: auto;

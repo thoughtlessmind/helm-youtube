@@ -210,6 +210,10 @@
           st.currentTime = Math.max(0, st.currentTime + by);
           void control({ type: 'player-seek', by });
         }}
+        onRate={(rate) => {
+          st.rate = rate; // optimistic; the next poll confirms
+          void control({ type: 'player-rate', rate });
+        }}
         onPrev={prev}
         onNext={() => nextItem && playItem(nextItem.videoId)}
         onGoto={() => shown && focusTab(shown)}

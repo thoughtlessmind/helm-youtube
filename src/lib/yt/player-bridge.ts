@@ -42,7 +42,7 @@ function playerState(): PlayerState | null {
 
 /**
  * Answers the popup's `TabMessage`s (see lib/messages.ts) for this tab: player state,
- * play/pause, seek, play a video. Installed once by the content script regardless of feature
+ * play/pause, seek, speed, play a video. Installed once by the content script regardless of feature
  * flags. Handled messages reply truthy (the popup reads `undefined` as "no receiver").
  */
 export function installPlayerBridge(): void {
@@ -62,6 +62,11 @@ export function installPlayerBridge(): void {
           const t = msg.to ?? v.currentTime + (msg.by ?? 0);
           v.currentTime = Math.max(0, Math.min(t, v.duration || t));
         }
+        reply(!!v);
+        return true;
+      case 'player-rate':
+        // Chrome's media range is 1/16–16. Same path as YouTube's own menu, so playback-speed saves it per channel.
+        if (v && msg.rate >= 0.0625 && msg.rate <= 16) v.playbackRate = msg.rate;
         reply(!!v);
         return true;
       case 'play-video':
