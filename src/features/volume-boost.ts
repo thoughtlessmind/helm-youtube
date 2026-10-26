@@ -71,10 +71,16 @@ const feature: Feature = {
     const label = () => `Volume boost ${Math.round(multiplier * 100)}%`;
     tooltip(badge, label);
 
+    let stopped = false;
     const resume = () => {
       const video = getVideo();
       const g = video && graphs.get(video);
       if (g?.ctx.state === 'suspended') void g.ctx.resume();
+      if (stopped) unlisten(); // switched off while suspended: this gesture's resume was the last job
+    };
+    const unlisten = () => {
+      document.removeEventListener('pointerdown', resume, true);
+      document.removeEventListener('keydown', resume, true);
     };
     const apply = () => {
       badge.textContent = `${Math.round(multiplier * 100)}%`;
@@ -100,13 +106,16 @@ const feature: Feature = {
     apply();
 
     return () => {
+      stopped = true;
       offs.forEach((off) => off());
-      document.removeEventListener('pointerdown', resume, true);
-      document.removeEventListener('keydown', resume, true);
       // The graph can't be undone; unity gain + no limiter leaves the audio untouched.
       const video = getVideo();
       const g = video && graphs.get(video);
       if (g) route(g, null);
+      // But a suspended context (no page gesture yet; the popup's toggle isn't one) is silent:
+      // try now, and keep resuming on the page's next gesture.
+      if (g?.ctx.state === 'suspended') void g.ctx.resume();
+      else unlisten();
     };
   },
 };

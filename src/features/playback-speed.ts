@@ -4,7 +4,8 @@
  *
  * - The rate is (re)applied on `loadedmetadata` (YouTube reuses one <video>
  *   across SPA navigations and resets the rate on each new src) and again
- *   once the watch metadata renders and the channel is known.
+ *   once the channel of the player's video (watch page or miniplayer) is known.
+ *   Never during ads (YouTube plays them at 1×): re-applied when the video plays again.
  * - User speed changes (YouTube's own menu) are captured via `ratechange` and
  *   saved for the channel. Our own assignments re-save the rate they came
  *   from (a no-op); YouTube's load-time resets are gated by `mediaSettled`
@@ -19,7 +20,7 @@
 import type { Feature } from '../lib/features';
 import { storage } from '#imports';
 import { getConfig, setConfig, watchConfig } from '../lib/settings';
-import { getWatchChannel, isWatchPage, type ChannelRef } from '../lib/yt/video';
+import { getWatchChannel, type ChannelRef } from '../lib/yt/video';
 import { createHost, icon, openPopover } from '../lib/yt/ui';
 import { initials } from '../lib/format';
 import {
@@ -27,8 +28,10 @@ import {
   getPlayer,
   getVideo,
   isAdShowing,
+  miniplayerChannel,
   mountInPlayer,
   onVideoEvent,
+  playerVideoId,
   tooltip,
   watchMetaCurrent,
 } from '../lib/yt/player';
@@ -89,18 +92,22 @@ const feature: Feature = {
   async setup(ctx) {
     let cfg = await getConfig('playback-speed');
     let map: SpeedMap = (await storage.getItem<SpeedMap>(STORAGE_KEY)) ?? {};
-    // Channel of the current watch page; null until metadata renders.
+    // Channel of the player's video (channelVid); stale once another video plays, until resolved.
     let channel: ChannelRef | null = null;
+    let channelVid: string | null = null;
     let mediaSettled = true;
     let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    /** An ad played since: re-apply on the video's own next `playing`. */
+    let adPlayed = false;
 
-    const perChannel = () => (cfg.perChannel && channel ? channel : null);
+    const perChannel = () => (cfg.perChannel && channel && channelVid === playerVideoId() ? channel : null);
     const chanRate = () => {
       const ch = perChannel();
       return (ch && map[ch.id]) || cfg.rate;
     };
 
     const apply = () => {
+      if (isAdShowing()) return void (adPlayed = true); // ads keep YouTube's 1×
       const video = getVideo();
       const rate = chanRate();
       if (video && video.playbackRate !== rate) video.playbackRate = rate;
@@ -212,8 +219,8 @@ const feature: Feature = {
     // --- rate bookkeeping --------------------------------------------------
     const onRateChange = () => {
       render();
-      // YouTube resets the rate itself while a new src loads.
-      if (!mediaSettled) return;
+      // YouTube resets the rate itself while a new src loads, and plays ads at 1×.
+      if (!mediaSettled || isAdShowing()) return;
       const rate = getVideo()?.playbackRate;
       if (rate != null) saveChannel(rate);
     };
@@ -225,12 +232,14 @@ const feature: Feature = {
       apply();
     };
 
-    /** Resolve the channel once the watch metadata has rendered, then apply. */
+    /** Resolve the player video's channel (watch metadata once it has caught up, else the miniplayer's), then apply. */
     const resolveChannel = () => {
-      if (!watchMetaCurrent()) return; // the owner link still names the previous video's channel
-      const ch = getWatchChannel();
-      if (!ch || (ch.id === channel?.id && ch.name === channel.name)) return;
+      const vid = playerVideoId();
+      // Until watch metadata catches up, its owner link still names the previous video's channel.
+      const ch = vid && (watchMetaCurrent() ? getWatchChannel() : miniplayerChannel());
+      if (!ch || (vid === channelVid && ch.id === channel?.id && ch.name === channel.name)) return;
       channel = ch;
+      channelVid = vid;
       apply();
       render();
     };
@@ -239,9 +248,15 @@ const feature: Feature = {
       mountInPlayer(ctx, host, 'controls-right', 1),
       onVideoEvent('ratechange', onRateChange),
       onVideoEvent('loadedmetadata', onLoadedMetadata),
+      onVideoEvent('playing', () => {
+        if (isAdShowing()) adPlayed = true;
+        else if (adPlayed) {
+          adPlayed = false;
+          apply();
+        }
+      }),
       ctx.observer.onChange(resolveChannel),
       ctx.navigation.onNavigate(() => {
-        if (isWatchPage()) channel = null;
         apply();
         resolveChannel();
         render();

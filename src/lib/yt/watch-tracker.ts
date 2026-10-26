@@ -1,12 +1,12 @@
 import { storage } from '#imports';
 import type { YTContext } from './context';
 import { getWatchChannel, type ChannelRef } from './video';
-import { getVideo, miniplayerChannel, onVideoEvent, playerVideoId, watchMetaCurrent } from './player';
+import { getVideo, isAdShowing, miniplayerChannel, onVideoEvent, playerVideoId, watchMetaCurrent } from './player';
 
 /**
  * Measures real watch time: wall-clock seconds while YouTube's main player
  * (on `/watch` or in the miniplayer) is playing AND the tab is visible.
- * Hover/inline previews (home, search) never count.
+ * Hover/inline previews (home, search) and ads never count.
  *
  *   local:helm:watch-tracker:log      { [YYYY-MM-DD]: DayStats } — last 90 days (the popup reads it)
  *   local:helm:watch-tracker:channels { [channelId]: { name, seconds } } — all time, no cap
@@ -116,7 +116,7 @@ export function startTracking(ctx: YTContext): () => void {
       channel ??= currentChannel(); // watch metadata (channel) renders late
     }
     const video = id ? getVideo() : null;
-    const counting = !!video && !video.paused && !document.hidden;
+    const counting = !!video && !video.paused && !document.hidden && !isAdShowing();
     if (counting && lastTick === null) lastTick = Date.now();
     else if (!counting) stopCounting();
   };
@@ -128,6 +128,8 @@ export function startTracking(ctx: YTContext): () => void {
   // YouTube may swap the <video>; watch metadata (channel) renders late.
   const offChange = ctx.observer.onChange(sync);
   const offPlay = onVideoEvent('play', sync);
+  // An ad and the video swap src on one <video>: playing marks either one starting.
+  const offPlaying = onVideoEvent('playing', sync);
   const offPause = onVideoEvent('pause', sync);
   const flushTimer = setInterval(flush, FLUSH_INTERVAL_MS);
 
@@ -135,6 +137,7 @@ export function startTracking(ctx: YTContext): () => void {
 
   return () => {
     offPlay();
+    offPlaying();
     offPause();
     stop();
     channel = null;

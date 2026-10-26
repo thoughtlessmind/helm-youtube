@@ -10,6 +10,7 @@ import {
   isAdShowing,
   mountInPlayer,
   onVideoEvent,
+  playerVideoId,
   tooltip,
 } from '../lib/yt/player';
 
@@ -20,7 +21,7 @@ import {
  *
  * While A is set: a "Loop 5:40–7:10" chip after the chapter pill (× clears) and A/B markers + a
  * band on the progress bar. With A and B set, playback past B jumps back to A. The loop is per
- * video — it clears on navigation.
+ * video — it clears on navigation or when another video plays.
  */
 
 const LOOP_ICON =
@@ -47,6 +48,8 @@ const feature: Feature = {
   setup(ctx) {
     let a: number | null = null;
     let b: number | null = null;
+    /** Video A was set on. */
+    let loopVid: string | null = null;
 
     const chip = createHost('ytp-loop-chip', PLAYER_CSS + CHIP_CSS);
     const pill = document.createElement('div');
@@ -100,7 +103,10 @@ const feature: Feature = {
       mountInPlayer(ctx, chip.host, 'controls-left'),
       mountInPlayer(ctx, bar.host, 'progress'),
       onVideoEvent('timeupdate', (v) => {
-        if (a != null && b != null && v.currentTime >= b && !isAdShowing()) v.currentTime = a;
+        if (a == null || isAdShowing()) return;
+        // Another video without a navigation (miniplayer, autoplay) or before navigate-finish.
+        if (playerVideoId() !== loopVid) return clear();
+        if (b != null && v.currentTime >= b) v.currentTime = a;
       }),
       onVideoEvent('durationchange', render),
       // New video — clear the loop so it doesn't bounce around.
@@ -109,6 +115,7 @@ const feature: Feature = {
         const v = getVideo();
         if (!v) return;
         a = v.currentTime;
+        loopVid = playerVideoId();
         if (b != null && b <= a) b = null;
         render();
         flashToast(`Loop A set at ${fmtClock(a)}`);

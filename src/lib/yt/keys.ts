@@ -11,7 +11,7 @@ export const isTypingTarget = (t: EventTarget | null) =>
 
 export function onKey(key: string, handler: (e: KeyboardEvent) => void): () => void {
   const wrapped = (e: KeyboardEvent) => {
-    if (e.key.toLowerCase() !== key.toLowerCase()) return;
+    if (e.repeat || e.key.toLowerCase() !== key.toLowerCase()) return; // holding S: one screenshot
     if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     // composedPath()[0]: inside our shadow roots e.target is just the host.
     if (isTypingTarget(e.composedPath()[0] ?? e.target)) return;

@@ -48,6 +48,7 @@ const feature: Feature = {
 
   setup(ctx) {
     let notes: Notes = {};
+    let loaded = false;
     let vid = getVideoId();
     let open = false;
     let dirty = false;
@@ -87,7 +88,7 @@ const feature: Feature = {
     };
 
     /** Write the textarea to storage now. Writes are chained so two flushes can't race. */
-    const flush = () => {
+    const flush = (unloading = false) => {
       clearTimeout(timer);
       if (!dirty || !vid) return;
       dirty = false;
@@ -96,13 +97,19 @@ const feature: Feature = {
       if (text) notes[id] = text;
       else delete notes[id];
       status.textContent = 'Saved just now';
-      writes = writes.then(async () => {
-        const cur = { ...(await storage.getItem<Notes>(KEY)) };
-        if (text) cur[id] = text;
-        else delete cur[id];
-        await storage.setItem(KEY, cur);
-      });
+      // Tab closing: the read below wouldn't come back in time, so our copy (kept current by the
+      // watch) goes out now — once the first read has filled it, or it would drop every other note.
+      if (unloading && loaded) return void storage.setItem(KEY, notes);
+      writes = writes
+        .then(async () => {
+          const cur = { ...(await storage.getItem<Notes>(KEY)) };
+          if (text) cur[id] = text;
+          else delete cur[id];
+          await storage.setItem(KEY, cur);
+        })
+        .catch((err) => console.error('[helm] video-notes: write failed', err));
     };
+    const onPageHide = () => flush(true);
 
     const onInput = () => {
       dirty = true;
@@ -192,12 +199,15 @@ const feature: Feature = {
 
     void storage.getItem<Notes>(KEY).then((v) => {
       notes = v ?? {};
+      loaded = true;
       if (open && !dirty) loadNote();
       refresh();
     });
+    addEventListener('pagehide', onPageHide);
     ensure();
 
     return () => {
+      removeEventListener('pagehide', onPageHide);
       offChange();
       offNav();
       offWatch();

@@ -120,6 +120,14 @@
 
   /** Plays in the player tab, else the tab shown in the card, else a new tab. */
   async function playItem(videoId: string) {
+    // The id outlives the player tab leaving YouTube (cleared only on close): don't navigate another site's tab.
+    if (playerTabId != null) {
+      const tab = await browser.tabs.get(playerTabId).catch(() => null);
+      if (!tab?.url?.startsWith('https://www.youtube.com/')) {
+        playerTabId = null;
+        await setPlayerTabId(null);
+      }
+    }
     const target = playerTabId ?? shown?.id ?? null;
     if (target == null) return playInNewTab(videoId);
     const handled = await sendToTab(target, { type: 'play-video', videoId });

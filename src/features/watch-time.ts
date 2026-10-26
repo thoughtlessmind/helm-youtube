@@ -83,11 +83,13 @@ const feature: Feature = {
     const snoozeBtn = bannerRoot.querySelector<HTMLButtonElement>('[data-act="snooze"]')!;
 
     let limitMinutes = (await getConfig('watch-time')).dailyLimitMinutes;
-    let todaySeconds = 0;
+    /** Today's total is read from it at render time: a tab left open overnight starts the new day at 0. */
+    let watchLog: WatchLog | null = null;
     let reminder: Reminder = {};
     let snoozeTimer: ReturnType<typeof setTimeout> | undefined;
 
     const renderBanner = () => {
+      const todaySeconds = watchLog?.[isoDate()]?.totalSeconds ?? 0;
       clearTimeout(snoozeTimer);
       const snoozed = (reminder.snoozeUntil ?? 0) > Date.now();
       if (snoozed) snoozeTimer = setTimeout(renderBanner, reminder.snoozeUntil! - Date.now() + 500);
@@ -131,14 +133,13 @@ const feature: Feature = {
       flashToast(snooze ? 'Reminder snoozed for 15 minutes' : 'Reminder hidden for today', { action: { label: 'Undo', onClick: undo } });
     });
 
-    const todayOf = (log: WatchLog | null) => log?.[isoDate()]?.totalSeconds ?? 0;
-    todaySeconds = todayOf(await getLog());
+    watchLog = await getLog();
     reminder = (await storage.getItem<Reminder>(REMINDER_KEY)) ?? {};
     renderBanner();
 
     // Every tab's tracker flush lands here — no DOM polling.
     const offLog = storage.watch<WatchLog>(LOG_KEY, (log) => {
-      todaySeconds = todayOf(log);
+      watchLog = log;
       renderBanner();
     });
     const offReminder = storage.watch<Reminder>(REMINDER_KEY, (r) => {
