@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { fmtDuration } from '../../lib/format';
   import { sendToTab, type PlayerState, type TabMessage } from '../../lib/messages';
   import {
     getPlayerTabId,
@@ -12,6 +13,7 @@
     type QueueItem,
   } from '../../lib/queue';
   import { getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
+  import Mark from './Mark.svelte';
   import NowPlaying from './NowPlaying.svelte';
   import QueueList from './QueueList.svelte';
   import {
@@ -41,6 +43,7 @@
   let limitMin = $state(0);
   let log = $state<WatchLog>({});
   let playerTabId = $state<number | null>(null);
+  let tabCount = $state(0);
   /** The tab the card shows: the player tab, else the most recently used tab with a video. */
   let shown = $state<Playing | null>(null);
   /** Another tab that is playing ("Also playing in another tab"). Sticky once shown. */
@@ -61,6 +64,7 @@
       );
       const live = states.filter((t): t is Playing => !!t.state);
       playerTabId = ptab;
+      tabCount = tabs.length;
       shown = live.find((t) => t.id === ptab) ?? live[0] ?? null;
       const rest = live.filter((t) => t.id !== shown?.id);
       other = rest.find((t) => t.id === other?.id) ?? rest.find((t) => !t.state.paused) ?? null;
@@ -91,6 +95,7 @@
   const currentId = $derived(st?.videoId ?? null);
   const nextItem = $derived(queue.find((i) => !i.playedAt && i.videoId !== currentId) ?? null);
   const pending = $derived(upNext(queue));
+  const pendingSec = $derived(pending.reduce((s, i) => s + i.duration, 0));
   const todayMin = $derived(minutesOn(log, new Date()));
 
   async function control(msg: TabMessage) {
@@ -157,14 +162,42 @@
 </script>
 
 {#snippet queueOff()}
-  <div class="off">
-    <span>Queue is off</span>
-    <button class="ghost accent" onclick={turnOnQueue}>Turn on</button>
-  </div>
+  <section aria-label="Up next" class="q">
+    <div class="q-head"><h2>Up next</h2></div>
+    <div class="slot">
+      <p>The queue is off. Turn it on to line up videos across every YouTube tab.</p>
+      <div><button class="pill ghost" onclick={turnOnQueue}>Turn on the queue</button></div>
+    </div>
+  </section>
+{/snippet}
+
+{#snippet openIcon()}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"></path></svg>
 {/snippet}
 
 {#if loaded}
   <div class="page">
+    <h1 class="sr-only">Helm</h1>
+    <header class="top">
+      <span class="brand"><Mark />Helm</span>
+      {#if flags['watch-time']}
+        <button
+          class="time"
+          title="Watch time"
+          aria-label="Watched today: {fmtMin(todayMin)}{limitMin ? ` of a ${fmtMin(limitMin)} limit` : ''}. Open watch time."
+          onclick={() => go('stats')}
+        >
+          {fmtMin(todayMin)}
+          {#if limitMin}
+            <span class="mini" aria-hidden="true"><span style:width="{Math.min(100, (todayMin / limitMin) * 100)}%"></span></span>
+          {/if}
+        </button>
+      {/if}
+      <button class="ib" aria-label="Settings" title="Settings" onclick={() => go('settings')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </header>
+
     {#if st && shown}
       <NowPlaying
         {st}
@@ -202,363 +235,189 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"></rect><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"></rect></svg>
             {/if}
           </button>
-          <button class="ib sm" aria-label="Go to that tab" title="Go to that tab" onclick={() => focusTab(o)}>
+          <button class="ib sm quiet" aria-label="Go to that tab" title="Go to that tab" onclick={() => focusTab(o)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path></svg>
           </button>
         </div>
       {/if}
 
       {#if queueOn}
-        <QueueList bind:items={queue} {currentId} nextId={nextItem?.videoId ?? null} paused={st.paused} onPlay={playItem} />
+        <QueueList bind:items={queue} {st} onPlay={playItem} />
       {:else}
-        <section aria-label="Queue" class="queue-off">{@render queueOff()}</section>
+        {@render queueOff()}
       {/if}
     {:else if queueOn && pending.length}
       {@const first = pending[0]}
-      <div class="page-body">
-        <section aria-label="Nothing playing" class="idle-hero">
-          <img class="ambient" src={thumbUrl(first.videoId)} alt="" aria-hidden="true" />
-          <img class="art" src={thumbUrl(first.videoId)} alt="" />
-          <div class="scrim" aria-hidden="true"></div>
-          <div class="idle-meta">
-            <div class="kicker">Nothing playing · up next</div>
-            <div class="title">{first.title}</div>
-            <div class="channel">{first.channelName}{first.duration ? ` · ${fmtClock(first.duration)}` : ''}</div>
-            <div class="actions">
-              <button class="btn primary" onclick={() => playItem(first.videoId)}>
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor"></path></svg>
-                Play queue
-              </button>
-              <button class="btn glass-btn" onclick={() => openYouTube()}>Open YouTube</button>
-            </div>
+      <section aria-label="Nothing playing" class="idle">
+        <img class="idle-art" src={thumbUrl(first.videoId)} alt="" />
+        <div class="np-status">Nothing playing · {pending.length} queued{pendingSec ? `, ${fmtDuration(pendingSec)}` : ''}</div>
+        <div class="np-title">{first.title}</div>
+        <div class="np-ch">{first.channelName}{first.duration ? ` · ${fmtClock(first.duration)}` : ''}</div>
+        <div class="actions">
+          <button class="pill" onclick={() => playItem(first.videoId)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor"></path></svg>
+            Play queue
+          </button>
+          <button class="pill ghost" onclick={() => openYouTube()}>Open YouTube{@render openIcon()}</button>
+        </div>
+      </section>
+      {#if pending.length > 1}
+        {@const restSec = pendingSec - first.duration}
+        <section aria-label="Then" class="q">
+          <div class="q-head">
+            <h2>Then</h2>
+            <span class="q-sub">{pending.length - 1} more{restSec ? ` · ${fmtDuration(restSec)}` : ''}</span>
           </div>
-        </section>
-        <section aria-label="Queue" class="idle-queue">
-          <div class="idle-head">
-            <h2 class="label">Queue</h2>
-            <span class="badge">{pending.length} up next</span>
-          </div>
-          <ol class="scroll">
-            {#each pending as item, i (item.videoId)}
-              <li>
-                <div class="ithumb">
+          <ol class="qlist scroll">
+            {#each pending.slice(1) as item (item.videoId)}
+              <li class="qrow">
+                <div class="qthumb">
                   <img src={thumbUrl(item.videoId)} alt="" />
                   {#if item.duration}<span class="dur">{fmtClock(item.duration)}</span>{/if}
                 </div>
-                <div class="itext">
-                  <div class="ititle">{item.title}</div>
-                  <div class="isub">
-                    {#if i === 0}<span class="next">Next</span>{/if}
-                    <span>{item.channelName}</span>
-                  </div>
+                <div class="qtext">
+                  <div class="qtitle">{item.title}</div>
+                  <div class="qsub"><span>{item.channelName}</span></div>
                 </div>
               </li>
             {/each}
           </ol>
         </section>
-      </div>
-    {:else}
-      <section aria-labelledby="nt-title" class="notab">
-        <div class="nt-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h12M3 12h12M3 18h8M17 15l5 3-5 3z"></path></svg>
-        </div>
-        {#if queueOn}
-          <h1 id="nt-title">Your queue is empty</h1>
-          <p>
-            On any YouTube video, open
-            <span class="kebab" role="img" aria-label="the More actions menu"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="5" r="2" fill="currentColor"></circle><circle cx="12" cy="12" r="2" fill="currentColor"></circle><circle cx="12" cy="19" r="2" fill="currentColor"></circle></svg></span>
-            → <strong>Add to queue</strong>
-          </p>
-        {:else}
-          <h1 id="nt-title" class="sr-only">Queue</h1>
-          {@render queueOff()}
-        {/if}
-        <button class="btn primary nt-open" onclick={() => openYouTube()}>
-          Open YouTube
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"></path></svg>
-        </button>
-      </section>
-    {/if}
-    <footer class="foot" class:solo={!flags['watch-time']}>
-      {#if flags['watch-time']}
-        <button class="stat" title="Watch time stats" onclick={() => go('stats')}>
-          <span class="stat-text">
-            <span><strong>{fmtMin(todayMin)}</strong> watched today{limitMin ? ` · ${fmtMin(limitMin)} limit` : ''}</span>
-            {#if limitMin}
-              <span class="meter" aria-hidden="true"><span style:width="{Math.min(100, (todayMin / limitMin) * 100)}%"></span></span>
-            {/if}
-          </span>
-          <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
-        </button>
       {/if}
-      <button class="ib" aria-label="Settings" title="Settings" onclick={() => go('settings')}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      </button>
-    </footer>
+    {:else}
+      <section aria-label="Nothing playing" class="empty">
+        <span class="lab">Nothing playing</span>
+        <h2>{tabCount ? 'No video is playing on YouTube' : 'No YouTube tab is open'}</h2>
+        <button class="pill" onclick={() => openYouTube()}>Open YouTube{@render openIcon()}</button>
+      </section>
+      {#if queueOn}
+        <QueueList bind:items={queue} st={null} onPlay={playItem} />
+      {:else}
+        {@render queueOff()}
+      {/if}
+    {/if}
   </div>
 {/if}
 
 <style>
-  /* Footer */
-  .foot.solo {
-    justify-content: flex-end;
-  }
-  .stat {
-    flex-grow: 1;
+  .brand {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
-    margin-left: -8px;
-    border-radius: 10px;
-    text-align: left;
-    color: var(--muted);
+    margin-right: auto;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .time {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: var(--s1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
     transition: background-color 0.15s ease;
   }
-  .stat:hover {
-    background-color: rgba(127, 127, 140, 0.09);
+  .time:hover {
+    background: var(--s2);
   }
-  .stat-text {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
-  }
-  .stat strong {
-    color: var(--text);
-    font-weight: 700;
-  }
-  .meter {
-    display: block;
-    width: 160px;
-    height: 3px;
+  .mini {
+    width: 28px;
+    height: 4px;
     border-radius: 999px;
-    background: var(--track);
+    background: var(--s3);
     overflow: hidden;
   }
-  .meter span {
+  .mini span {
     display: block;
     height: 100%;
     border-radius: 999px;
-    background: var(--muted);
-  }
-  .chev {
-    opacity: 0.55;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-  }
-  .stat:hover .chev,
-  .stat:focus-visible .chev {
-    opacity: 1;
-    transform: translateX(2px);
+    background: var(--accent);
   }
 
   /* Another tab */
   .other {
-    margin: 0 12px 10px;
+    margin: 8px 12px 0;
     padding: 6px 4px 6px 8px;
-    border-radius: 12px;
-    background: var(--surface);
+    border-radius: 14px;
+    background: var(--s1);
     display: flex;
     align-items: center;
     gap: 10px;
     flex-shrink: 0;
   }
   .other img {
-    width: 44px;
-    height: 25px;
-    border-radius: 6px;
+    width: 48px;
+    height: 27px;
+    border-radius: 5px;
     object-fit: cover;
     flex-shrink: 0;
-    background: var(--tile);
+    background: var(--s3);
   }
   .other-text {
     flex-grow: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 1px;
   }
   .other-status {
     font-size: 11px;
+    line-height: 14px;
     color: var(--muted);
   }
   .other-title {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  /* Queue off (D8) */
-  .queue-off {
-    flex-grow: 1;
-    border-top: 1px solid var(--line);
-  }
-  .off {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px 4px 20px;
-    font-size: 12px;
+  .quiet {
     color: var(--muted);
   }
-  .accent {
-    color: var(--accent-text);
-  }
 
-  /* Nothing playing, queue has items (Empty board) */
-  .page-body {
-    flex-grow: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .idle-hero {
-    position: relative;
-    height: 268px;
+  /* Nothing playing, queue has items */
+  .idle {
+    padding: 4px 16px 0;
     flex-shrink: 0;
-    overflow: hidden;
   }
-  .ambient {
-    position: absolute;
-    left: -60px;
-    top: -60px;
-    width: 500px;
-    height: 400px;
+  .idle-art {
+    width: 348px;
+    height: 196px;
+    border-radius: 12px;
     object-fit: cover;
-    filter: blur(40px) saturate(1.4);
-    opacity: var(--ambient-2);
+    display: block;
+    background: var(--s3);
   }
-  .art {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 380px;
-    height: 214px;
-    object-fit: cover;
-    opacity: 0.55;
-    filter: grayscale(0.35);
-    mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
-  }
-  .scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(var(--bg-rgb), 0.5) 0%,
-      rgba(var(--bg-rgb), 0.1) 30%,
-      rgba(var(--bg-rgb), 0.85) 70%,
-      rgb(var(--bg-rgb)) 100%
-    );
-  }
-  .idle-meta {
-    position: absolute;
-    left: 20px;
-    right: 20px;
-    bottom: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .idle .np-title {
+    font-size: 16px;
+    line-height: 22px;
   }
   .actions {
     display: flex;
     gap: 8px;
-    margin-top: 8px;
-  }
-  .glass-btn {
-    background: var(--glass-btn);
-    border: 1px solid var(--line);
-    color: var(--text);
-    backdrop-filter: blur(16px);
-  }
-  .idle-queue {
-    flex-grow: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid var(--line);
-  }
-  .idle-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 12px 6px 20px;
-  }
-  .idle-queue ol {
-    list-style: none;
-    margin: 0;
-    padding: 2px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .idle-queue li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 8px 6px 12px;
-    border-radius: 14px;
+    margin-top: 14px;
   }
 
-  /* No YouTube tab, empty queue (NoTab board) */
-  .notab {
-    flex-grow: 1;
-    min-height: 0;
+  /* Nothing playing, queue empty */
+  .empty {
+    margin: 0 12px;
+    padding: 16px;
+    border-radius: 20px;
+    background: var(--s1);
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px 40px 44px;
-    text-align: center;
+    align-items: flex-start;
   }
-  .nt-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--glass-btn);
-    border: 1px solid var(--line);
-    color: var(--muted);
-  }
-  .notab h1 {
-    margin: 18px 0 0;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-  .notab p {
-    margin: 8px 0 0;
-    max-width: 260px;
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--muted);
-    text-wrap: balance;
-  }
-  .notab p strong {
+  .empty h2 {
+    margin: 4px 0 14px;
+    font-size: 15px;
+    line-height: 20px;
     font-weight: 600;
-    color: var(--text);
-  }
-  .notab .off {
-    padding: 18px 0 0;
-  }
-  .kebab {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    margin: 0 1px;
-    border-radius: 6px;
-    vertical-align: -5px;
-    background: var(--glass-btn);
-    border: 1px solid var(--line);
-    color: var(--text);
-  }
-  .nt-open {
-    margin-top: 22px;
   }
 </style>

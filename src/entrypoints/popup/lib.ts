@@ -6,7 +6,8 @@ import { isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
 export { fmtClock } from '../../lib/format';
 export { getLog, isoDate, logItem, type WatchLog } from '../../lib/yt/watch-tracker';
 
-export type Page = 'main' | 'settings' | 'stats' | 'firstrun';
+/** `settings:<tab>` opens Settings on that tab. */
+export type Page = 'main' | 'settings' | `settings:${string}` | 'stats' | 'firstrun';
 
 export const FIRST_RUN_KEY = 'local:helm:first-run-seen' as const;
 

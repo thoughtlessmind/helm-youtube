@@ -38,6 +38,8 @@ export interface CatalogEntry {
 
 export interface CatalogSection {
   title: string;
+  /** The section's tab label in Settings. */
+  tab: string;
   features: CatalogEntry[];
 }
 
@@ -46,6 +48,7 @@ const opts = (pairs: [number, string][]): Option[] => pairs.map(([value, label])
 export const CATALOG: CatalogSection[] = [
   {
     title: 'Clean up YouTube',
+    tab: 'Clean up',
     features: [
       { id: 'hide-shorts', name: 'Hide Shorts', desc: 'Remove Shorts from Home, search, sidebar and channel pages.',
         icon: 'M3 3l18 18M8 3h8a2 2 0 0 1 2 2v9M18 18v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6' },
@@ -99,6 +102,7 @@ export const CATALOG: CatalogSection[] = [
   },
   {
     title: 'Playback',
+    tab: 'Playback',
     features: [
       {
         id: 'playback-speed',
@@ -156,6 +160,7 @@ export const CATALOG: CatalogSection[] = [
   },
   {
     title: 'Your library',
+    tab: 'Library',
     features: [
       {
         id: 'read-later-queue',
@@ -185,6 +190,7 @@ export const CATALOG: CatalogSection[] = [
   },
   {
     title: 'Watch time',
+    tab: 'Watch time',
     features: [
       {
         id: 'watch-time',
@@ -205,6 +211,7 @@ export const CATALOG: CatalogSection[] = [
   },
   {
     title: 'Tools and appearance',
+    tab: 'Tools',
     features: [
       { id: 'download-transcript', name: 'Transcript download', desc: 'Save a video’s transcript as .txt or .srt.',
         icon: 'M4 5h16M4 10h16M4 15h8M17 13v8M14 18l3 3 3-3' },

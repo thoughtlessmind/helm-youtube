@@ -16,8 +16,8 @@
 
 {#if page === 'main'}
   <Main {go} />
-{:else if page === 'settings'}
-  <Settings {go} />
+{:else if page?.startsWith('settings')}
+  <Settings {go} tab={page.split(':')[1]} />
 {:else if page === 'stats'}
   <Stats {go} />
 {:else if page === 'firstrun'}

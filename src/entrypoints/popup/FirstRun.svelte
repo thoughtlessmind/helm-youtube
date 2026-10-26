@@ -3,6 +3,7 @@
   import { ALL_FEATURES, type FeatureId } from '../../lib/feature-catalog';
   import { FEATURE_CONFIG_DEFAULTS, getConfig, getFlags, setFlag, type FeatureFlags } from '../../lib/settings';
   import { FIRST_RUN_KEY, openYouTube, type Page } from './lib';
+  import Mark from './Mark.svelte';
 
   let { go }: { go: (p: Page) => void } = $props();
 
@@ -38,7 +39,6 @@
   const onCount = $derived(DEFAULTS.filter((f) => flags[f.id]).length);
   const pickCount = $derived(PICKS.filter((f) => flags[f.id]).length);
 
-  const icon = (id: FeatureId) => ALL_FEATURES.find((f) => f.id === id)!.icon;
 
   async function toggle(id: FeatureId) {
     flags[id] = !flags[id];
@@ -53,31 +53,24 @@
 
 <div class="page firstrun">
   <header class="hello">
-    <span class="badge-ic" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
-    </span>
-    <div class="hello-text">
-      <h1>Helm is on</h1>
-      <p>Good defaults are already working. Nothing else to set up.</p>
-    </div>
+    <Mark size={36} />
+    <h1>Helm is on</h1>
+    <p>Good defaults are already working on YouTube. Nothing to set up.</p>
   </header>
 
   <div class="scroll body">
     {#if ready}
     <section aria-labelledby="fr-on">
-      <div class="sec-head">
-        <h2 id="fr-on" class="label">Already on</h2>
-        <span class="badge">{onCount} of {DEFAULTS.length}</span>
+      <div class="sechead">
+        <h2 id="fr-on">Already on</h2>
+        <span>{onCount} of {DEFAULTS.length}</span>
       </div>
-      <div class="card">
+      <div class="list">
         {#each DEFAULTS as f (f.id)}
           {@const on = !!flags[f.id]}
-          <label class="feat tall">
-            <span class="tile" class:on aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={icon(f.id)}></path></svg>
-            </span>
+          <label class="row row-line">
             <span class="line" class:muted={!on}>
-              {#if on}{#each f.keys ?? [] as k (k)}<kbd>{k}</kbd>{/each}{/if}{on ? f.on : f.off}
+              {#if on}{#each f.keys ?? [] as k (k)}<kbd class="kbd">{k}</kbd>{/each}{/if}{on ? f.on : f.off}
             </span>
             <input class="sw" type="checkbox" role="switch" checked={on} onchange={() => toggle(f.id)} />
           </label>
@@ -86,181 +79,101 @@
     </section>
 
     <section aria-labelledby="fr-picks">
-      <div class="sec-head">
-        <h2 id="fr-picks" class="label">Turn on when you want</h2>
-        {#if pickCount}<span class="badge">{pickCount} added</span>{/if}
+      <div class="sechead">
+        <h2 id="fr-picks">Turn on when you want</h2>
+        {#if pickCount}<span>{pickCount} added</span>{/if}
       </div>
-      <div class="card">
+      <div class="list">
         {#each PICKS as f (f.id)}
-          {@const on = !!flags[f.id]}
-          <label class="feat">
-            <span class="tile" class:on aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={icon(f.id)}></path></svg>
+          <label class="row row-line tall">
+            <span class="ftext">
+              <span class="fname">{f.name}</span>
+              <span class="fdesc">{f.desc}</span>
             </span>
-            <span class="feat-text">
-              <span class="name">{f.name}</span>
-              <span class="desc">{f.desc}</span>
-            </span>
-            <input class="sw" type="checkbox" role="switch" checked={on} onchange={() => toggle(f.id)} />
+            <input class="sw" type="checkbox" role="switch" checked={!!flags[f.id]} onchange={() => toggle(f.id)} />
           </label>
         {/each}
       </div>
-      <button class="more" onclick={() => leave('settings')}>
-        See all {ALL_FEATURES.length} features
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
-      </button>
     </section>
     {/if}
   </div>
 
   <footer class="foot">
-    <button class="btn quiet" onclick={() => leave('main')}>Done</button>
-    <button
-      class="btn primary open"
-      onclick={() => {
-        void openYouTube(false);
-        void storage.setItem(FIRST_RUN_KEY, true);
-        opened = true;
-      }}
-    >
-      {opened ? 'Opened in a new tab' : 'Open YouTube'}
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path></svg>
+    <button class="txtbtn" onclick={() => leave('settings')}>
+      See all {ALL_FEATURES.length} features
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
     </button>
+    {#if opened}
+      <button class="pill" onclick={() => leave('main')}>Done</button>
+    {:else}
+      <button
+        class="pill"
+        onclick={() => {
+          void openYouTube(false);
+          void storage.setItem(FIRST_RUN_KEY, true);
+          opened = true;
+        }}
+      >
+        Open YouTube
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"></path></svg>
+      </button>
+    {/if}
   </footer>
 </div>
 
 <style>
-  .firstrun {
-    --surface: var(--surface-card);
-    --accent-soft: var(--accent-soft-2);
-  }
   .hello {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px 20px 14px;
+    padding: 22px 20px 14px;
     flex-shrink: 0;
-    background: radial-gradient(120% 140% at 0% 0%, var(--accent-soft) 0%, transparent 60%);
-  }
-  .badge-ic {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--accent-soft);
-    color: var(--accent-text);
-  }
-  .hello-text {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
   }
   .hello h1 {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    margin: 14px 0 0;
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
   }
   .hello p {
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.4;
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 19px;
     color: var(--muted);
   }
   .body {
-    padding: 6px 16px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    padding: 0 12px 12px;
   }
-  .sec-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 4px 8px;
+  section + section {
+    margin-top: 6px;
   }
-  .feat {
+  .row {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 11px 14px;
+    min-height: 44px;
     cursor: pointer;
-    transition: background-color 0.15s ease;
   }
-  .feat.tall {
-    min-height: 48px;
-    padding: 10px 14px;
-  }
-  .feat:hover {
-    background-color: rgba(127, 127, 140, 0.06);
-  }
-  .tile {
-    width: 28px;
-    height: 28px;
-    border-radius: 9px;
+  .row.tall {
+    min-height: 58px;
+    padding: 8px 0;
   }
   .line {
     flex-grow: 1;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .ftext {
+    flex-grow: 1;
     min-width: 0;
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.35;
   }
-  kbd {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 5px;
-    margin-right: 4px;
-    border-radius: 6px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 11.5px;
-    font-weight: 700;
-    vertical-align: 1px;
-    background: var(--tile);
-    border: 1px solid var(--line);
-    color: var(--text);
-  }
-  .name {
-    font-size: 13px;
-  }
-  .more {
-    width: 100%;
+  .foot {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 6px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent-text);
-    transition: background-color 0.15s ease;
-  }
-  .more:hover {
-    background-color: rgba(127, 127, 140, 0.09);
-  }
-  .foot {
-    gap: 8px;
     padding: 12px 16px;
+    border-top: 1px solid var(--rule);
   }
-  .quiet {
-    justify-content: center;
-    min-width: 72px;
-    color: var(--text);
-  }
-  .quiet:hover {
-    background-color: rgba(127, 127, 140, 0.14);
-    filter: none;
-  }
-  .open {
-    flex-grow: 1;
-    justify-content: center;
+  .foot .txtbtn {
+    margin-left: -10px;
   }
 </style>

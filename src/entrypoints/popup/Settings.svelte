@@ -1,7 +1,7 @@
 <script lang="ts">
   import { storage } from '#imports';
   import { onMount } from 'svelte';
-  import { CATALOG, type CatalogEntry, type ConfigId } from '../../lib/feature-catalog';
+  import { ALL_FEATURES, CATALOG, type CatalogEntry, type ConfigId } from '../../lib/feature-catalog';
   import { exportBackup, importBackup, isBackupData } from '../../lib/backup';
   import { saveFile } from '../../lib/download';
   import { sendToTab } from '../../lib/messages';
@@ -18,7 +18,7 @@
   } from '../../lib/settings';
   import { fmtMin, focusTab, getLog, minutesOn, minutesOver, youtubeTabs, type Page, type WatchLog } from './lib';
 
-  let { go }: { go: (p: Page) => void } = $props();
+  let { go, tab }: { go: (p: Page) => void; tab?: string } = $props();
 
   type Cfg = Record<string, unknown>;
   const CONFIG_IDS = Object.keys(FEATURE_CONFIG_DEFAULTS) as ConfigId[];
@@ -33,6 +33,10 @@
   let backupStatus = $state('');
   let fileInput = $state<HTMLInputElement>();
   let ready = $state(false);
+  /** Open tab. `#settings` = opened in a browser tab for Import, so start where Backup is. */
+  let current = $state(
+    CATALOG.find((s) => s.tab === tab)?.tab ?? (location.hash === '#settings' ? 'Tools' : CATALOG[0].tab),
+  );
 
   async function load() {
     const [f, on, l, groups, ...configs] = await Promise.all([
@@ -59,11 +63,12 @@
   });
 
   const q = $derived(query.trim().toLowerCase());
+  /** A search runs across every section; otherwise the open tab's section. */
   const sections = $derived(
     CATALOG.map((s) => ({
-      title: s.title,
+      ...s,
       features: s.features.filter((f) => !q || `${f.name} ${f.desc} ${s.title}`.toLowerCase().includes(q)),
-    })).filter((s) => s.features.length),
+    })).filter((s) => (q ? s.features.length : s.tab === current)),
   );
 
   async function toggle(f: CatalogEntry) {
@@ -135,7 +140,7 @@
 </script>
 
 <div class="page settings">
-  <header class="subhead">
+  <header class="top sub">
     <button class="ib" aria-label="Back to now playing" onclick={() => go('main')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
     </button>
@@ -153,36 +158,45 @@
     </label>{/if}
   </header>
 
-  <div class="search-wrap">
-    <label class="search">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-      <input type="search" placeholder="Search settings" aria-label="Search settings" bind:value={query} />
-    </label>
-  </div>
+  <label class="search">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+    <input type="search" placeholder="Search {ALL_FEATURES.length} features" aria-label="Search settings" bind:value={query} />
+  </label>
+  {#if !q}
+    <nav class="tabs" aria-label="Sections">
+      {#each CATALOG as s (s.tab)}
+        <button class="tab" aria-pressed={s.tab === current} onclick={() => (current = s.tab)}>{s.tab}</button>
+      {/each}
+    </nav>
+  {/if}
 
   <div class="scroll body">
     {#if !enabled}
       <div class="paused">
         <span>Helm is paused. YouTube looks and works as normal.</span>
-        <button class="btn-sm primary-sm" onclick={() => setEnabled(true)}>Resume</button>
+        <button class="pill" onclick={() => setEnabled(true)}>Resume</button>
       </div>
     {/if}
     {#if ready}
     <div class="groups" class:dim={!enabled}>
       {#each sections as s (s.title)}
         <section aria-label={s.title}>
-          <h2 class="label sec">{s.title}</h2>
-          <div class="card">
+          <div class="sechead">
+            {#if q}
+              <h2>{s.title}</h2>
+            {:else}
+              <span>{s.features.filter((f) => flags[f.id]).length} of {s.features.length} on</span>
+              <span>Saved as you go</span>
+            {/if}
+          </div>
+          <div class="list">
             {#each s.features as f (f.id)}
               {@const on = !!flags[f.id]}
-              <div class="feat">
-                <label class="feat-head">
-                  <span class="tile" class:on aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={f.icon}></path></svg>
-                  </span>
-                  <span class="feat-text">
-                    <span class="name">{f.name}</span>
-                    <span class="desc">{f.desc}</span>
+              <div class="feat row-line">
+                <label class="fhead">
+                  <span class="ftext">
+                    <span class="fname">{f.name}</span>
+                    <span class="fdesc">{f.desc}</span>
                   </span>
                   <input class="sw" type="checkbox" role="switch" checked={on} onchange={() => toggle(f)} />
                 </label>
@@ -190,25 +204,26 @@
                   <div class="opts">
                     {#each f.controls as c, ci (ci)}
                       {#if c.type === 'watch-stats'}
-                        <div class="field"><span class="muted">Today</span><strong>{fmtMin(minutesOn(log, new Date()))}</strong></div>
-                        <div class="field"><span class="muted">This week</span><strong>{fmtMin(minutesOver(log, 7))}</strong></div>
+                        <div class="kv"><span class="muted">Today</span><strong>{fmtMin(minutesOn(log, new Date()))}</strong></div>
+                        <div class="kv"><span class="muted">This week</span><strong>{fmtMin(minutesOver(log, 7))}</strong></div>
                       {:else if c.type === 'keywords'}
-                        <label class="field">
-                          <span>{c.label}</span>
+                        <label>
+                          <span class="olab">{c.label}</span>
                           <input
+                            class="input"
                             type="text"
                             placeholder={c.placeholder}
                             maxlength="2000"
                             value={String(val(f, c.key) ?? '')}
                             onchange={(e) => setOpt(f, c.key, e.currentTarget.value.trim())}
-                            style:width="160px"
                           />
                         </label>
                       {:else if c.type === 'length'}
-                        <div class="field">
-                          <span>{c.label}</span>
+                        <div>
+                          <span class="olab">{c.label}</span>
                           <span class="pair">
                             <input
+                              class="input"
                               type="number"
                               min="0"
                               placeholder="Min"
@@ -218,6 +233,7 @@
                             />
                             <span class="muted">to</span>
                             <input
+                              class="input"
                               type="number"
                               min="0"
                               placeholder="Max"
@@ -228,17 +244,17 @@
                           </span>
                         </div>
                       {:else if c.type === 'select'}
-                        <label class="field">
-                          <span>{c.label}</span>
-                          <select onchange={(e) => setOpt(f, c.key, Number(e.currentTarget.value))}>
+                        <div>
+                          <span class="olab" id="{f.id}-{c.key}">{c.label}</span>
+                          <div class="seg" role="group" aria-labelledby="{f.id}-{c.key}">
                             {#each c.options as o (o.value)}
-                              <option value={o.value} selected={o.value === val(f, c.key)}>{o.label}</option>
+                              <button aria-pressed={o.value === val(f, c.key)} onclick={() => setOpt(f, c.key, o.value)}>{o.label}</button>
                             {/each}
-                          </select>
-                        </label>
+                          </div>
+                        </div>
                       {:else if c.type === 'checks'}
                         {#each c.items as it (it.key)}
-                          <label class="opt">
+                          <label class="chk">
                             <input
                               type="checkbox"
                               checked={!!val(f, it.key)}
@@ -248,18 +264,25 @@
                           </label>
                         {/each}
                       {:else if c.type === 'chips'}
-                        <span class="muted chips-label">{c.label}</span>
-                        <div class="chips">
-                          {#each c.items as it (it.key)}
-                            <label class="chip" class:on={!!val(f, it.key)}>
-                              <input
-                                type="checkbox"
-                                checked={!!val(f, it.key)}
-                                onchange={(e) => setOpt(f, it.key, e.currentTarget.checked)}
-                              />
-                              {it.label}
-                            </label>
-                          {/each}
+                        <div>
+                          <span class="olab">{c.label}</span>
+                          <div class="chips">
+                            {#each c.items as it (it.key)}
+                              {@const picked = !!val(f, it.key)}
+                              <label class="chip" class:on={picked}>
+                                <input
+                                  class="sr-only"
+                                  type="checkbox"
+                                  checked={picked}
+                                  onchange={(e) => setOpt(f, it.key, e.currentTarget.checked)}
+                                />
+                                {#if picked}
+                                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+                                {/if}
+                                {it.label}
+                              </label>
+                            {/each}
+                          </div>
                         </div>
                       {:else if c.type === 'themes'}
                         <div class="themes" role="radiogroup" aria-label={c.label}>
@@ -275,8 +298,8 @@
                               <span class="swatch" aria-hidden="true" style:--tr={t.radius == null ? undefined : `${t.radius}px`}>
                                 {#each [t.light, t.dark].filter((p) => p !== undefined) as p, i (i)}
                                   <span class="pane" style:background={p.bg} style:color={p.text}>
-                                    <span class="aa" style:font-family={t.font}>Aa<span class="pill" style:background={p.accent}></span></span>
-                                    <span class="bar" style:background={p.textMuted}></span>
+                                    <span class="aa" style:font-family={t.font}>Aa<span class="dot" style:background={p.accent}></span></span>
+                                    <span class="ln" style:background={p.textMuted}></span>
                                   </span>
                                 {/each}
                               </span>
@@ -286,9 +309,9 @@
                           {/each}
                         </div>
                       {:else if c.type === 'manage-groups'}
-                        <div class="field">
+                        <div class="kv">
                           <span class="muted">{groupsLine}</span>
-                          <button class="btn-sm" onclick={manageGroups}>Manage groups</button>
+                          <button class="pill ghost" onclick={manageGroups}>Manage groups</button>
                         </div>
                       {/if}
                     {/each}
@@ -301,177 +324,213 @@
       {/each}
 
       {#if !sections.length}
-        <div class="nomatch">No settings match “{query}”.</div>
-      {/if}
-
-      {#if !q}
-        <section aria-label="Backup">
-          <h2 class="label sec">Backup</h2>
-          <div class="card backup">
-            <span class="muted note">Settings, notes, queue and channel groups in one file.</span>
-            <div class="row">
-              <button class="btn-sm" onclick={doExport}>Export</button>
-              <button class="btn-sm" onclick={startImport}>Import</button>
-              <input bind:this={fileInput} type="file" accept="application/json,.json" hidden onchange={doImport} />
-            </div>
-            {#if backupStatus}<span class="muted note" role="status">{backupStatus}</span>{/if}
-          </div>
-          <div class="version">Helm {version}</div>
-        </section>
+        <p class="nomatch">No settings match “{query}”.</p>
       {/if}
     </div>
+
+    {#if !q && current === 'Tools'}
+      <section aria-label="Backup">
+        <div class="sechead"><h2>Backup</h2></div>
+        <div class="card backup">
+          <p>Settings, notes, queue and channel groups in one file.</p>
+          <div class="row">
+            <button class="pill ghost" onclick={doExport}>Export</button>
+            <button class="pill ghost" onclick={startImport}>Import</button>
+            <span class="version">Helm {version}</span>
+            <input bind:this={fileInput} type="file" accept="application/json,.json" hidden onchange={doImport} />
+          </div>
+          {#if backupStatus}<p class="status" role="status">{backupStatus}</p>{/if}
+        </div>
+      </section>
+    {/if}
     {/if}
   </div>
 </div>
 
 <style>
-  .settings {
-    --surface: var(--surface-card);
-    --accent-soft: var(--accent-soft-2);
-  }
   .master {
-    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-right: 6px;
     font-size: 12px;
-    font-weight: 600;
     color: var(--muted);
     cursor: pointer;
   }
-  .search-wrap {
-    padding: 4px 16px 8px;
-    flex-shrink: 0;
-  }
   .search {
+    margin: 2px 16px 4px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: var(--s1);
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 12px;
-    height: 40px;
-    border-radius: 12px;
-    background: var(--surface);
-    color: var(--muted);
+    color: var(--faint);
+    flex-shrink: 0;
   }
   .search:focus-within {
     box-shadow: 0 0 0 2px var(--focus);
   }
   .search input {
     flex-grow: 1;
+    min-width: 0;
     font: inherit;
     font-size: 13px;
     color: var(--text);
     background: transparent;
     border: 0;
     outline: none;
-    min-width: 0;
+  }
+  .search input::placeholder {
+    color: var(--faint);
+  }
+  .tabs {
+    display: flex;
+    gap: 18px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tab {
+    position: relative;
+    height: 40px;
+    flex-shrink: 0;
+    color: var(--faint);
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+  .tab:hover,
+  .tab[aria-pressed='true'] {
+    color: var(--text);
+  }
+  .tab[aria-pressed='true']::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--text);
   }
   .body {
-    padding: 4px 16px 20px;
+    padding: 0 12px 16px;
+  }
+  .body .sechead {
+    padding-top: 12px;
   }
   .paused {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
-    margin-bottom: 14px;
-    border-radius: 14px;
-    background: var(--accent-soft);
+    margin-top: 12px;
+    padding: 12px 12px 12px 16px;
+    border-radius: 16px;
+    background: var(--s2);
+    font-size: 13px;
+    line-height: 18px;
   }
   .paused span {
     flex-grow: 1;
-    font-size: 12px;
-    line-height: 1.45;
-  }
-  .groups {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
   }
   .groups.dim {
-    opacity: 0.45;
+    opacity: 0.55;
   }
-  .sec {
-    margin: 0 4px 8px;
-  }
+
   .feat {
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    padding: 14px 0;
   }
-  .feat-head {
+  .fhead {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     cursor: pointer;
+  }
+  .ftext {
+    flex-grow: 1;
+    min-width: 0;
+  }
+  .fhead .sw {
+    margin-top: 1px;
   }
   .opts {
-    margin-left: 44px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: var(--inset);
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--s2);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 12px;
+    font-size: 13px;
+  }
+  .olab {
+    display: block;
+    margin-bottom: 8px;
     font-size: 12px;
+    line-height: 16px;
+    color: var(--muted);
   }
-  .field {
+  .seg {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    min-height: 32px;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--bg);
   }
-  .field strong {
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-  }
-  .field select,
-  .field input {
-    font: inherit;
+  .seg button {
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+    border-radius: 999px;
+    color: var(--muted);
     font-size: 12px;
-    color: inherit;
-    background: rgba(127, 127, 140, 0.12);
-    border: 1px solid rgba(127, 127, 140, 0.22);
-    border-radius: 9px;
-    padding: 6px 9px;
-    outline: none;
+    font-weight: 500;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
-  .field select:focus-visible,
-  .field input:focus-visible {
-    border-color: var(--focus);
+  .seg button:hover {
+    color: var(--text);
   }
-  .field select option {
-    color: #121218;
+  .seg button[aria-pressed='true'] {
+    background: var(--ctl);
+    color: var(--ctl-on);
+    font-weight: 600;
   }
-  .field input[type='number'] {
-    width: 54px;
-  }
-  .pair {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .opt {
+  .chk {
     display: flex;
     align-items: center;
     gap: 10px;
+    line-height: 18px;
     cursor: pointer;
-    min-height: 28px;
   }
-  .opt input,
-  .chip input {
+  .chk input {
+    appearance: none;
+    width: 18px;
+    height: 18px;
     margin: 0;
     flex-shrink: 0;
-    accent-color: var(--accent);
+    display: grid;
+    place-content: center;
+    border-radius: 5px;
+    border: 1.5px solid var(--faint);
+    cursor: pointer;
   }
-  .opt input {
-    width: 16px;
-    height: 16px;
+  .chk input:checked {
+    background: var(--ctl);
+    border-color: var(--ctl);
   }
-  .chips-label {
-    margin-bottom: 2px;
+  .chk input:checked::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    margin-top: -2px;
+    border: solid var(--ctl-on);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
   .chips {
     display: flex;
@@ -479,30 +538,68 @@
     gap: 6px;
   }
   .chip {
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--s3);
+    border-radius: 999px;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 6px 11px 6px 9px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: transparent;
-    cursor: pointer;
+    gap: 5px;
+    color: var(--muted);
     font-size: 12px;
     font-weight: 500;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
   .chip.on {
-    background: var(--accent-soft);
+    background: var(--s3);
     border-color: transparent;
-  }
-  .chip input {
-    width: 14px;
-    height: 14px;
+    color: var(--text);
   }
   .chip:has(input:focus-visible) {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
+  .input {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--s3);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .input:focus-visible {
+    border-color: var(--focus);
+  }
+  .input::placeholder {
+    color: var(--faint);
+  }
+  .pair {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pair .input {
+    width: 72px;
+  }
+  .kv {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 32px;
+  }
+  .kv strong {
+    font-weight: 600;
+  }
+  .kv .pill.ghost {
+    background: var(--s3);
+  }
+
   .themes {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -515,16 +612,18 @@
     min-width: 0;
     padding: 4px 4px 6px;
     border-radius: 12px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--s3);
+    font-size: 12px;
+    line-height: 16px;
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease;
   }
   .theme:hover {
-    background: rgba(127, 127, 140, 0.1);
+    background: var(--s3);
   }
   .theme:has(input:checked) {
-    border-color: var(--accent);
-    box-shadow: inset 0 0 0 1px var(--accent);
+    border-color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--text);
   }
   .theme:has(input:focus-visible) {
     outline: 2px solid var(--focus);
@@ -551,7 +650,7 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 0 0 1px var(--line);
+    box-shadow: inset 0 0 0 1px var(--s3);
   }
   .pane {
     grid-area: 1 / 1;
@@ -574,12 +673,12 @@
     font-weight: 600;
     line-height: 1;
   }
-  .pill {
+  .dot {
     width: 9px;
     height: 5px;
     border-radius: 3px;
   }
-  .bar {
+  .ln {
     width: 18px;
     height: 3px;
     border-radius: 2px;
@@ -591,53 +690,42 @@
   .t-name {
     margin-top: 5px;
     font-weight: 600;
-    line-height: 1.25;
   }
   .t-tag {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     white-space: nowrap;
   }
-  .btn-sm {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 8px 12px;
-    border-radius: 10px;
-    background: rgba(127, 127, 140, 0.14);
-    transition: background-color 0.15s ease;
-  }
-  .btn-sm:hover {
-    background: rgba(127, 127, 140, 0.24);
-  }
-  .primary-sm,
-  .primary-sm:hover {
-    background: var(--accent);
-    color: var(--on-accent);
-  }
+
   .nomatch {
+    margin: 0;
     padding: 28px 12px;
     text-align: center;
     color: var(--muted);
     font-size: 13px;
   }
-  .backup {
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  .backup p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted);
   }
-  .note {
-    font-size: 12px;
-    line-height: 1.45;
-  }
-  .row {
+  .backup .row {
     display: flex;
+    align-items: center;
     gap: 8px;
+    margin-top: 12px;
+  }
+  .backup .pill.ghost {
+    background: var(--s3);
   }
   .version {
-    text-align: center;
-    font-size: 11px;
-    color: var(--muted);
-    padding: 16px 0 0;
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .backup .status {
+    margin-top: 10px;
+    font-size: 12px;
   }
 </style>

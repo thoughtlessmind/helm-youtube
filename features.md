@@ -87,6 +87,8 @@ short "Skipped sponsor · Undo" toast. API calls go through the service worker
 - **Toolbar popup:** the big now-playing card shows the player tab (or, with none, the
   most recently used YouTube tab with a video). No tab switcher. If another YouTube tab is
   also playing, a slim "Also playing in another tab" row offers pause and "go to tab".
+  Up next lists only what's left to play (watched videos fold into "Clear N watched"),
+  under one bar of the whole queue and the time it ends at the current speed.
 
 ### Volume boost
 Graph: `MediaElementSource → Gain → DynamicsCompressor (limiter) → destination`. Resume the

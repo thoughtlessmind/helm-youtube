@@ -35,32 +35,23 @@
   const art = $derived(thumbUrl(st.videoId));
 </script>
 
-<section aria-label="Now playing" class="hero">
-  <img class="ambient" src={art} alt="" aria-hidden="true" />
-  <img class="art" src={art} alt="" />
-  <div class="scrim" aria-hidden="true"></div>
-
-  <button class="ib glass" aria-label="Go to the player tab" title="Go to the player tab" onclick={onGoto}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path></svg>
-  </button>
-
-  <div class="meta">
-    <div class="kicker status">
-      <span class="eq" class:paused={st.paused} aria-hidden="true"><span></span><span></span><span></span></span>
-      <span>{st.paused ? 'Paused' : 'Now playing'}</span>
-      <span aria-hidden="true">·</span>
-      <span class="speed">{st.rate}×</span>
-      {#if fromQueue}
-        <span aria-hidden="true">·</span>
-        <span>From queue</span>
-      {/if}
-    </div>
-    <div class="title">{st.title}</div>
-    <div class="channel">{st.channelName}</div>
+<section aria-label="Now playing" class="np">
+  <div class="np-status">
+    <span class="eq" class:paused={st.paused} aria-hidden="true"><span></span><span></span><span></span></span>
+    <span class:playing={!st.paused}>{st.paused ? 'Paused' : 'Playing'}</span>
+    <span>· {st.rate}×{fromQueue ? ' · From queue' : ''}</span>
+    <button class="ib sm goto" aria-label="Go to the player tab" title="Go to the player tab" onclick={onGoto}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path></svg>
+    </button>
   </div>
-</section>
+  <div class="video">
+    <img class="art" src={art} alt="" />
+    <div class="text">
+      <div class="np-title">{st.title}</div>
+      <div class="np-ch">{st.channelName}</div>
+    </div>
+  </div>
 
-<div class="transport">
   <div class="seekwrap">
     <div class="track"></div>
     <div class="fill" style:width={pct}></div>
@@ -83,8 +74,9 @@
   </div>
   <div class="times">
     <span>{fmtClock(pos)}</span>
-    <span>-{fmtClock(dur - pos)}</span>
+    <span>−{fmtClock(dur - pos)}</span>
   </div>
+
   <div class="controls">
     <button class="ib" aria-label="Previous" title="Previous" onclick={onPrev}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6v12L9 12z" fill="currentColor"></path><path d="M6 6v12"></path></svg>
@@ -106,97 +98,49 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6v12l9-6z" fill="currentColor"></path><path d="M18 6v12"></path></svg>
     </button>
   </div>
-</div>
+</section>
 
 <style>
-  .hero {
-    position: relative;
-    height: 236px;
+  .np {
+    margin: 0 12px;
+    padding: 10px 14px;
+    border-radius: 20px;
+    background: var(--s1);
     flex-shrink: 0;
-    overflow: hidden;
   }
-  .ambient {
-    position: absolute;
-    left: -60px;
-    top: -60px;
-    width: 500px;
-    height: 380px;
-    object-fit: cover;
-    filter: blur(48px) saturate(1.6);
-    opacity: var(--ambient);
-    background: var(--surface);
+  .playing {
+    color: var(--accent-text);
+    font-weight: 500;
+  }
+  .goto {
+    margin-left: auto;
+    margin-right: -6px;
+    color: var(--muted);
+  }
+  .video {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 2px;
   }
   .art {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 380px;
-    height: 214px;
+    width: 128px;
+    height: 72px;
+    border-radius: 8px;
     object-fit: cover;
-    background: var(--surface);
-    mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+    flex-shrink: 0;
+    display: block;
+    background: var(--s3);
   }
-  .scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(var(--bg-rgb), 0.45) 0%,
-      rgba(var(--bg-rgb), 0) 24%,
-      rgba(var(--bg-rgb), 0.15) 46%,
-      rgba(var(--bg-rgb), 0.88) 76%,
-      rgb(var(--bg-rgb)) 100%
-    );
-  }
-  .glass {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    border-radius: 999px;
-    width: 36px;
-    height: 36px;
-    background: rgba(12, 12, 16, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #fff;
-    backdrop-filter: blur(16px) saturate(160%);
-  }
-  .glass svg {
-    width: 16px;
-    height: 16px;
-  }
-  .meta {
-    position: absolute;
-    left: 20px;
-    right: 20px;
-    bottom: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .speed {
-    letter-spacing: 0;
-    text-transform: none;
-    color: var(--text);
-  }
-  .eq {
-    color: var(--accent-text);
+  .text {
+    flex-grow: 1;
+    min-width: 0;
   }
 
-  .transport {
-    padding: 6px 20px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex-shrink: 0;
-  }
   .seekwrap {
     position: relative;
-    height: 18px;
+    height: 16px;
+    margin-top: 12px;
     display: flex;
     align-items: center;
   }
@@ -209,7 +153,7 @@
   }
   .track {
     right: 0;
-    background: var(--track);
+    background: var(--s3);
   }
   .fill {
     background: var(--accent);
@@ -220,20 +164,18 @@
     height: 12px;
     margin-left: -6px;
     border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
-    opacity: 0;
-    transition: opacity 0.15s ease;
+    background: var(--accent);
+    transition: transform 0.15s ease;
   }
   .seekwrap:hover .knob,
   .seekwrap:focus-within .knob {
-    opacity: 1;
+    transform: scale(1.25);
   }
   .seekwrap input {
     position: absolute;
     inset: 0;
     width: 100%;
-    height: 18px;
+    height: 16px;
     margin: 0;
     opacity: 0;
     cursor: pointer;
@@ -246,31 +188,38 @@
   .times {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--faint);
   }
+
   .controls {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 2px 0 4px;
+    justify-content: space-between;
+    padding: 4px 10px 0;
+  }
+  .controls .ib {
+    width: 40px;
+    height: 40px;
+  }
+  .controls .ib svg {
+    width: 22px;
+    height: 22px;
   }
   .play {
-    width: 56px;
-    height: 56px;
-    border-radius: 999px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent);
-    color: var(--on-accent);
-    box-shadow: 0 8px 24px -8px var(--accent);
-    transition: transform 0.12s ease, filter 0.15s ease;
+    background: var(--ctl);
+    color: var(--ctl-on);
+    transition: transform 0.12s ease, opacity 0.15s ease;
   }
   .play:hover {
-    filter: brightness(1.08);
+    opacity: 0.9;
   }
   .play:active {
     transform: scale(0.94);
