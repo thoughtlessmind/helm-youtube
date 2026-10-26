@@ -13,7 +13,7 @@
  * - Saving the default rate for a channel deletes its override.
  * - Overrides live in `local:helm:per-channel-speed` (`channelId → rate`);
  *   the channel-page watch-time tooltip reads it too.
- * - Player UI (board WatchPlayer): a "1.5×" chip in the controls opens a popover
+ * - Player UI: a "1.5×" chip in the controls opens a popover
  *   to step this channel's speed and the default, or reset the channel.
  */
 
@@ -37,7 +37,7 @@ import {
 } from '../lib/yt/player';
 
 const STORAGE_KEY = 'local:helm:per-channel-speed';
-/** The Settings board's speed choices; the popover steps through them. */
+/** Speed choices; the popover steps through them. */
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
 
 type SpeedMap = Record<string, number>;
@@ -53,7 +53,7 @@ const PLUS = icon('<path d="M12 5v14M5 12h14"/>', SM);
 const GAUGE = icon('<path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>', LG);
 const RESET = icon('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', LG);
 
-// Board px ÷ 0.8916. The popover is a player menu: always dark.
+// The popover is a player menu: always dark.
 const CSS = `
 :host{display:flex}
 .chip{width:52px;font-weight:500;font-variant-numeric:tabular-nums;text-shadow:0 0 2px rgba(0,0,0,.5)}

@@ -38,18 +38,19 @@ import { getVideo, isAdShowing, onVideoEvent, playerVideoId, watchMetaCurrent } 
 import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelte';
 
 /**
- * Global queue (features.md → "Global queue"). One list in `local:helm:queue` shared by every
+ * Global queue. One list in `local:helm:queue` shared by every
  * tab; only the *player tab* (`session:helm:player-tab`, or every tab while unset) shows the
- * watch-page panel and auto-advances. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts),
+ * watch-page panel and auto-advances, so two tabs never race for the same item. Not YouTube's own queue: that one
+ * can only be filled through undocumented internal commands, can't show ✓, and resets on reload. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts),
  * the button under a hover preview's mute / CC, and `Q`. Every tab marks a queued video ✓ when it starts playing.
  */
 
-/** Agent T7's Focus-mode CSS keeps #secondary visible while it contains this id. */
+/** Focus mode's CSS keeps #secondary visible while it contains this id. */
 const HOST_ID = 'ytp-queue-panel';
 const VIDEO_ID = /^[\w-]{11}$/;
-/** YouTube's own "Add to queue" glyph (from its thumbnail hover toggle). */
+/** "Add to queue" glyph (play triangle + list), drawn to sit beside YouTube's mute / CC icons. */
 const QUEUE_ICON =
-  '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" style="display:block"><path d="M2 2.864v6.277a.5.5 0 00.748.434L9 6.002 2.748 2.43A.5.5 0 002 2.864ZM21 5h-9a1 1 0 100 2h9a1 1 0 100-2Zm0 6H9a1 1 0 000 2h12a1 1 0 000-2Zm0 6H9a1 1 0 000 2h12a1 1 0 000-2Z"/></svg>';
+  '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" style="display:block"><path d="M2.5 2.5v7L9 6z"/><rect x="11" y="5" width="11" height="2" rx="1"/><rect x="8" y="11" width="14" height="2" rx="1"/><rect x="8" y="17" width="14" height="2" rx="1"/></svg>';
 
 /** Title/channel/duration of a video from a card on the page, else from oEmbed. */
 async function lookup(videoId: string): Promise<Omit<QueueItem, 'addedAt' | 'playedAt'>> {

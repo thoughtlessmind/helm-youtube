@@ -1,7 +1,7 @@
 import type { FeatureConfig, FeatureFlags } from './settings';
 
 /**
- * The feature list exactly as the popup's Settings board draws it: sections,
+ * The feature list exactly as the popup's Settings page draws it: sections,
  * per-feature copy and icon, and the controls shown under a feature while it
  * is on. Settings renders from this; FirstRun reuses the icons.
  */

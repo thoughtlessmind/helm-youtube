@@ -76,7 +76,7 @@ const feature: Feature = {
 
     const pageStyle = addStyle(PAGE_CSS);
 
-    /** Why the card is filtered (board copy), or null to keep it. */
+    /** Why the card is filtered, or null to keep it. */
     const reason = (card: HTMLElement): string | null => {
       if (keywords.length) {
         const title = cardTitle(card).toLowerCase();

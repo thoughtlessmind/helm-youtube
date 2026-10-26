@@ -6,7 +6,7 @@ import { PLAYER_CSS, getVideo, mountInPlayer, onVideoEvent, tooltip } from '../l
 /**
  * Volume boost above 100%: MediaElementSource → Gain → DynamicsCompressor (limiter, stops
  * clipping) → destination. A suspended AudioContext silences the video, so it is resumed on the
- * first play / click / key press. Shows a "150%" badge on the volume control (board WatchPlayer).
+ * first play / click / key press. Shows a "150%" badge on the volume control.
  */
 
 interface Graph {

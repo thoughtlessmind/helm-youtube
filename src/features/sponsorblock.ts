@@ -15,7 +15,7 @@ import {
 } from '../lib/yt/player';
 
 /**
- * SponsorBlock auto-skip (board WatchPlayer). Segments of all five categories are fetched once per
+ * SponsorBlock auto-skip. Segments of all five categories are fetched once per
  * video through the SW (content-script fetches are cross-origin blocked); the categories enabled
  * in config are drawn on the progress bar and skipped when playback enters them — once per
  * segment per play-through. The in-player toast's Undo seeks back to the segment start and leaves

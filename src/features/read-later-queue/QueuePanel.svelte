@@ -179,7 +179,7 @@
 </section>
 
 <style>
-  /* Sizes: WatchQueue/QueueStates boards ÷ 0.8916, checked against YouTube's own queue panel. */
+  /* Sizes checked against YouTube's own queue panel. */
   section {
     --text: var(--yt-sys-color-baseline--text-primary);
     --muted: var(--yt-sys-color-baseline--text-secondary);

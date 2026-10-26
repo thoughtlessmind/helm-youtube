@@ -145,7 +145,7 @@
 </div>
 
 <style>
-  /* Board px ÷ 0.8916 = real px. Colors: YouTube tokens only (thumbnail badges excepted). */
+  /* Colors: YouTube tokens only (thumbnail badges excepted). */
   :host {
     display: block;
     width: 100%;

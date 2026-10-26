@@ -15,7 +15,7 @@ import {
 } from '../lib/yt/player';
 
 /**
- * A→B section loop (board WatchPlayer).
+ * A→B section loop.
  *
  *   `[` set point A at the current position · `]` set point B (after A) · `\` clear
  *

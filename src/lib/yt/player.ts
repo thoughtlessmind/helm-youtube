@@ -85,7 +85,7 @@ export function onVideoEvent(type: string, cb: (video: HTMLVideoElement) => void
 export const CLOSE_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 
-/** Shared styles for player UI (append to createHost's extraCss). Real px = board px ÷ 0.8916. */
+/** Shared styles for player UI (append to createHost's extraCss). */
 export const PLAYER_CSS = `
 :host{color:#fff;font-size:14px;line-height:20px}
 :focus-visible{outline-color:#3ea6ff}

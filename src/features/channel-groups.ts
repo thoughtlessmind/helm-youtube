@@ -171,7 +171,7 @@ const feature: Feature = {
       const el = document.createElement('dialog');
       el.className = 'ytp-dialog';
       el.setAttribute('aria-label', label);
-      el.setAttribute('closedby', 'any'); // backdrop click closes, like the boards' scrim
+      el.setAttribute('closedby', 'any'); // backdrop click closes
       root.append(el);
       document.body.append(host);
       const app = mount(component, { target: el, props });

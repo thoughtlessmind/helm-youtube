@@ -8,7 +8,7 @@ import { saveFile } from '../lib/download';
 import { PLAYER_CSS, getPlayer, getVideo, mountInPlayer, playerVideoId, tooltip } from '../lib/yt/player';
 
 /**
- * Frame screenshot: `S` or the camera button in the player controls (board WatchPlayer) saves
+ * Frame screenshot: `S` or the camera button in the player controls saves
  * the current frame as a PNG named `<videoId> <m-ss>.png`. The player flashes white and a toast
  * names the file. Works for YouTube's non-DRM streams; a tainted canvas shows "Frame protected".
  */

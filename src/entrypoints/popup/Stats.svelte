@@ -66,7 +66,7 @@
       : `Your queue needs ${fmtMin(need)}${at}, within what you have left.`;
   });
 
-  // Board scale is 200 min = 112px; grow it when a day or the limit needs more room.
+  // Base scale is 200 min = 112px; grow it when a day or the limit needs more room.
   const domain = $derived(Math.max(200, Math.max(...days.map((d) => d.min)) * 1.05, limit * 1.1));
   const px = $derived(PLOT / domain);
   const hourStep = $derived(60 * Math.max(1, Math.ceil(domain / 60 / 4)));

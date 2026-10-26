@@ -6,24 +6,32 @@ Helm has no account, no server and no analytics. The developer receives no data 
 
 ## What Helm stores
 
-Your settings, queue, video notes, channel groups, per-channel speeds and watch-time totals are kept in your browser's extension storage. Settings sync between your own devices through your Chrome profile (Chrome Sync). You can export everything from the popup (Settings → Backup), and removing the extension deletes it.
+These stay in your browser's extension storage:
+
+- your settings (feature switches, speeds, feed-filter keywords)
+- the queue (video IDs, titles, channel names) and your video notes
+- channel groups, plus a cache of channel handles and their IDs
+- per-channel playback speeds
+- watch time: daily totals per channel for the last 90 days, and all-time totals per channel (no list of videos)
+
+Settings sync between your own devices through your Chrome profile (Chrome Sync); everything else stays on this device. While a YouTube tab is open, the channel group you picked on a feed is also kept in that tab's session storage. You can export everything from the popup (Settings → Backup), and removing the extension deletes it.
 
 ## Requests Helm makes
 
 | Destination | What is sent | When |
 |---|---|---|
 | `www.youtube.com` (oEmbed) | A video ID | Adding a video to the queue when its title isn't on the page |
-| `www.youtube.com` (channel pages, `/youtubei/v1/browse`) | A channel handle or ID | Picking a channel group on Home or Subscriptions |
-| `i.ytimg.com` | A video ID | Thumbnails in the toolbar popup |
-| `sponsor.ajay.app` (SponsorBlock) | The first 4 characters of a hash of the video ID | Each video you watch, only while **Skip sponsors** is on (off by default) |
+| `www.youtube.com` (channel pages, `/youtubei/v1/browse`) | A channel handle or ID | Showing a channel group on Home or Subscriptions |
+| `i.ytimg.com` | A video ID | Thumbnails in the popup, the queue panel and Focus mode's Home |
+| `sponsor.ajay.app` (SponsorBlock) | The first 4 characters of the video ID's SHA-256 hash, and the segment categories to look up | Each video you watch while **Skip sponsors** is on (on by default; switch it off in the popup) |
 
-Requests to YouTube go to the same service you are already using. Channel-group requests use your existing YouTube sign-in so videos you have watched show as watched; your sign-in cookies are read only on youtube.com and never stored or sent anywhere else.
+Requests to YouTube go to the same service you are already using. Channel-group requests are signed with your existing YouTube sign-in, so videos you have watched show as watched: Helm reads YouTube's sign-in cookie on youtube.com, as YouTube's own page does, and never stores it or sends it anywhere else.
 
 The SponsorBlock request never contains the video ID itself: SponsorBlock answers for every video sharing that hash prefix and Helm picks out the one you're watching. Like any web request it includes your IP address. See [SponsorBlock's privacy policy](https://wiki.sponsor.ajay.app/w/Privacy_Policy).
 
 ## What Helm does not do
 
-Helm does not collect, sell or share personal information, browsing history or authentication credentials, and does not use your data for anything other than the features above.
+Apart from Chrome Sync and the requests above, nothing Helm stores leaves your browser. Helm does not sell or share personal information, browsing history or sign-in data, sends nothing to the developer, and uses your data only for the features above.
 
 ## Contact
 

@@ -2,7 +2,7 @@ import { storage } from '#imports';
 
 /**
  * The global queue — one list shared by every YouTube tab in the profile
- * (spec: features.md "Global queue"). Played items stay, with a ✓.
+ * Played items stay, with a ✓.
  *
  * ponytail: read-modify-write from any tab; two tabs writing in the same
  * tick can drop one change. Route writes through the SW if that ever bites.
