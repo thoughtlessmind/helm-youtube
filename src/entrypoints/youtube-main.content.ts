@@ -9,13 +9,15 @@
  *     doesn't match runs YouTube's native behaviour untouched.
  *  b) `{ source: 'ytp', type: 'navigate', videoId }` → SPA navigation to that video.
  *  c) `{ source: 'ytp', type: 'group-grid', … }` → a channel group in the feed's own grid
- *     (lib/yt/group-grid.ts).
+ *     (lib/yt/group-grid.ts); `ytp-shelf-cols` event on document → feed shelves render
+ *     <html data-ytp-grid-cols> cards per row (lib/yt/shelf-cols.ts).
  *  d) `ytp-player-video` event on document → the player's own video id and its channel (owner
  *     URL, name) on <html data-ytp-player-video / -owner / -author>, set before dispatchEvent
  *     returns (lib/yt/player.ts: the miniplayer plays videos the URL doesn't name).
  * No extension APIs here (main world has none).
  */
 import { installGroupGrid } from '../lib/yt/group-grid';
+import { installShelfCols } from '../lib/yt/shelf-cols';
 
 const VIDEO_ID = /^[\w-]{11}$/;
 const QUEUE_LIST = 'PLAYLIST_EDIT_LIST_TYPE_QUEUE';
@@ -87,6 +89,7 @@ export default defineContentScript({
     window.addEventListener('keydown', onActivate, true);
 
     installGroupGrid();
+    installShelfCols();
 
     document.addEventListener('ytp-player-video', () => {
       const player = document.querySelector('#movie_player') as Json;

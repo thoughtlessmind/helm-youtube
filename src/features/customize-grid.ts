@@ -1,13 +1,17 @@
 import type { Feature } from '../lib/features';
 import { getConfig, watchConfig } from '../lib/settings';
 import { PREVIEW_BUTTONS } from '../lib/yt/feed-cards';
+import { SHELF_EVENT, VIDEO_SHELF } from '../lib/yt/shelf-cols';
 import { addStyle } from '../lib/yt/ui';
 
 const ITEM = 'ytd-rich-grid-renderer ytd-rich-item-renderer:not(ytd-rich-section-renderer *)';
+/** Every card that takes the grid's size: the grid's own, plus those in video shelves ("Top news"). */
+const CARD = `:is(${ITEM}, ${VIDEO_SHELF} ytd-rich-item-renderer)`;
 
+const clampCols = (cols: unknown) => Math.min(8, Math.max(0, Math.round(Number(cols)) || 0));
+
+/** `cols` goes into page CSS and a hand-edited backup can put anything in config: clampCols it first. */
 function buildCSS(cols: number): string {
-  // Goes into page CSS and a hand-edited backup can put anything here: an integer within the popup's 0–8.
-  cols = Math.min(8, Math.max(0, Math.round(Number(cols)) || 0));
   if (!cols) return ''; // 0 = YouTube default: its own responsive grid, untouched
   // YouTube's media queries override its own items-per-row var at narrow
   // viewports, so we set grid-template-columns explicitly. The CSS vars
@@ -48,28 +52,37 @@ ytd-rich-section-renderer {
 }
 
 /* :not() excludes items nested inside section shelves like "Explore more
-   topics" — those have their own internal layout we shouldn't override.
-   Each card is a size container so its text can scale with it. */
+   topics" — those keep their own flex row, below. */
 ${ITEM} {
   width: 100% !important;
   max-width: none !important;
   min-width: 0 !important;
   margin: 0 0 24px 0 !important;
+}
+
+/* Video shelves ("Top news", "Explore more topics") size their cards from a per-row var YouTube
+   sets inline on each shelf; the MAIN world makes them render that many (lib/yt/shelf-cols.ts). */
+${VIDEO_SHELF} {
+  --ytd-rich-grid-items-per-row: ${cols} !important;
+}
+
+/* Each card is a size container so its text can scale with it. */
+${CARD} {
   container-type: inline-size;
 }
 
 /* Text keeps the card's proportions: YouTube's 16px title / 14px metadata
    on a 360px-wide card, shrinking in ratio on narrower cards. Never larger
    than YouTube's size; floored at 11px / 10px to stay readable. */
-${ITEM} .ytLockupMetadataViewModelTitle,
-${ITEM} #video-title {
+${CARD} .ytLockupMetadataViewModelTitle,
+${CARD} #video-title {
   font-size: clamp(11px, 4.44cqi, 16px) !important;
   line-height: 1.375em !important;
 }
-${ITEM} .ytContentMetadataViewModelMetadataText,
-${ITEM} .ytContentMetadataViewModelDelimiter,
-${ITEM} #metadata-line span,
-${ITEM} ytd-channel-name #text {
+${CARD} .ytContentMetadataViewModelMetadataText,
+${CARD} .ytContentMetadataViewModelDelimiter,
+${CARD} #metadata-line span,
+${CARD} ytd-channel-name #text {
   font-size: clamp(10px, 3.89cqi, 14px) !important;
   line-height: 1.43em !important;
 }
@@ -81,7 +94,7 @@ ${ITEM} ytd-channel-name #text {
 yt-inline-player-controls {
   container-type: inline-size;
 }
-${ITEM} .ytThumbnailHoverOverlayToggleActionsViewModelButton,
+${CARD} .ytThumbnailHoverOverlayToggleActionsViewModelButton,
 ${PREVIEW_BUTTONS} {
   zoom: clamp(0.5, tan(atan2(100cqi, 360px)), 1);
 }
@@ -89,12 +102,34 @@ ${PREVIEW_BUTTONS} {
 }
 
 const feature: Feature = {
-  async setup() {
-    const style = addStyle(buildCSS((await getConfig('customize-grid')).columnsPerRow));
-    const offConfig = watchConfig('customize-grid', (next) => (style.textContent = buildCSS(next.columnsPerRow)));
+  async setup(ctx) {
+    const html = document.documentElement;
+    const style = addStyle('');
+    let cols = 0;
+
+    /** Tells the MAIN world how many cards a video shelf should render (lib/yt/shelf-cols.ts). */
+    const askShelves = () => document.dispatchEvent(new Event(SHELF_EVENT));
+    const apply = (value: unknown) => {
+      cols = clampCols(value);
+      style.textContent = buildCSS(cols);
+      if (cols) html.dataset.ytpGridCols = String(cols);
+      else delete html.dataset.ytpGridCols; // the MAIN world puts back YouTube's own count
+      askShelves();
+    };
+    // New shelves (scrolling) and re-rendered ones (a resize, a topic chip) start at YouTube's count.
+    const syncShelves = () => {
+      if (!cols) return;
+      const want = String(cols);
+      if ([...document.querySelectorAll(VIDEO_SHELF)].some((s) => s.getAttribute('elements-per-row') !== want)) askShelves();
+    };
+
+    apply((await getConfig('customize-grid')).columnsPerRow);
+    const offs = [watchConfig('customize-grid', (next) => apply(next.columnsPerRow)), ctx.observer.onChange(syncShelves)];
     return () => {
-      offConfig();
+      offs.forEach((off) => off());
       style.remove();
+      delete html.dataset.ytpGridCols;
+      askShelves();
     };
   },
 };

@@ -136,6 +136,7 @@ Status: open · fixing · fixed · deferred · won't fix.
 | 52 | P2 | Dev tooling | The dev-only `data-ytp-errors` mirror stayed empty while CDP caught an isolated-world exception, so CLAUDE.md's advice to rely on it is unreliable | live test | deferred | Investigate isolated-world `error` events; meanwhile use CDP / the extension's error page |
 | 53 | P2 | Focus mode | Calm home footer said "change it in Helm settings" (extension branding on youtube.com) | live test | fixed | "change it in the extension's settings" |
 | 54 | P2 | Hide Shorts | The collapsed mini guide still showed "Shorts": its label moved to the inner link, and the selector was English-only | screenshot run | fixed | Match the `/shorts` link in both guides |
+| 55 | P1 | Grid density | Shelves inside the feed ("Top news", "Explore more topics") kept YouTube's 3-per-row cards: each shelf sets its own per-row var inline and only renders that many cards | user report | fixed | CSS sizes video-shelf cards like the grid; the MAIN world sets each shelf's `elementsPerRow` so collapsed shelves show a full row (`lib/yt/shelf-cols.ts`); Shorts / Playables shelves untouched. Verified live signed in |
 
 ---
 
