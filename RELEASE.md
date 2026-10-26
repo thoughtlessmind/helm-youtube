@@ -23,9 +23,9 @@ Status: `[x]` done · `[ ]` open · `[~]` partial / see issue sheet. Issues foun
 - [x] Content scripts limited to `www.youtube.com` (#5)
 - [x] No remote code; no `eval` / `new Function`; default CSP
 - [~] Privacy: every request listed in `PRIVACY.md`; needs a public URL + "Privacy practices" tab answers (#4)
-- [ ] Trademark (#2): "YouTube" never first in the name; no YouTube logo or red play button in icon / promo art; "not affiliated with YouTube" line in the listing
+- [x] Trademark (#2): "YouTube" never first in the name; no YouTube logo or red play button in icon / promo art; "not affiliated with YouTube" line in the listing
 - [x] Single-purpose statement written
-- [ ] Listing assets (#2, #3): 128×128 icon, ≥ 1 screenshot at 1280×800 (or 640×400), small promo 440×280, marquee 1400×560, long description
+- [~] Listing assets: 128×128 icon, promo tiles (440×280, 1400×560) and long description done; still need ≥ 1 screenshot at 1280×800 (#3)
 - [x] README and `features.md` match shipped behaviour; LICENSE present
 
 ## 3. Live testing (load `.output/chrome-mv3/` unpacked)
@@ -83,7 +83,7 @@ Status: open · fixing · fixed · deferred · won't fix.
 | ID | Sev | Area | Issue | Found by | Status | Fix |
 |---|---|---|---|---|---|---|
 | 1 | P0 | Channel groups (WIP) | YouTube's RSS feeds 404 for every channel, so every group showed "No recent videos" | live test (signed in) | fixed | Sort by the cards' relative date ("4 days ago") parsed with `Intl.RelativeTimeFormat`, verified on 26 UI languages; RSS request dropped (`group-grid.ts`) |
-| 2 | P0 | Store / branding | Icon, promo tiles and README logos are YouTube's logo mark (red rounded square + white play triangle) — trademark / impersonation rejection risk | store audit | open — your call | Redraw without the play triangle and YouTube red; regenerate `public/icon/*`, `branding/*` |
+| 2 | P0 | Store / branding | Icon, promo tiles and README logos were YouTube's logo mark (red rounded square + white play triangle) — trademark / impersonation rejection risk | store audit | fixed | New mark: a bold "H" whose crossbar runs into a forward arrow, white on indigo `#3D4FD6` (concept from Codex imagegen, rebuilt as vector). Pixel-snapped 16 / 32 px variants (`branding/icon-16.svg`, `icon-32.svg`; 48 renders from the 32 grid); icons, promo tiles and logos regenerated |
 | 3 | P0 | Store listing | No screenshots (≥ 1 at 1280×800 required) | store audit | open | Capture 3–5: queue panel, group grid, speed chip + SponsorBlock bar, popup, focus mode |
 | 4 | P0 | Privacy | No privacy policy (required: SponsorBlock lookups leave the browser) | store audit | fixed | `PRIVACY.md`; needs a public URL (GitHub file / Pages) in the dashboard |
 | 5 | P1 | Manifest | `*://*.youtube.com/*` also ran on music., studio., m., accounts.; default 1.25× speed would speed up YouTube Music | store audit | fixed | `https://www.youtube.com/*` in host permissions, both content scripts, popup tab query |

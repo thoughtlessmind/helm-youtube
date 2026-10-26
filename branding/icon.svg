@@ -1,18 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect x="128" y="128" width="768" height="768" rx="170" fill="#FF0000"/>
+  <rect x="128" y="128" width="768" height="768" rx="170" fill="#3D4FD6"/>
   <g fill="#FFFFFF">
-    <rect x="256" y="368" width="152" height="40" rx="20"/>
-    <rect x="224" y="492" width="184" height="40" rx="20"/>
-    <rect x="280" y="616" width="128" height="40" rx="20"/>
-    <path d="M 488 330
-             C 474 321, 456 321, 442 329
-             C 428 337, 420 352, 420 368
-             L 420 656
-             C 420 672, 428 687, 442 695
-             C 456 703, 474 703, 488 694
-             L 766 530
-             C 780 522, 788 518, 788 512
-             C 788 506, 780 502, 766 494
-             Z"/>
+    <rect x="248" y="288" width="112" height="448"/>
+    <rect x="480" y="288" width="112" height="448"/>
+    <rect x="248" y="456" width="384" height="112"/>
+    <path d="M 632 368 L 800 512 L 632 656 Z"/>
   </g>
 </svg>
