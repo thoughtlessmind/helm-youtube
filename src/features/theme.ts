@@ -135,14 +135,15 @@ export function themeCss(theme: Theme): string {
       .map(([name, value]) => `${name}:${value}`);
     css = rule('html,html [dark],html [light]', [...modeVars, ...decls((theme.light ?? theme.dark)!)]);
     css += `html{color-scheme:${theme.light ? 'light' : 'dark'}!important}`; // scrollbars, native inputs
-    // Dark YouTube's Ambient mode glow would paint over a light preset's page.
-    if (theme.light) css += '#cinematics,#cinematics-container{display:none!important}';
   }
-  // Hard-coded colors: html's own background, the search box (light, or `…Dark` classes set by JS),
-  // and colors inlined from the thumbnail in a shade for YouTube's own mode: a hovered card's
+  // Ambient mode fills its canvas with a hard-coded #0f0f0f (#000 theater, #fff light) under the frame,
+  // so once the video plays it paints a box with a hard edge over any other page color.
+  css += '#cinematics,#cinematics-container{display:none!important}';
+  // Hard-coded colors: html's own background (YouTube's dark one is on `html[dark]`, which outranks
+  // `html`), the search box (light, or `…Dark` classes set by JS), and colors inlined from the thumbnail in a shade for YouTube's own mode: a hovered card's
   // title/metadata, and the playlist panel's selected row (watch-page playlist, miniplayer queue).
   const t = (name: string) => `var(${SYS}${name})!important`;
-  css += `html{background-color:${t('base-background')}}
+  css += `html,html[dark]{background-color:${t('base-background')}}
 .ytLockupMetadataViewModelTitle:not(.ytLockupMetadataViewModelOverlay *){color:${t('text-primary')}}
 .ytLockupMetadataViewModelMetadata:not(.ytLockupMetadataViewModelOverlay *){color:${t('text-secondary')}}
 ytd-playlist-panel-renderer[use-color-palette]{--yt-active-playlist-panel-background-color:${t('additive-background')};--yt-lightsource-primary-title-color:${t('text-primary')};--yt-lightsource-secondary-title-color:${t('text-secondary')}}
