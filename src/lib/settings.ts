@@ -44,7 +44,8 @@ export const FEATURE_CONFIG_DEFAULTS = {
   /** Home's chip strip shows YouTube's own topic chips instead of the group switcher. */
   'channel-groups': { youtubeChips: false },
   'customize-grid': { columnsPerRow: 5 },
-  'playback-speed': { rate: 1.25, perChannel: true },
+  /** 1×: a fresh install shouldn't speed every video up; what's on by default is the per-channel memory. */
+  'playback-speed': { rate: 1, perChannel: true },
   /** SponsorBlock categories to auto-skip. */
   'sponsorblock': { sponsor: true, selfpromo: true, interaction: true, intro: false, outro: false },
   'read-later-queue': {
