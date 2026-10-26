@@ -7,6 +7,7 @@ import { storage } from '#imports';
  */
 export const FEATURE_DEFAULTS = {
   'hide-shorts': true,
+  'hide-playables': false,
   'focus-mode': false,
   'feed-filters': false,
   'customize-grid': false,

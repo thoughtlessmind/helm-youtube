@@ -20,6 +20,7 @@ type Loader = () => Promise<{ default: Feature }>;
  */
 export const featureRegistry: Record<string, Loader> = {
   'hide-shorts': () => import('../features/hide-shorts'),
+  'hide-playables': () => import('../features/hide-playables'),
   'focus-mode': () => import('../features/focus-mode'),
   'feed-filters': () => import('../features/feed-filters'),
   'customize-grid': () => import('../features/customize-grid'),

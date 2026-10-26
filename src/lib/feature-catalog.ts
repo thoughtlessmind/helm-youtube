@@ -49,6 +49,8 @@ export const CATALOG: CatalogSection[] = [
     features: [
       { id: 'hide-shorts', name: 'Hide Shorts', desc: 'Remove Shorts from Home, search, sidebar and channel pages.',
         icon: 'M3 3l18 18M8 3h8a2 2 0 0 1 2 2v9M18 18v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6' },
+      { id: 'hide-playables', name: 'Hide Playables', desc: 'Remove Playables games from Home, the sidebar and feeds.',
+        icon: 'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM6 12h4M8 10v4M15 11h.01M18 13h.01' },
       {
         id: 'focus-mode',
         name: 'Focus mode',

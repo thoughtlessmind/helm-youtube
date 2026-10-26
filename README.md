@@ -27,6 +27,7 @@ Every feature can be switched on or off, and configured, from the toolbar popup.
 | Feature | What it does |
 |---|---|
 | **Hide Shorts** | Removes Shorts from Home, search, the sidebar and channel pages. |
+| **Hide Playables** | Removes Playables games from Home, the sidebar and feeds. |
 | **Focus mode** | Hides the parts built to keep you scrolling: the Home feed, recommendations next to videos, comments, and view counts and dates. Each one is a separate option. |
 | **Feed filters** | Hides videos by title keyword or by length, and hides videos you've already watched. |
 | **Grid density** | Sets how many videos fit in a row on Home. |

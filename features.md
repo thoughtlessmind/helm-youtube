@@ -30,6 +30,7 @@ P3 = small utility.
 | 15 | **A→B loop** | Loop a section with `[` `]` `\` | Native Loop is whole-video only | `loop-section` | P3 |
 | 16 | **Frame screenshot** | `S` saves the current frame as PNG | Not native | `screenshot-current-frame` | P3 |
 | 17 | **Theme** | Preset palette + font + corner radius (Nord, Rosé, Forest, Solarized, Sepia, OLED Black, Terminal); follows YouTube's light/dark, single-mode presets override it | Native is Light / Dark / Device only | `theme` | P3 |
+| 18 | **Hide Playables** | Removes Playables (games) from the sidebar, Home shelves and feeds | Native only offers per-shelf "Not interested" | `hide-playables` | P3 |
 
 ## Behavior specs
 
