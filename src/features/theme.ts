@@ -139,11 +139,13 @@ export function themeCss(theme: Theme): string {
     if (theme.light) css += '#cinematics,#cinematics-container{display:none!important}';
   }
   // Hard-coded colors: html's own background, the search box (light, or `…Dark` classes set by JS),
-  // and a hovered card's title/metadata, inlined from the thumbnail in a shade for YouTube's own mode.
+  // and colors inlined from the thumbnail in a shade for YouTube's own mode: a hovered card's
+  // title/metadata, and the playlist panel's selected row (watch-page playlist, miniplayer queue).
   const t = (name: string) => `var(${SYS}${name})!important`;
   css += `html{background-color:${t('base-background')}}
 .ytLockupMetadataViewModelTitle:not(.ytLockupMetadataViewModelOverlay *){color:${t('text-primary')}}
 .ytLockupMetadataViewModelMetadata:not(.ytLockupMetadataViewModelOverlay *){color:${t('text-secondary')}}
+ytd-playlist-panel-renderer[use-color-palette]{--yt-active-playlist-panel-background-color:${t('additive-background')};--yt-lightsource-primary-title-color:${t('text-primary')};--yt-lightsource-secondary-title-color:${t('text-secondary')}}
 .ytSearchboxComponentInputBox{background-color:${t('base-background')};border-color:${t('outline')}}
 .ytSearchboxComponentInputBox.ytSearchboxComponentInputBoxHasFocus{border-color:${t('call-to-action')}}
 .ytSearchboxComponentSearchButton{background-color:${t('additive-background')};border-color:${t('outline')}}`;
