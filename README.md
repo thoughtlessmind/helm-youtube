@@ -10,10 +10,10 @@
 Manifest V3 · Chrome 126+ · No account · No tracking
 
 <p align="center">
-  <img src="branding/screenshots/1-queue.png" alt="The queue panel next to a playing video" width="49%">
-  <img src="branding/screenshots/3-channel-groups.png" alt="Channel group chips filtering the Home feed" width="49%">
-  <img src="branding/screenshots/2-speed-sponsorblock.png" alt="Per-channel playback speed menu in the player" width="49%">
-  <img src="branding/screenshots/4-focus-mode.png" alt="Focus mode replacing the Home feed with your queue and channel groups" width="49%">
+  <img src="branding/screenshots/1-themes.png" alt="Terminal, Solarized, Sepia and Nord themes on Home and watch pages" width="49%">
+  <img src="branding/screenshots/2-custom-rows.png" alt="The Home grid at 4 and at 6 videos per row" width="49%">
+  <img src="branding/screenshots/3-queue.png" alt="The queue panel next to a playing video" width="49%">
+  <img src="branding/screenshots/4-popup.png" alt="The toolbar popup controlling playback and the queue" width="49%">
 </p>
 
 ---
