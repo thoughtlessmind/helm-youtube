@@ -168,10 +168,7 @@ export const CATALOG: CatalogSection[] = [
         controls: [
           {
             type: 'checks',
-            items: [
-              { key: 'autoAdvance', label: 'Play the next queued video when one ends' },
-              { key: 'nativeAdd', label: 'Send YouTube’s “Add to queue” here' },
-            ],
+            items: [{ key: 'autoAdvance', label: 'Play the next queued video when one ends' }],
           },
         ],
       },

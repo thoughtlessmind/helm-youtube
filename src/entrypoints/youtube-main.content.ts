@@ -3,7 +3,7 @@
  * `componentProps`), `ytcfg` and YouTube's own `yt-navigate` / `yt-action` handlers are only
  * reachable from the page's JS world, so this small script does four things and talks to the
  * isolated world over `window.postMessage` (d: a DOM event and attribute):
- *  a) ⋮ → "Add to queue": while <html data-ytp-native-add="1"> (set by read-later-queue), the
+ *  a) ⋮ → "Add to queue": while <html data-ytp-native-add="1"> (set while read-later-queue is on), the
  *     click is swallowed and `{ source: 'ytp', type: 'queue-add', videoId }` posted instead.
  *     Matching is locale-independent (icon / command data, never menu text); anything that
  *     doesn't match runs YouTube's native behaviour untouched.

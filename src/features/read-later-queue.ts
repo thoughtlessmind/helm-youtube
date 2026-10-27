@@ -230,14 +230,14 @@ const feature: Feature = {
     const onMessage = async (e: MessageEvent) => {
       const d = e.data;
       if (e.source !== window || e.origin !== location.origin || d?.source !== 'ytp' || d.type !== 'queue-add') return;
-      if (typeof d.videoId !== 'string' || !VIDEO_ID.test(d.videoId) || !config.nativeAdd) return;
+      if (typeof d.videoId !== 'string' || !VIDEO_ID.test(d.videoId)) return;
       await add(await lookup(d.videoId));
     };
     window.addEventListener('message', onMessage);
+    // Always on while the queue is: the main world redirects ⋮ → "Add to queue" only while this is set.
+    html.dataset.ytpNativeAdd = '1';
 
     // ── State sync ──────────────────────────────────────────────────────────
-    const mirrorNativeAdd = () => (html.dataset.ytpNativeAdd = config.nativeAdd ? '1' : '0');
-    mirrorNativeAdd();
 
     const offs = [
       offQ,
@@ -252,7 +252,6 @@ const feature: Feature = {
       }),
       watchConfig('read-later-queue', (v) => {
         config = v;
-        mirrorNativeAdd();
         render();
       }),
       storage.watch<number>(PLAYER_TAB_KEY, (v) => {

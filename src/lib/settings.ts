@@ -50,8 +50,6 @@ export const FEATURE_CONFIG_DEFAULTS = {
   'sponsorblock': { sponsor: true, selfpromo: true, interaction: true, intro: false, outro: false },
   'read-later-queue': {
     autoAdvance: true,
-    /** Redirect YouTube's own ⋮ → "Add to queue" to our queue. */
-    nativeAdd: true,
     panelCollapsed: false,
   },
   'volume-boost': { multiplier: 1.5 },
