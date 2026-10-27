@@ -48,6 +48,8 @@ TOOLS
 
 Every feature switches on and off from the toolbar popup; features you turn off run no code. No account, no tracking, no analytics. Back up and restore your data as JSON.
 
+Sponsor segments: SponsorBlock (sponsor.ajay.app), CC BY-NC-SA 4.0.
+
 Helm is an independent project, not affiliated with, endorsed by, or sponsored by YouTube or Google LLC. YouTube is a trademark of Google LLC.
 ```
 

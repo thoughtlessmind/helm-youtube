@@ -166,6 +166,8 @@ Found a bug or want a feature? Open an issue on [GitHub](https://github.com/thou
 - Popup font: DM Sans, © The DM Sans Project Authors, [SIL Open Font License 1.1](https://openfontlicense.org).
 - Some icons adapted from [Feather](https://feathericons.com) (MIT) and [Lucide](https://lucide.dev) (ISC).
 
+The full license texts ship inside the extension: [`public/THIRD_PARTY_NOTICES.txt`](./public/THIRD_PARTY_NOTICES.txt).
+
 ## License
 
 [MIT](./LICENSE)
