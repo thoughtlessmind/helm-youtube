@@ -30,7 +30,6 @@ CLEAN UP YOUTUBE
 • Focus mode: hide the Home feed, recommendations, comments, view counts (each optional)
 • Feed filters: hide by title keyword, length, or already watched
 • Grid density: choose videos per row
-• Hide end-screen cards
 
 PLAYBACK
 • Default speed plus a remembered speed per channel

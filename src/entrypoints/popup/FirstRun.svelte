@@ -26,7 +26,6 @@
     rate === 1
       ? { id: 'playback-speed', on: 'Your speed is remembered per channel', off: 'Speed resets with every video' }
       : { id: 'playback-speed', on: `Videos start at ${rate}× speed`, off: 'Videos start at normal speed' },
-    { id: 'hide-end-screen-cards', on: 'End-screen cards are hidden', off: 'End-screen cards show' },
     { id: 'auto-dismiss-still-watching', on: '“Still watching?” is answered for you', off: '“Still watching?” can pause videos' },
     { id: 'watch-time', on: 'Your watch time is counted locally', off: 'Watch time isn’t counted' },
     { id: 'read-later-queue', keys: ['Q'], on: 'adds a video to your queue', off: 'The queue is off' },

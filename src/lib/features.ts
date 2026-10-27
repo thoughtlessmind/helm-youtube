@@ -28,7 +28,6 @@ export const featureRegistry: Record<string, Loader> = {
   'playback-speed': () => import('../features/playback-speed'),
   'sponsorblock': () => import('../features/sponsorblock'),
   'read-later-queue': () => import('../features/read-later-queue'),
-  'hide-end-screen-cards': () => import('../features/hide-end-screen-cards'),
   'auto-dismiss-still-watching': () => import('../features/auto-dismiss-still-watching'),
   'volume-boost': () => import('../features/volume-boost'),
   'loop-section': () => import('../features/loop-section'),

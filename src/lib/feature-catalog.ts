@@ -96,8 +96,6 @@ export const CATALOG: CatalogSection[] = [
           },
         ],
       },
-      { id: 'hide-end-screen-cards', name: 'Hide end-screen cards', desc: 'No video tiles covering the last seconds.',
-        icon: 'M3 5h18v14H3zM12 12h6v4h-6z' },
     ],
   },
   {

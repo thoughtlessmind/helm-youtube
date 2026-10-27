@@ -15,7 +15,6 @@ export const FEATURE_DEFAULTS = {
   'playback-speed': true,
   'sponsorblock': true,
   'read-later-queue': true,
-  'hide-end-screen-cards': true,
   'auto-dismiss-still-watching': true,
   'volume-boost': false,
   'loop-section': true,

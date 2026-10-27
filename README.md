@@ -38,7 +38,6 @@ Every feature can be switched on or off, and configured, from the toolbar popup.
 | **Focus mode** | Hides the parts built to keep you scrolling: the Home feed, recommendations next to videos, comments, and view counts and dates. Each one is a separate option. |
 | **Feed filters** | Hides videos by title keyword or by length, and hides videos you've already watched. |
 | **Grid density** | Sets how many videos fit in a row on Home and YouTube's other video grids. |
-| **Hide end-screen cards** | Removes the video tiles that cover the last seconds of a video. |
 
 ### Playback
 
