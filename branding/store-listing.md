@@ -11,7 +11,7 @@ Paste-ready answers for the Developer Dashboard. Assets are in this folder: `pub
 
 **Privacy practices tab:** Data handled on the device still has to be disclosed. Tick:
 - Authentication information (the SAPISID cookie read above)
-- Web history (per-channel watch-time log; the hash prefix sent to SponsorBlock)
+- Web history (per-channel watch-time log; watched videos kept in the queue until cleared; the hash prefix sent to SponsorBlock)
 - Website content (video titles and channel names saved in the queue, transcripts)
 
 Then tick all three certifications. Privacy policy URL: https://github.com/thoughtlessmind/helm-youtube/blob/main/PRIVACY.md (needs the repo public and `PRIVACY.md` on `main`).

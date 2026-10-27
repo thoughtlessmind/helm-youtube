@@ -113,7 +113,7 @@
   const queueOn = $derived(!!flags['read-later-queue']);
   const st = $derived(shown?.state ?? null);
   const currentId = $derived(st?.videoId ?? null);
-  const nextItem = $derived(queue.find((i) => !i.playedAt && i.videoId !== currentId) ?? null);
+  const nextItem = $derived(queueOn ? (queue.find((i) => !i.playedAt && i.videoId !== currentId) ?? null) : null);
   const pending = $derived(upNext(queue));
   const pendingSec = $derived(pending.reduce((s, i) => s + i.duration, 0));
   const todayMin = $derived(minutesOn(log, new Date()));
@@ -138,12 +138,12 @@
   function prev() {
     if (!st) return;
     if (st.currentTime > 3) return seek(0);
-    const i = queue.findIndex((q) => q.videoId === currentId);
+    const i = queueOn ? queue.findIndex((q) => q.videoId === currentId) : -1;
     if (i > 0) void playItem(queue[i - 1].videoId);
     else seek(0);
   }
 
-  /** Plays in the player tab, else the tab shown in the card, else a new tab. */
+  /** Plays in the tab the card shows (the player tab while it has a video), else the player tab, else a new tab. */
   async function playItem(videoId: string) {
     // The id outlives the player tab leaving YouTube (cleared only on close): don't navigate another site's tab.
     if (playerTabId != null) {
@@ -153,7 +153,8 @@
         await setPlayerTabId(null);
       }
     }
-    const target = playerTabId ?? shown?.id ?? null;
+    // Not the player tab first: with another tab on the card, Next would start a second video behind it.
+    const target = shown?.id ?? playerTabId ?? null;
     if (target == null) return playInNewTab(videoId);
     const handled = await sendToTab(target, { type: 'play-video', videoId });
     if (handled === undefined) {
@@ -239,7 +240,7 @@
         {st}
         big={queueOn && !nextItem}
         fromQueue={queue.some((q) => q.videoId === st.videoId)}
-        nextLabel={nextItem ? `Next: ${nextItem.title}` : 'Queue finished. YouTube autoplay takes over.'}
+        nextLabel={nextItem ? `Next: ${nextItem.title}` : queueOn ? 'Queue finished. YouTube autoplay takes over.' : 'The queue is off'}
         nextDisabled={!nextItem}
         onToggle={() => shown && toggle(shown)}
         onSeek={seek}

@@ -207,7 +207,12 @@ const feature: Feature = {
       mountInPlayer(ctx, bar.host, 'progress'),
       mountInPlayer(ctx, toast.host, 'overlay'),
       onVideoEvent('timeupdate', onTime),
-      onVideoEvent('loadedmetadata', () => void load()),
+      // A new media load is a new play-through, so reopening the same video skips its segments again.
+      // (Moving into the miniplayer doesn't reload, so an undone segment stays undone there.)
+      onVideoEvent('loadedmetadata', () => {
+        done.clear();
+        void load();
+      }),
       onVideoEvent('durationchange', render),
       onVideoEvent('ended', () => done.clear()),
       ctx.navigation.onNavigate(() => void load()),

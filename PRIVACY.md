@@ -1,6 +1,6 @@
 # Helm for YouTube — Privacy Policy
 
-_Last updated: 26 October 2026_
+_Last updated: 27 October 2026_
 
 Helm has no account, no server and no analytics. The developer receives no data from you.
 
@@ -9,7 +9,7 @@ Helm has no account, no server and no analytics. The developer receives no data 
 These stay in your browser's extension storage:
 
 - your settings (feature switches, speeds, feed-filter keywords)
-- the queue (video IDs, titles, channel names) and your video notes
+- the queue (video IDs, titles, channel names, lengths, and when each was watched) and your video notes. Watched videos stay in the queue until you clear them, including a video you open in place of a queued one
 - channel groups, plus a cache of channel handles and their IDs
 - per-channel playback speeds
 - watch time: daily totals per channel for the last 90 days, and all-time totals per channel (no list of videos)
