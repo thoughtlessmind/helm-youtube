@@ -1,0 +1,286 @@
+/**
+ * Playback speed: a default rate for every video, plus (optionally) a
+ * remembered rate per channel that overrides it.
+ *
+ * - The rate is (re)applied on `loadedmetadata` (YouTube reuses one <video>
+ *   across SPA navigations and resets the rate on each new src) and again
+ *   once the channel of the player's video (watch page or miniplayer) is known.
+ *   Never during ads (YouTube plays them at 1×): re-applied when the video plays again.
+ * - User speed changes (YouTube's own menu) are captured via `ratechange` and
+ *   saved for the channel. Our own assignments re-save the rate they came
+ *   from (a no-op); YouTube's load-time resets are gated by `mediaSettled`
+ *   (~500 ms after loadedmetadata — no user changes speed that fast).
+ * - Saving the default rate for a channel deletes its override.
+ * - Overrides live in `local:helm:per-channel-speed` (`channelId → rate`);
+ *   the channel-page watch-time tooltip reads it too.
+ * - Player UI: a "1.5×" chip in the controls opens a popover
+ *   to step this channel's speed and the default, or reset the channel.
+ */
+
+import type { Feature } from '../lib/features';
+import { storage } from '#imports';
+import { getConfig, setConfig, watchConfig } from '../lib/settings';
+import { getWatchChannel, type ChannelRef } from '../lib/yt/video';
+import { createHost, icon, openPopover } from '../lib/yt/ui';
+import { initials } from '../lib/format';
+import {
+  PLAYER_CSS,
+  getPlayer,
+  getVideo,
+  isAdShowing,
+  miniplayerChannel,
+  mountInPlayer,
+  onVideoEvent,
+  playerVideoId,
+  tooltip,
+  watchMetaCurrent,
+} from '../lib/yt/player';
+
+const STORAGE_KEY = 'local:helm:per-channel-speed';
+/** Speed choices; the popover steps through them. */
+const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
+
+type SpeedMap = Record<string, number>;
+
+const sp = (v: number) => `${v}×`;
+const stepFrom = (v: number, dir: number) =>
+  dir > 0 ? SPEEDS.find((s) => s > v + 1e-6) : [...SPEEDS].reverse().find((s) => s < v - 1e-6);
+
+const SM = ' width="18" height="18" stroke-width="2.2"';
+const LG = ' width="22" height="22" stroke-width="2"';
+const MINUS = icon('<path d="M5 12h14"/>', SM);
+const PLUS = icon('<path d="M12 5v14M5 12h14"/>', SM);
+const GAUGE = icon('<path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>', LG);
+const RESET = icon('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', LG);
+
+// The popover is a player menu: always dark.
+const CSS = `
+:host{display:flex}
+.chip{width:52px;font-weight:500;font-variant-numeric:tabular-nums;text-shadow:0 0 2px rgba(0,0,0,.5)}
+.pop{width:max-content;min-width:345px;max-width:420px;padding:4px 0 8px}
+.head{display:flex;align-items:center;height:40px;padding:0 16px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.2);margin-bottom:7px}
+.row{display:flex;align-items:center;gap:13px;width:100%;height:40px;box-sizing:border-box;padding:0 9px 0 16px;text-align:left}
+.row[hidden],.sep[hidden],.av[hidden]{display:none}
+.row>svg{width:22px;height:22px;flex:none}
+.def{color:#aaa}
+.av{display:flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;border-radius:50%;object-fit:cover;background:#6b4636;color:#f1f1f1;font-size:9px;font-weight:700;text-shadow:none}
+.name{flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step{display:flex;align-items:center;gap:2px}
+.stp{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;transition:background-color .1s}
+.stp:hover:not(:disabled),.reset:hover:not(:disabled){background-color:rgba(255,255,255,.1)}
+.stp:disabled{opacity:.3;cursor:default}
+.val{min-width:45px;text-align:center;font-weight:500;font-variant-numeric:tabular-nums}
+.sep{height:1px;background:rgba(255,255,255,.1);margin:7px 0}
+.reset{transition:background-color .1s}
+.reset:disabled{opacity:.4;cursor:default}
+.hint{color:#aaa;padding-right:7px}
+`;
+
+const POP_HTML = `
+<div class="head">Playback speed</div>
+<div class="row chan"><img class="av" alt="" hidden><span class="av" aria-hidden="true"></span><span class="name"></span><span class="step"><button class="stp" data-k="chan" data-d="-1">${MINUS}</button><span class="val" aria-live="polite"></span><button class="stp" data-k="chan" data-d="1">${PLUS}</button></span></div>
+<div class="row def">${GAUGE}<span class="name"></span><span class="step"><button class="stp" data-k="def" data-d="-1" aria-label="Lower default speed">${MINUS}</button><span class="val" aria-live="polite"></span><button class="stp" data-k="def" data-d="1" aria-label="Raise default speed">${PLUS}</button></span></div>
+<div class="sep" aria-hidden="true"></div>
+<button class="row reset">${RESET}<span class="name">Reset this channel</span><span class="hint"></span></button>`;
+
+/** Owner avatar on the watch page, for the popover's channel row. */
+const ownerAvatar = () =>
+  document.querySelector<HTMLImageElement>('ytd-watch-metadata ytd-video-owner-renderer #avatar img')?.src || null;
+
+const feature: Feature = {
+
+  async setup(ctx) {
+    let cfg = await getConfig('playback-speed');
+    let map: SpeedMap = (await storage.getItem<SpeedMap>(STORAGE_KEY)) ?? {};
+    // Channel of the player's video (channelVid); stale once another video plays, until resolved.
+    let channel: ChannelRef | null = null;
+    let channelVid: string | null = null;
+    let mediaSettled = true;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    /** An ad played since: re-apply on the video's own next `playing`. */
+    let adPlayed = false;
+
+    const perChannel = () => (cfg.perChannel && channel && channelVid === playerVideoId() ? channel : null);
+    const chanRate = () => {
+      const ch = perChannel();
+      return (ch && map[ch.id]) || cfg.rate;
+    };
+
+    const apply = () => {
+      if (isAdShowing()) return void (adPlayed = true); // ads keep YouTube's 1×
+      const video = getVideo();
+      const rate = chanRate();
+      if (video && video.playbackRate !== rate) video.playbackRate = rate;
+    };
+
+    const saveChannel = (rate: number) => {
+      const ch = perChannel();
+      if (!ch) return;
+      map = { ...map };
+      if (rate === cfg.rate) delete map[ch.id];
+      else map[ch.id] = rate;
+      void storage.setItem<SpeedMap>(STORAGE_KEY, map);
+    };
+
+    // --- player UI ---------------------------------------------------------
+    const { host, root } = createHost('ytp-speed-chip', PLAYER_CSS + CSS);
+    const chip = document.createElement('button');
+    chip.className = 'pb chip';
+    chip.setAttribute('aria-haspopup', 'dialog');
+    chip.setAttribute('aria-expanded', 'false');
+    const pop = document.createElement('div');
+    pop.className = 'pop ytp-player-menu';
+    pop.popover = 'auto'; // hidden until openPopover() shows it
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Playback speed');
+    pop.innerHTML = POP_HTML;
+    root.append(chip, pop);
+    const $ = <T extends HTMLElement>(sel: string) => pop.querySelector<T>(sel)!;
+    const chanRow = $('.chan');
+    const defRow = $('.def');
+    const steppers = [...pop.querySelectorAll<HTMLButtonElement>('.stp')];
+    const reset = $<HTMLButtonElement>('.reset');
+    const avImg = $<HTMLImageElement>('img.av');
+    const avText = $('span.av');
+    const isOpen = () => pop.matches(':popover-open');
+
+    tooltip(chip, () => {
+      if (isOpen()) return '';
+      const ch = perChannel();
+      return ch ? `Speed for ${ch.name}` : 'Playback speed';
+    });
+
+    const render = () => {
+      const ch = perChannel();
+      // The live rate (YouTube's own menu may differ), except during ads, which YouTube plays at 1×.
+      const rate = (!isAdShowing() && getVideo()?.playbackRate) || chanRate();
+      chip.textContent = sp(rate);
+      chip.setAttribute('aria-label', `${sp(rate)} playback speed${ch ? ` for ${ch.name}` : ''}`);
+
+      chanRow.hidden = reset.hidden = $('.sep').hidden = !ch;
+      $('.def .name').textContent = ch ? 'Default for other channels' : 'Default speed';
+      if (ch) {
+        $('.chan .name').textContent = `${ch.name} (this channel)`;
+        const src = ownerAvatar();
+        avImg.hidden = !src;
+        avText.hidden = !!src;
+        avText.textContent = initials(ch.name);
+        if (src && avImg.src !== src) avImg.src = src;
+      }
+      const vals: Record<string, number> = { chan: chanRate(), def: cfg.rate };
+      $('.chan .val').textContent = sp(vals.chan);
+      $('.def .val').textContent = sp(vals.def);
+      for (const b of steppers) {
+        b.disabled = stepFrom(vals[b.dataset.k!], Number(b.dataset.d)) == null;
+        if (b.dataset.k === 'chan' && ch) {
+          b.setAttribute('aria-label', `${b.dataset.d === '1' ? 'Faster' : 'Slower'} for ${ch.name}`);
+        }
+      }
+      reset.disabled = vals.chan === vals.def;
+      $('.hint').textContent = `to ${sp(cfg.rate)}`;
+    };
+
+    chip.addEventListener('click', () => {
+      render(); // the avatar may have loaded since
+      openPopover(chip, pop, { side: 'above' });
+      if (!isOpen()) return;
+      // Like YouTube's settings menu: centred on the chip, just above the progress bar.
+      const a = chip.getBoundingClientRect();
+      const barTop = getPlayer()?.querySelector('.ytp-progress-bar')?.getBoundingClientRect().top ?? a.top;
+      const top = parseFloat(pop.style.top);
+      const dy = top < a.top ? Math.min(0, barTop - 15 - pop.offsetHeight - top) : 0;
+      pop.style.translate = `${(a.width - pop.offsetWidth) / 2}px ${dy}px`;
+    });
+
+    pop.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLButtonElement>('button');
+      if (!btn || btn.disabled) return;
+      if (btn === reset) {
+        saveChannel(cfg.rate);
+      } else {
+        const d = Number(btn.dataset.d);
+        if (btn.dataset.k === 'chan') {
+          const next = stepFrom(chanRate(), d);
+          if (next != null) saveChannel(next);
+        } else {
+          const next = stepFrom(cfg.rate, d);
+          if (next != null) {
+            cfg = { ...cfg, rate: next };
+            void setConfig('playback-speed', cfg);
+          }
+        }
+      }
+      apply();
+      render();
+      // Keep keyboard focus in the popover when the pressed button just became disabled.
+      if (btn.disabled) (btn.parentElement?.querySelector<HTMLElement>('.stp:not(:disabled)') ?? pop).focus();
+    });
+
+    // --- rate bookkeeping --------------------------------------------------
+    const onRateChange = () => {
+      render();
+      // YouTube resets the rate itself while a new src loads, and plays ads at 1×.
+      if (!mediaSettled || isAdShowing()) return;
+      const rate = getVideo()?.playbackRate;
+      if (rate != null) saveChannel(rate);
+    };
+
+    const onLoadedMetadata = () => {
+      mediaSettled = false;
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => (mediaSettled = true), 500);
+      apply();
+    };
+
+    /** Resolve the player video's channel (watch metadata once it has caught up, else the miniplayer's), then apply. */
+    const resolveChannel = () => {
+      const vid = playerVideoId();
+      // Until watch metadata catches up, its owner link still names the previous video's channel.
+      const ch = vid && (watchMetaCurrent() ? getWatchChannel() : miniplayerChannel());
+      if (!ch || (vid === channelVid && ch.id === channel?.id && ch.name === channel.name)) return;
+      channel = ch;
+      channelVid = vid;
+      apply();
+      render();
+    };
+
+    const offs = [
+      mountInPlayer(ctx, host, 'controls-right', 1),
+      onVideoEvent('ratechange', onRateChange),
+      onVideoEvent('loadedmetadata', onLoadedMetadata),
+      onVideoEvent('playing', () => {
+        if (isAdShowing()) adPlayed = true;
+        else if (adPlayed) {
+          adPlayed = false;
+          apply();
+        }
+      }),
+      ctx.observer.onChange(resolveChannel),
+      ctx.navigation.onNavigate(() => {
+        apply();
+        resolveChannel();
+        render();
+      }),
+      storage.watch<SpeedMap>(STORAGE_KEY, (val) => {
+        map = val ?? {};
+        render();
+      }),
+      watchConfig('playback-speed', (next) => {
+        cfg = next;
+        apply();
+        render();
+      }),
+    ];
+
+    resolveChannel();
+    apply();
+    render();
+
+    return () => {
+      offs.forEach((off) => off());
+      clearTimeout(settleTimer);
+    };
+  },
+};
+
+export default feature;

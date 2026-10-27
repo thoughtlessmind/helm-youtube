@@ -1,18 +1,546 @@
-@import 'tailwindcss';
+/* DM Sans, latin subset only (opsz + wght axes). */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url('@fontsource-variable/dm-sans/files/dm-sans-latin-opsz-normal.woff2') format('woff2-variations');
+}
 
-@theme {
-  --color-yt-red: #ff0033;
-  --color-yt-bg: #0f0f0f;
-  --color-yt-surface: #1f1f1f;
-  --color-yt-surface-hover: #272727;
-  --color-yt-text: #f1f1f1;
-  --color-yt-text-muted: #aaaaaa;
+/*
+ * True-black flat: surfaces step up in lightness, no borders or shadows on cards.
+ * YouTube red goes only on marks of time and progress (seek bar, meters, today's bar, the logo);
+ * primary controls are made primary by inversion (--ctl).
+ */
+:root {
+  color-scheme: dark;
+  --bg: #000;
+  --s1: #111;
+  --s2: #1c1c1c;
+  --s3: #2a2a2a;
+  /* A bottom sheet, and a card one step up from it (or from an options panel). */
+  --sheet: #1c1c1c;
+  --raised: #2a2a2a;
+  --rule: #1f1f1f;
+  --text: #fff;
+  --muted: #b4b4b4;
+  --faint: #949494;
+  --sw-off: #333;
+  --knob-off: #9a9a9a;
+  --bar: #666;
+  --bar-over: #e6e6e6;
+  --positive: #3fc07a;
+  --accent: #ff0033;
+  /* 4.5:1 on --s1. */
+  --accent-text: #ff0033;
+  --on-accent: #fff;
+  --ctl: var(--text);
+  --ctl-on: var(--bg);
+  --focus: var(--accent);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #fff;
+    --s1: #f4f4f4;
+    --s2: #ececec;
+    --s3: #e2e2e2;
+    --sheet: #fff;
+    --raised: #f4f4f4;
+    --rule: #e6e6e6;
+    --text: #0f0f0f;
+    --muted: #555;
+    --faint: #666;
+    --sw-off: #d6d6d6;
+    --knob-off: #fff;
+    --bar: #8c8c8c;
+    --bar-over: #1f1f1f;
+    --positive: #247b50;
+    /* #ff0033 is 3.6:1 on --s1: fine for marks, too light for text. */
+    --accent-text: #d9002b;
+    --focus: #d9002b;
+  }
 }
 
 html,
 body {
   margin: 0;
-  background: var(--color-yt-bg);
-  color: var(--color-yt-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  width: 380px;
+  height: 600px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+#app {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* One popup page: fixed top bar, content scrolls under it. */
+.page {
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.scroll {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--s3) transparent;
+}
+
+/* Top bar: the product on Main, back + title on sub-pages. */
+.top {
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 16px;
+}
+.top.sub {
+  padding-left: 6px;
+}
+.top h1 {
+  margin: 0 auto 0 2px;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Icon button 36×36 (.sm = 32×32). */
+.ib {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.ib:hover {
+  background-color: var(--s2);
+}
+.ib:active {
+  transform: scale(0.94);
+}
+.ib:disabled {
+  opacity: 0.3;
+  background: none;
+  transform: none;
+}
+.ib svg {
+  width: 20px;
+  height: 20px;
+}
+.ib.sm {
+  width: 32px;
+  height: 32px;
+}
+.ib.sm svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Pill button: primary by inversion; .ghost sits one step up from the surface. */
+.pill {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ctl);
+  color: var(--ctl-on);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+.pill:hover {
+  opacity: 0.88;
+}
+.pill:active {
+  transform: scale(0.97);
+}
+.pill svg {
+  width: 16px;
+  height: 16px;
+}
+.pill.ghost {
+  background: var(--s1);
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* Quiet text button. */
+.txtbtn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.txtbtn:hover {
+  background: var(--s1);
+  color: var(--text);
+}
+.txtbtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Switch: a real checkbox with role=switch. */
+.sw {
+  appearance: none;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin: 0;
+  background: var(--sw-off);
+  transition: background-color 0.15s ease;
+}
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--knob-off);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.sw:checked {
+  background: var(--ctl);
+}
+.sw:checked::after {
+  transform: translateX(14px);
+  background: var(--ctl-on);
+}
+
+/* Cards and lists of rows. */
+.card {
+  border-radius: 20px;
+  background: var(--s1);
+  padding: 16px;
+}
+.list {
+  border-radius: 20px;
+  background: var(--s1);
+  padding: 0 16px;
+}
+.row-line + .row-line {
+  border-top: 1px solid var(--rule);
+}
+.fname {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+.fdesc {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--muted);
+}
+.sechead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sechead h2 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+.lab {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  margin-right: 4px;
+  border-radius: 5px;
+  background: var(--s3);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.muted {
+  color: var(--muted);
+}
+
+/* The playing video's status line and text (Now playing card, Nothing playing). */
+.np-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.np-title {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.np-ch {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+}
+
+/* Queue rows: the popup queue and the Nothing-playing list. */
+.q {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 0;
+}
+.q-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+.q-head h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.q-head > :last-child:not(h2) {
+  margin-left: auto;
+}
+.q-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.qlist {
+  list-style: none;
+  margin: 0 -16px;
+  padding: 0 8px 12px;
+}
+.qrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 8px;
+  border-radius: 12px;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+.qthumb {
+  position: relative;
+  width: 64px;
+  height: 36px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--s3);
+  color: #fff;
+}
+.qthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dur {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+}
+.qtext {
+  flex-grow: 1;
+  min-width: 0;
+}
+.qtitle {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qsub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.qsub span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tag {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--s3);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+/* An empty block keeps its frame: a dashed slot with how to fill it. */
+.slot {
+  flex-grow: 1;
+  min-height: 0;
+  margin: 10px 0 16px;
+  padding: 20px;
+  border: 1px dashed var(--sw-off);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+.slot p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+}
+/* Equalizer bars next to "Playing". */
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.eq span {
+  display: block;
+  width: 3px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--accent);
+  transform-origin: bottom;
+  animation: eq 0.9s ease-in-out infinite;
+}
+.eq span:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.eq span:nth-child(3) {
+  animation-delay: -0.6s;
+}
+.eq.paused span {
+  animation-play-state: paused;
+  background: var(--faint);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .eq span {
+    transform: scaleY(0.7);
+  }
 }

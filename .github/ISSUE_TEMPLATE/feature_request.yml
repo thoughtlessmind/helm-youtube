@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest an improvement to Helm for YouTube.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Helm improves the youtube.com experience. It only adds what YouTube doesn't already offer, and it is **not** an ad blocker or a video downloader, so requests for those will be closed.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the pain point?
+      description: What do you do on YouTube today that is slow, annoying or impossible?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Helm to do?
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: I checked that youtube.com doesn't already do this (including its settings and menus).
+          required: true
+        - label: This isn't ad blocking or downloading videos.
+          required: true

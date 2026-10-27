@@ -1,75 +1,121 @@
 import type { Feature } from '../lib/features';
 import { getConfig, watchConfig } from '../lib/settings';
+import { createHost } from '../lib/yt/ui';
+import { PLAYER_CSS, getVideo, mountInPlayer, onVideoEvent, tooltip } from '../lib/yt/player';
 
 /**
- * Boost volume above 100% using a Web Audio gain node. The video
- * element's native volume slider tops out at 1.0; we route audio
- * through a MediaElementAudioSourceNode → GainNode → destination so
- * the user can crank it to e.g. 200% on quiet videos.
- *
- * Caveat: a video element can only be sourced once. We track which
- * elements we've wired up to avoid throwing on re-attach.
+ * Volume boost above 100%: MediaElementSource → Gain → DynamicsCompressor (limiter, stops
+ * clipping) → destination. A suspended AudioContext silences the video, so it is resumed on the
+ * first play / click / key press. Shows a "150%" badge on the volume control.
  */
 
-const wiredVideos = new WeakMap<HTMLVideoElement, GainNode>();
+interface Graph {
+  ctx: AudioContext;
+  gain: GainNode;
+  limiter: DynamicsCompressorNode;
+  /** Routed multiplier; null = bypassed. */
+  routed?: number | null;
+}
 
-function wire(video: HTMLVideoElement): GainNode | null {
-  const existing = wiredVideos.get(video);
-  if (existing) return existing;
+/**
+ * One graph per <video> for the page's lifetime: a second createMediaElementSource on the same
+ * element throws. Module-level, so it survives the feature being toggled off and on.
+ */
+const graphs = new WeakMap<HTMLVideoElement, Graph>();
+
+function graphFor(video: HTMLVideoElement): Graph | null {
+  let g = graphs.get(video);
+  if (g) return g;
   try {
     const ctx = new AudioContext();
-    const source = ctx.createMediaElementSource(video);
     const gain = ctx.createGain();
-    source.connect(gain).connect(ctx.destination);
-    wiredVideos.set(video, gain);
-    return gain;
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.05;
+    limiter.connect(ctx.destination);
+    ctx.createMediaElementSource(video).connect(gain);
+    g = { ctx, gain, limiter };
+    graphs.set(video, g);
+    return g;
   } catch {
-    // Already sourced elsewhere, or AudioContext blocked. Bail quietly.
-    return null;
+    return null; // AudioContext unavailable
   }
 }
 
+/** Boost through the limiter, or (null) unity gain straight out — audio as YouTube plays it. */
+function route(g: Graph, multiplier: number | null): void {
+  if (g.routed === multiplier) return;
+  g.gain.disconnect();
+  g.gain.gain.value = multiplier ?? 1;
+  g.gain.connect(multiplier == null ? g.ctx.destination : g.limiter);
+  g.routed = multiplier;
+}
+
+const CSS = `
+:host{position:absolute;left:24px;top:-3px;z-index:1}
+.badge{display:block;height:12px;padding:0 3px;border-radius:2px;background:#cc0022;color:#fff;font-size:9px;font-weight:700;line-height:12px;letter-spacing:.1px}
+`;
+
 const feature: Feature = {
-  id: 'volume-boost',
   async setup(ctx) {
     let multiplier = (await getConfig('volume-boost')).multiplier;
 
+    const { host, root } = createHost('ytp-boost-badge', PLAYER_CSS + CSS);
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.setAttribute('role', 'img');
+    root.append(badge);
+    const label = () => `Volume boost ${Math.round(multiplier * 100)}%`;
+    tooltip(badge, label);
+
+    let stopped = false;
+    const resume = () => {
+      const video = getVideo();
+      const g = video && graphs.get(video);
+      if (g?.ctx.state === 'suspended') void g.ctx.resume();
+      if (stopped) unlisten(); // switched off while suspended: this gesture's resume was the last job
+    };
+    const unlisten = () => {
+      document.removeEventListener('pointerdown', resume, true);
+      document.removeEventListener('keydown', resume, true);
+    };
     const apply = () => {
-      const video = document.querySelector<HTMLVideoElement>('video.html5-main-video');
-      if (!video) return;
-      const gain = wire(video);
-      if (gain) gain.gain.value = multiplier;
+      badge.textContent = `${Math.round(multiplier * 100)}%`;
+      badge.setAttribute('aria-label', label());
+      const video = getVideo();
+      const g = video && graphFor(video);
+      if (!g) return;
+      route(g, multiplier);
+      resume();
     };
 
+    document.addEventListener('pointerdown', resume, true);
+    document.addEventListener('keydown', resume, true);
+    const offs = [
+      mountInPlayer(ctx, host, 'volume'),
+      onVideoEvent('loadedmetadata', apply),
+      onVideoEvent('play', apply),
+      watchConfig('volume-boost', (cfg) => {
+        multiplier = cfg.multiplier;
+        apply();
+      }),
+    ];
     apply();
 
-    const offMutation = ctx.observer.subscribe((mutations) => {
-      for (const m of mutations) {
-        m.addedNodes.forEach((node) => {
-          if (node instanceof HTMLVideoElement) {
-            const gain = wire(node);
-            if (gain) gain.gain.value = multiplier;
-          }
-        });
-      }
-    });
-
-    const offNav = ctx.navigation.onNavigate(() => apply());
-    const offConfig = watchConfig('volume-boost', (cfg) => {
-      multiplier = cfg.multiplier;
-      apply();
-    });
-
     return () => {
-      offMutation();
-      offNav();
-      offConfig();
-      // Reset gain on teardown so the user's audio isn't permanently boosted.
-      const video = document.querySelector<HTMLVideoElement>('video.html5-main-video');
-      if (video) {
-        const gain = wiredVideos.get(video);
-        if (gain) gain.gain.value = 1;
-      }
+      stopped = true;
+      offs.forEach((off) => off());
+      // The graph can't be undone; unity gain + no limiter leaves the audio untouched.
+      const video = getVideo();
+      const g = video && graphs.get(video);
+      if (g) route(g, null);
+      // But a suspended context (no page gesture yet; the popup's toggle isn't one) is silent:
+      // try now, and keep resuming on the page's next gesture.
+      if (g?.ctx.state === 'suspended') void g.ctx.resume();
+      else unlisten();
     };
   },
 };

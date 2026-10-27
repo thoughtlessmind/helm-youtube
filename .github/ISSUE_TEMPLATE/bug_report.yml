@@ -1,0 +1,104 @@
+name: Bug report
+description: Something in Helm for YouTube is broken or behaves wrong.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        YouTube changes its pages often, so the details below are what makes a bug fixable. Please check open issues first.
+  - type: input
+    id: helm-version
+    attributes:
+      label: Helm version
+      description: From `chrome://extensions` (the number under Helm for YouTube).
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: chrome-version
+    attributes:
+      label: Chrome version
+      description: From `chrome://version` (first line).
+      placeholder: "142.0.xxxx.xx"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - ChromeOS
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Which feature?
+      options:
+        - Hide Shorts
+        - Hide Playables
+        - Focus mode
+        - Feed filters
+        - Grid density
+        - Playback speed
+        - Skip sponsors
+        - Volume boost
+        - Skip "Still watching?"
+        - A→B loop
+        - Queue
+        - Channel groups
+        - Video notes
+        - Watch time
+        - Transcript download
+        - Frame screenshot
+        - Theme
+        - Toolbar popup / settings
+        - Backup / import
+        - Not sure / several
+    validations:
+      required: true
+  - type: dropdown
+    id: page
+    attributes:
+      label: Page type
+      multiple: true
+      options:
+        - Watch page
+        - Home
+        - Subscriptions
+        - Channel
+        - Search results
+        - Other (say which in the steps)
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include a video or page URL if it only happens there.
+      placeholder: |
+        1. Open https://www.youtube.com/watch?v=...
+        2. Click ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true
+  - type: textarea
+    id: extras
+    attributes:
+      label: Screenshot or console errors (optional)
+      description: Drag in a screenshot, or paste errors from DevTools (F12 → Console). Note other YouTube extensions you run; they can conflict.

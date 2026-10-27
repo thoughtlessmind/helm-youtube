@@ -1,99 +1,176 @@
-# YouTube Pro — A Better YouTube Experience
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="branding/logo-dark.png">
+    <img src="branding/logo-light.png" alt="Helm for YouTube" width="420">
+  </picture>
+</h1>
 
-A Chrome extension that enhances the YouTube web experience by fixing the small UX annoyances and adding pro-level features that the native app doesn't offer.
+**Take the helm back from the algorithm.** Helm is a lightweight Chrome extension that removes YouTube's noise and adds the power-user features youtube.com is missing: a queue that works across tabs, channel groups, per-channel speed, sponsor skipping, notes and watch-time stats.
 
-## What It Is
+Manifest V3 · Chrome 126+ · No account · No tracking
 
-YouTube Pro is a browser extension built for power users who spend a lot of time on YouTube and want it to work the way they actually use it — not the way the algorithm wants them to. It layers improvements on top of the native YouTube interface without replacing it.
+<p align="center">
+  <img src="branding/screenshots/1-themes.png" alt="Terminal, Solarized, Sepia and Nord themes on Home and watch pages" width="49%">
+  <img src="branding/screenshots/2-custom-rows.png" alt="The Home grid at 4 and at 6 videos per row" width="49%">
+  <img src="branding/screenshots/3-queue.png" alt="The queue panel next to a playing video" width="49%">
+  <img src="branding/screenshots/4-popup.png" alt="The toolbar popup controlling playback and the queue" width="49%">
+</p>
 
-The goal is twofold:
+---
 
-1. **Reduce friction** — turn multi-step native flows (like adding to Watch Later) into one click.
-2. **Add features YouTube doesn't have** — like custom dashboards that filter your homepage to specific channels, per-channel playback speed memory, focus modes, and personal analytics.
+## Why Helm
 
-This is *not* an ad blocker, a downloader, or a TOS-violating tool. It works alongside YouTube and respects the platform.
+- **Only what YouTube lacks.** Every feature passes one rule: youtube.com doesn't already do it.
+- **Looks native.** Helm's controls sit in YouTube's own slots and use YouTube's own colors, so they match light and dark mode. No floating buttons, no extension branding on the page.
+- **Stays fast.** Features you switch off run no code at all. The whole extension shares a single DOM observer.
+- **Private by default.** No sign-in, no analytics. Your data stays in your browser.
 
-## Who It's For
+## Features
 
-- People who watch a lot of YouTube and feel the current UI gets in the way
-- Subscribers who want true control over their feed (folders, filters, chronological order)
-- Learners who use YouTube as a study tool and want notes, transcripts, and section looping
-- Anyone tired of clicking through three menus to do something simple
+Every feature can be switched on or off, and configured, from the toolbar popup. Everything is on from install except Focus mode, Feed filters, Grid density, Volume boost, Channel groups, Video notes and Theme.
 
-## Project Status
+### Clean up YouTube
 
-Early planning phase. See `FEATURES.md` for the full feature roadmap, organized from quick wins (MVP candidates) to larger ambitious features.
+| Feature | What it does |
+|---|---|
+| **Hide Shorts** | Removes Shorts from Home, search, the sidebar and channel pages. |
+| **Hide Playables** | Removes Playables games from Home, the sidebar and feeds. |
+| **Focus mode** | Hides the parts built to keep you scrolling: the Home feed, recommendations next to videos, comments, and view counts and dates. Each one is a separate option. |
+| **Feed filters** | Hides videos by title keyword or by length, and hides videos you've already watched. |
+| **Grid density** | Sets how many videos fit in a row on Home and YouTube's other video grids. |
 
-## Tech Stack
+### Playback
 
-### Core
-- **Manifest V3** — the current Chrome extension standard
-- **Vanilla JavaScript** (or **TypeScript** for type safety as the project grows)
-- **HTML + CSS** for popup and options UI
+| Feature | What it does |
+|---|---|
+| **Playback speed** | Starts every video at your speed and remembers a separate speed for each channel. A speed button in the player sets either one. |
+| **Skip sponsors** | Auto-skips sponsor reads, self-promo and like/subscribe asks (intros and outros optional), using [SponsorBlock](https://sponsor.ajay.app). Segments show on the progress bar, and each skip has Undo. |
+| **Volume boost** | Turns quiet videos up past 100%, to as much as 300%. |
+| **Skip "Still watching?"** | Keeps playing without the pause prompt. |
+| **A→B loop** | Loops one section of a video. |
 
-### Recommended Tooling
-- **Vite** or **Webpack** — bundler for organizing source files into the extension build
-- **TypeScript** — strongly recommended once we move past the smallest features
-- **ESLint + Prettier** — code quality and formatting
-- **CRXJS Vite plugin** — makes Manifest V3 development much smoother with hot reload
+### Your library
 
-### Chrome Extension APIs We'll Use
-- **Content Scripts** — to inject UI and behavior into YouTube pages
-- **`chrome.storage.sync`** — to save user preferences and custom dashboards across devices
-- **`chrome.storage.local`** — for larger data like personal notes and analytics
-- **Service Worker** (background script) — for events that need to run outside the page context
-- **`chrome.runtime` messaging** — communication between content scripts and the service worker
-- **`chrome.commands`** — for keyboard shortcuts
+| Feature | What it does |
+|---|---|
+| **Queue** | One queue shared by every YouTube tab and window. It survives reloads and restarts, and shows as a panel next to the video. Add videos with YouTube's own "Add to queue", the button on a thumbnail's hover preview, or `Q`. It plays the next video automatically. |
+| **Channel groups** | Groups your channels. Pick a group on Home or Subscriptions to see only its channels' latest videos, newest first. |
+| **Video notes** | Keeps a private note on any video. Notes save automatically. |
 
-### YouTube-Specific Techniques
-- **`MutationObserver`** — YouTube is a single-page app with heavy lazy-loading, so we'll watch the DOM for new video cards as the user scrolls or navigates
-- **CSS injection** — for theming, hiding elements, and visual tweaks
-- **DOM automation** — for triggering native YouTube actions programmatically (e.g., the Watch Later quick-add)
+### Watch time
 
-### Optional / For Larger Features
-- **YouTube Data API v3** — needed for the custom dashboard feature when we want true chronological feeds, and for any feature that needs to read/write playlists reliably. Requires OAuth 2.0.
-- **SponsorBlock public API** — for showing real video length minus sponsor segments
-- **Return YouTube Dislike API** — for restoring dislike counts
-- **Anthropic Claude API** — for the AI-powered video summary feature (longer-term)
+| Feature | What it does |
+|---|---|
+| **Watch time** | Counts your watch time on this device: today, the last 7 days and your most-watched channels in the popup, and your total on each channel's page. A daily limit (2 h unless you change it) shows a reminder and never blocks anything. |
 
-### Testing & Distribution
-- **Manual testing in Chrome** during development (load unpacked)
-- **Chrome Web Store** for distribution ($5 one-time developer registration fee)
-- Optionally **Firefox / Edge** support later — both accept Manifest V3 extensions with minor tweaks
+### Tools and appearance
 
-## Project Structure (Planned)
+| Feature | What it does |
+|---|---|
+| **Transcript download** | Saves a video's transcript as `.txt` or `.srt`, or copies it. |
+| **Frame screenshot** | Saves the current frame as a PNG, with `S` or the camera button in the player. |
+| **Theme** | Recolors YouTube with a preset palette, font and corner radius: Nord, Rosé, Forest, Solarized, Sepia, OLED Black or Terminal. |
+
+### Keyboard shortcuts
+
+Each works while its feature is on, and is ignored while you're typing in a text field.
+
+| Key | Action |
+|---|---|
+| `Q` | Add the current video to the queue |
+| `[` | Set the loop start |
+| `]` | Set the loop end |
+| `\` | Clear the loop |
+| `S` | Save the current frame as a PNG |
+
+### In the popup
+
+- **Now playing:** the video in your queue's player tab (or another YouTube tab), with play/pause, 10-second skips, seeking, speed, previous/next and a jump to the tab. Another YouTube tab that's playing shows below it.
+- **Queue:** reorder by dragging or with the arrow keys, play a video now or next, or remove it.
+- **Watch time:** today's total in the header; open it for the last 7 days, your most-watched channels and the daily limit.
+- **Theme:** switch themes from the header.
+- **Settings:** every feature and its options, a master switch that pauses Helm, and backup and restore of all your settings and data as a JSON file.
+
+## Install
+
+**Chrome Web Store:** coming soon.
+<!-- TODO: add the Chrome Web Store link once the listing is live. -->
+
+**From source** (needs Node.js):
+
+```bash
+git clone https://github.com/thoughtlessmind/helm-youtube.git
+cd helm-youtube
+npm install
+npm run build
+```
+
+Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and select `.output/chrome-mv3/`.
+
+## Privacy and permissions
+
+Helm has no account, no server and no analytics. Full policy: [PRIVACY.md](./PRIVACY.md).
+
+| Permission | Why |
+|---|---|
+| `storage` | Saves your settings (synced through your Chrome profile) and your data: the queue, notes, channel groups, per-channel speeds and watch time. This data stays on your device. |
+| `www.youtube.com` | Runs Helm's features on YouTube pages, and loads video titles and your channel groups' latest videos from YouTube itself. |
+| `sponsor.ajay.app` | Fetches sponsor segments from SponsorBlock while **Skip sponsors** is on (it is by default). Only the first 4 characters of a hash of the video ID are sent, never the ID itself. |
+
+The popup also loads video thumbnails from YouTube's image server, `i.ytimg.com`. Helm is not an ad blocker or a downloader, and it doesn't change how YouTube serves video.
+
+## Development
+
+Built with [WXT](https://wxt.dev), [Svelte 5](https://svelte.dev) and TypeScript.
+
+```bash
+npm run dev            # dev build with hot reload, output in .output/chrome-mv3-dev/
+npm run build          # production build (Chrome)
+npm run zip            # build and zip for the Chrome Web Store
+npm run check          # typecheck (TypeScript and Svelte) and theme contrast check
+```
+
+After you change the manifest or the service worker, reload the extension in `chrome://extensions`. After a content-script change, reload the YouTube tab.
+
+### Project structure
 
 ```
-youtube-pro/
-├── manifest.json            # Extension manifest (V3)
-├── src/
-│   ├── content/             # Content scripts injected into YouTube
-│   │   ├── index.ts         # Entry point
-│   │   ├── features/        # One file per feature
-│   │   └── utils/           # DOM helpers, observers, selectors
-│   ├── background/          # Service worker
-│   ├── popup/               # Toolbar popup UI
-│   ├── options/             # Settings page
-│   └── styles/              # Injected CSS
-├── public/                  # Icons and static assets
-├── dist/                    # Built extension (gitignored)
-└── package.json
+src/
+├── entrypoints/
+│   ├── youtube.content.ts       # Content script: loads the enabled features
+│   ├── youtube-main.content.ts  # Small page-world helper for the queue and channel groups
+│   ├── background.ts            # Service worker
+│   └── popup/                   # Toolbar popup (Svelte)
+├── features/                # One module per feature, loaded only when enabled
+└── lib/
+    ├── features.ts          # Feature registry
+    ├── settings.ts          # Feature flags and config
+    ├── feature-catalog.ts   # What the popup's Settings page shows
+    ├── queue.ts             # The shared queue
+    ├── backup.ts            # Backup export and import
+    └── yt/                  # Shared YouTube helpers: DOM observer, navigation, player, UI kit
 ```
 
-## Development Workflow
+Each feature is a module with a `setup(ctx)` that can return a teardown function. To add a feature, and for the performance rules every feature must follow, see [`CLAUDE.md`](./CLAUDE.md).
 
-1. Clone the repo and run `npm install`
-2. Run `npm run dev` to start the watcher
-3. In Chrome, go to `chrome://extensions`, enable Developer Mode, and click "Load unpacked"
-4. Point it at the `dist/` folder
-5. Open YouTube — the extension will be active
+Brand assets (icon source, logos, Chrome Web Store promo tiles and screenshots) are in [`branding/`](./branding).
 
-Reload the extension from `chrome://extensions` after pulling changes that affect the manifest or service worker. Content script changes hot-reload automatically with CRXJS.
+## Feedback
 
-## Contributing
+Found a bug or want a feature? Open an issue on [GitHub](https://github.com/thoughtlessmind/helm-youtube/issues). Pull requests aren't accepted.
 
-Pick a feature from `FEATURES.md`, start with the "Quick Wins" section if you're new to the codebase. Each feature should ideally live in its own module under `src/content/features/` so they can be toggled independently from the settings page.
+## Credits
+
+- Sponsor segments: [SponsorBlock](https://sponsor.ajay.app/) data, licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+- Popup font: DM Sans, © The DM Sans Project Authors, [SIL Open Font License 1.1](https://openfontlicense.org).
+- Some icons adapted from [Feather](https://feathericons.com) (MIT) and [Lucide](https://lucide.dev) (ISC).
+
+The full license texts ship inside the extension: [`public/THIRD_PARTY_NOTICES.txt`](./public/THIRD_PARTY_NOTICES.txt).
 
 ## License
 
-TBD
+[MIT](./LICENSE)
+
+## Disclaimer
+
+Helm is an independent project. It is not affiliated with, endorsed by, or sponsored by YouTube or Google LLC. YouTube is a trademark of Google LLC.

@@ -5,22 +5,16 @@
  * playlist titles, etc.
  */
 
-export type KeyHandler = (e: KeyboardEvent) => void;
+// YouTube's search box is a div[contenteditable] or an input — both covered.
+export const isTypingTarget = (t: EventTarget | null) =>
+  t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
 
-export function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-  // YouTube's search box is a div[contenteditable] or input — covered above.
-  return false;
-}
-
-export function onKey(key: string, handler: KeyHandler): () => void {
+export function onKey(key: string, handler: (e: KeyboardEvent) => void): () => void {
   const wrapped = (e: KeyboardEvent) => {
-    if (e.key.toLowerCase() !== key.toLowerCase()) return;
+    if (e.repeat || e.key.toLowerCase() !== key.toLowerCase()) return; // holding S: one screenshot
     if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-    if (isTypingTarget(e.target)) return;
+    // composedPath()[0]: inside our shadow roots e.target is just the host.
+    if (isTypingTarget(e.composedPath()[0] ?? e.target)) return;
     handler(e);
   };
   document.addEventListener('keydown', wrapped, true);

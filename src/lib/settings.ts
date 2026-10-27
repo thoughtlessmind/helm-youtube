@@ -2,148 +2,103 @@ import { storage } from '#imports';
 
 /**
  * Per-feature enabled flags live in chrome.storage.sync so they roam
- * across the user's devices. Bulky data (notes, analytics, tags) belongs
- * in chrome.storage.local — see TODO when those features arrive.
+ * across the user's devices. Bulky data (notes, analytics, queue) lives
+ * in chrome.storage.local, owned by each feature.
  */
-export interface FeatureFlags {
-  'hide-shorts'?: boolean;
-  'auto-dismiss-still-watching'?: boolean;
-  'hide-end-screen-cards'?: boolean;
-  'default-playback-speed'?: boolean;
-  'disable-autoplay'?: boolean;
-  'hide-watch-page-sidebar'?: boolean;
-  'true-black-dark-mode'?: boolean;
-  'persistent-volume'?: boolean;
-  'copy-timestamped-link'?: boolean;
-  'screenshot-current-frame'?: boolean;
-  'hide-up-next-panel'?: boolean;
-  'volume-boost'?: boolean;
-  'hide-comments-by-default'?: boolean;
-  'hide-metadata'?: boolean;
-  'loop-section'?: boolean;
-  'customize-grid'?: boolean;
-  'save-to-playlist'?: boolean;
-  'distraction-free-mode'?: boolean;
-}
-
-export const FEATURE_DEFAULTS: FeatureFlags = {
+export const FEATURE_DEFAULTS = {
   'hide-shorts': true,
-  'auto-dismiss-still-watching': true,
-  'hide-end-screen-cards': true,
-  'default-playback-speed': false,
-  'disable-autoplay': true,
-  'hide-watch-page-sidebar': false,
-  'true-black-dark-mode': false,
-  'persistent-volume': true,
-  'copy-timestamped-link': true,
-  'screenshot-current-frame': true,
-  'hide-up-next-panel': true,
-  'volume-boost': false,
-  'hide-comments-by-default': false,
-  'hide-metadata': false,
-  'loop-section': true,
+  'hide-playables': true,
+  'focus-mode': false,
+  'feed-filters': false,
   'customize-grid': false,
-  'save-to-playlist': true,
-  'distraction-free-mode': false,
+  'channel-groups': false,
+  'playback-speed': true,
+  'sponsorblock': true,
+  'read-later-queue': true,
+  'auto-dismiss-still-watching': true,
+  'volume-boost': false,
+  'loop-section': true,
+  'video-notes': false,
+  'watch-time': true,
+  'download-transcript': true,
+  'screenshot-current-frame': true,
+  'theme': false,
 };
+
+export type FeatureFlags = Partial<Record<keyof typeof FEATURE_DEFAULTS, boolean>>;
 
 /**
  * Per-feature config blobs (separate from on/off flag). Each feature
- * owns its own key under `sync:config:<id>`. Use TypeScript module
- * augmentation in feature files to type the value.
+ * owns its own key under `sync:config:<id>`.
  */
-export interface FeatureConfig {
-  'default-playback-speed': { rate: number };
-  'volume-boost': { multiplier: number };
-  'customize-grid': { columnsPerRow: number; hideCardInfo: boolean };
-  'save-to-playlist': { playlistName: string };
-}
-
-export const FEATURE_CONFIG_DEFAULTS: FeatureConfig = {
-  'default-playback-speed': { rate: 1 },
+export const FEATURE_CONFIG_DEFAULTS = {
+  'focus-mode': { homeFeed: true, recommendations: true, comments: false, metadata: false },
+  'feed-filters': {
+    /** Comma-separated, case-insensitive title substrings. */
+    keywords: '',
+    /** 0 = no limit. */
+    minMinutes: 0,
+    maxMinutes: 0,
+    hideWatched: true,
+  },
+  /** Home's chip strip shows YouTube's own topic chips instead of the group switcher. */
+  'channel-groups': { youtubeChips: false },
+  'customize-grid': { columnsPerRow: 5 },
+  /** 1×: a fresh install shouldn't speed every video up; what's on by default is the per-channel memory. */
+  'playback-speed': { rate: 1, perChannel: true },
+  /** SponsorBlock categories to auto-skip. */
+  'sponsorblock': { sponsor: true, selfpromo: true, interaction: true, intro: false, outro: false },
+  'read-later-queue': {
+    autoAdvance: true,
+    panelCollapsed: false,
+  },
   'volume-boost': { multiplier: 1.5 },
-  'customize-grid': { columnsPerRow: 3, hideCardInfo: false },
-  'save-to-playlist': { playlistName: 'Watch later' },
+  /** 0 = no limit. */
+  'watch-time': { dailyLimitMinutes: 120 },
+  /** A `THEMES` id from features/theme/themes.ts. */
+  'theme': { preset: 'nord' },
 };
 
-export async function getConfig<K extends keyof FeatureConfig>(
-  id: K,
-): Promise<FeatureConfig[K]> {
-  const key = `sync:config:${id}` as const;
-  const stored = await storage.getItem<FeatureConfig[K]>(key);
-  return { ...FEATURE_CONFIG_DEFAULTS[id], ...(stored ?? {}) };
-}
+export type FeatureConfig = typeof FEATURE_CONFIG_DEFAULTS;
 
-export async function setConfig<K extends keyof FeatureConfig>(
-  id: K,
-  value: FeatureConfig[K],
-): Promise<void> {
-  const key = `sync:config:${id}` as const;
-  await storage.setItem(key, value);
-}
+const cfgKey = (id: keyof FeatureConfig) => `sync:config:${id}` as const;
+const withDefaults = <K extends keyof FeatureConfig>(id: K, v: FeatureConfig[K] | null): FeatureConfig[K] => ({
+  ...FEATURE_CONFIG_DEFAULTS[id],
+  ...v,
+});
 
-export function watchConfig<K extends keyof FeatureConfig>(
-  id: K,
-  cb: (value: FeatureConfig[K]) => void,
-): () => void {
-  const key = `sync:config:${id}` as const;
-  return storage.watch<FeatureConfig[K]>(key, (value) => {
-    cb({ ...FEATURE_CONFIG_DEFAULTS[id], ...(value ?? {}) });
-  });
-}
+export const getConfig = async <K extends keyof FeatureConfig>(id: K) =>
+  withDefaults(id, await storage.getItem<FeatureConfig[K]>(cfgKey(id)));
 
-const FLAGS_KEY = 'sync:featureFlags' as const;
-const EXTENSION_ENABLED_KEY = 'sync:extensionEnabled' as const;
+export const setConfig = <K extends keyof FeatureConfig>(id: K, value: FeatureConfig[K]) =>
+  storage.setItem(cfgKey(id), value);
 
-export async function getFlags(): Promise<FeatureFlags> {
-  const stored = (await storage.getItem<FeatureFlags>(FLAGS_KEY)) ?? {};
-  return { ...FEATURE_DEFAULTS, ...stored };
-}
+export const watchConfig = <K extends keyof FeatureConfig>(id: K, cb: (value: FeatureConfig[K]) => void) =>
+  storage.watch<FeatureConfig[K]>(cfgKey(id), (v) => cb(withDefaults(id, v)));
+
+const FLAGS_KEY = 'sync:featureFlags';
+
+export const getFlags = async (): Promise<FeatureFlags> => ({
+  ...FEATURE_DEFAULTS,
+  ...(await storage.getItem<FeatureFlags>(FLAGS_KEY)),
+});
 
 export async function setFlag(id: keyof FeatureFlags, on: boolean): Promise<void> {
-  const flags = await getFlags();
-  flags[id] = on;
-  await storage.setItem(FLAGS_KEY, flags);
+  await storage.setItem(FLAGS_KEY, { ...(await getFlags()), [id]: on });
 }
 
-export async function getExtensionEnabled(): Promise<boolean> {
-  const stored = await storage.getItem<boolean>(EXTENSION_ENABLED_KEY);
-  return stored ?? true;
-}
-
-export async function setExtensionEnabled(on: boolean): Promise<void> {
-  await storage.setItem(EXTENSION_ENABLED_KEY, on);
-}
-
-export function watchExtensionEnabled(cb: (on: boolean) => void): () => void {
-  return storage.watch<boolean>(EXTENSION_ENABLED_KEY, (value) => {
-    cb(value ?? true);
-  });
-}
-
-const enabledIds = (flags: FeatureFlags) =>
-  Object.entries(flags)
-    .filter(([, on]) => on)
-    .map(([id]) => id);
+/** The popup's master switch (kill switch). */
+export const extensionEnabled = storage.defineItem<boolean>('sync:extensionEnabled', { fallback: true });
 
 export async function getEnabledFeatures(): Promise<string[]> {
-  const on = await getExtensionEnabled();
-  if (!on) return [];
-  return enabledIds(await getFlags());
+  if (!(await extensionEnabled.getValue())) return [];
+  return Object.entries(await getFlags())
+    .filter(([, on]) => on)
+    .map(([id]) => id);
 }
 
 export function watchEnabledFeatures(cb: (ids: string[]) => void): () => void {
-  const emit = async () => {
-    cb(await getEnabledFeatures());
-  };
-  const offFlags = storage.watch<FeatureFlags>(FLAGS_KEY, () => {
-    void emit();
-  });
-  const offEnabled = storage.watch<boolean>(EXTENSION_ENABLED_KEY, () => {
-    void emit();
-  });
-  return () => {
-    offFlags();
-    offEnabled();
-  };
+  const emit = () => void getEnabledFeatures().then(cb);
+  const offs = [storage.watch(FLAGS_KEY, emit), extensionEnabled.watch(emit)];
+  return () => offs.forEach((off) => off());
 }
