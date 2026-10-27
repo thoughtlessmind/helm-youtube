@@ -132,7 +132,7 @@
     <kbd class="kbd">Q</kbd>
     <div class="ql-text">
       <div class="ql-head">
-        <h2>Nothing queued</h2>
+        <h2>{watched ? 'All watched' : 'Nothing queued'}</h2>
         {#if watched}<button class="txtbtn" onclick={() => clearPlayed(currentId)}>Clear {watched} watched</button>{/if}
       </div>
       <p>Press Q on a video, or choose Add to queue in its menu.</p>

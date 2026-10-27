@@ -116,7 +116,8 @@ const feature: Feature = {
     };
 
     const render = () => {
-      if (!(isPlayerTab() && isWatchPage() && upNext(items).length > 0)) {
+      // Watched items stay (✓) until cleared, so a fully watched queue still shows.
+      if (!(isPlayerTab() && isWatchPage() && items.length > 0)) {
         unmountPanel();
         return;
       }
