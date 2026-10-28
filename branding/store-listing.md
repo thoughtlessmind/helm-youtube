@@ -18,7 +18,7 @@ Then tick all three certifications. Privacy policy URL: https://github.com/thoug
 
 **Other fields:** Category: Productivity (pick the closest sub-category the dashboard offers, e.g. "Functionality & UI"). Language: English. Mature content: No. Support URL: https://github.com/thoughtlessmind/helm-youtube/issues. Homepage: the repo.
 
-**Short description** (manifest, 117 chars): Hide Shorts, skip sponsors, keep one queue across tabs, group channels and remember speed per channel on youtube.com.
+**Short description** (manifest, 130 of 132 chars): One queue shared by every YouTube tab, themes that restyle the site, sponsor skipping, channel groups, per-channel speed and more.
 
 **Long description**
 

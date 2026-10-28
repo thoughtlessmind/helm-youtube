@@ -11,7 +11,7 @@ export default defineConfig({
     name: 'Helm for YouTube',
     short_name: 'Helm',
     description:
-      'Hide Shorts, skip sponsors, keep one queue across tabs, group channels and remember speed per channel on youtube.com.',
+      'One queue shared by every YouTube tab, themes that restyle the site, sponsor skipping, channel groups, per-channel speed and more.',
     // URL.parse (126), CSS anchor positioning (125), MAIN-world content scripts (111).
     minimum_chrome_version: '126',
     permissions: ['storage'],
