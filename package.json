@@ -3,7 +3,7 @@
   "description": "A better YouTube experience — power-user features layered on top of youtube.com.",
   "private": true,
   "license": "MIT",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "engines": {
     "node": ">=22.18"
