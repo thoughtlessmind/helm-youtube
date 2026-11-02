@@ -1,7 +1,7 @@
 /**
  * Main-world helper for the Global queue and channel groups. Polymer/lockup data (`.data`,
  * `componentProps`), `ytcfg` and YouTube's own `yt-navigate` / `yt-action` handlers are only
- * reachable from the page's JS world, so this small script does four things and talks to the
+ * reachable from the page's JS world, so this small script does these things and talks to the
  * isolated world over `window.postMessage` (d: a DOM event and attribute):
  *  a) ⋮ → "Add to queue": while <html data-ytp-native-add="1"> (set while read-later-queue is on), the
  *     click is swallowed and `{ source: 'ytp', type: 'queue-add', videoId }` posted instead.
@@ -14,6 +14,10 @@
  *  d) `ytp-player-video` event on document → the player's own video id and its channel (owner
  *     URL, name) on <html data-ytp-player-video / -owner / -author>, set before dispatchEvent
  *     returns (lib/yt/player.ts: the miniplayer plays videos the URL doesn't name).
+ *  e) The player's own "ended" state → `ytp-player-ended` event on document. A seek to the very
+ *     end (SponsorBlock skipping a closing segment) ends a video without <video> firing `ended`.
+ *  f) `{ source: 'ytp', type: 'cue', videoId }` → YouTube's own "Add to queue" command: the video
+ *     paused in the miniplayer.
  * No extension APIs here (main world has none).
  */
 import { installGroupGrid } from '../lib/yt/group-grid';
@@ -102,12 +106,21 @@ export default defineContentScript({
       html.dataset.ytpPlayerAuthor = (own && res.videoDetails.author) || '';
     });
 
-    window.addEventListener('message', (e) => {
-      const d = e.data;
-      if (e.source !== window || e.origin !== location.origin) return;
-      if (d?.source !== 'ytp' || d.type !== 'navigate') return;
-      if (typeof d.videoId !== 'string' || !VIDEO_ID.test(d.videoId)) return;
-      const url = `/watch?v=${d.videoId}`;
+    // The player exists once a video loads; hook it now or on its first `playing`.
+    let hooked: Element | null = null;
+    const hookPlayer = () => {
+      const player = document.querySelector('#movie_player') as Json;
+      if (!player?.addEventListener || player === hooked) return;
+      hooked = player;
+      player.addEventListener('onStateChange', (state: number) => {
+        if (state === 0) document.dispatchEvent(new Event('ytp-player-ended'));
+      });
+    };
+    hookPlayer();
+    document.addEventListener('playing', hookPlayer, true);
+
+    const navigate = (videoId: string) => {
+      const url = `/watch?v=${videoId}`;
       const app = document.querySelector('ytd-app');
       if (!app) {
         location.assign(url);
@@ -121,11 +134,58 @@ export default defineContentScript({
           detail: {
             endpoint: {
               commandMetadata: { webCommandMetadata: { url, webPageType: 'WEB_PAGE_TYPE_WATCH', rootVe: 3832 } },
-              watchEndpoint: { videoId: d.videoId },
+              watchEndpoint: { videoId },
             },
           },
         }),
       );
+    };
+
+    // ytd-app runs the command on a clicked a.yt-simple-endpoint's `.data`, as for a menu item.
+    // The command is the menu item's, minus tracking; without onCreateListCommand the miniplayer stays empty.
+    const cue = (videoId: string) => {
+      const app = document.querySelector('ytd-app');
+      if (!app) return;
+      const a = document.createElement('a') as Json;
+      a.className = 'yt-simple-endpoint';
+      a.hidden = true;
+      a.data = {
+        commandMetadata: { webCommandMetadata: { sendPost: true } },
+        signalServiceEndpoint: {
+          signal: 'CLIENT_SIGNAL',
+          actions: [
+            {
+              addToPlaylistCommand: {
+                openMiniplayer: true,
+                videoId,
+                listType: QUEUE_LIST,
+                onCreateListCommand: {
+                  commandMetadata: { webCommandMetadata: { sendPost: true, apiUrl: '/youtubei/v1/playlist/create' } },
+                  createPlaylistServiceEndpoint: { videoIds: [videoId], params: 'CAQ%3D' },
+                },
+                videoIds: [videoId],
+                videoCommand: {
+                  commandMetadata: {
+                    webCommandMetadata: { url: `/watch?v=${videoId}`, webPageType: 'WEB_PAGE_TYPE_WATCH', rootVe: 3832 },
+                  },
+                  watchEndpoint: { videoId },
+                },
+              },
+            },
+          ],
+        },
+      };
+      app.append(a);
+      a.click();
+      a.remove();
+    };
+
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (e.source !== window || e.origin !== location.origin || d?.source !== 'ytp') return;
+      if (typeof d.videoId !== 'string' || !VIDEO_ID.test(d.videoId)) return;
+      if (d.type === 'navigate') navigate(d.videoId);
+      else if (d.type === 'cue') cue(d.videoId);
     });
   },
 });

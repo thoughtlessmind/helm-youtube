@@ -24,6 +24,11 @@ export function playInThisTab(videoId: string): void {
   }
 }
 
+/** Opens `videoId` paused in YouTube's miniplayer, as its own "Add to queue" does. Needs the main-world script. */
+export function cueInMiniplayer(videoId: string): void {
+  if (VIDEO_ID.test(videoId)) window.postMessage({ source: 'ytp', type: 'cue', videoId }, location.origin);
+}
+
 function playerState(): PlayerState | null {
   const videoId = playerVideoId();
   const v = getVideo();

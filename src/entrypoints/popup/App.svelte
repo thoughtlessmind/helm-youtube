@@ -7,8 +7,9 @@
   import FirstRun from './FirstRun.svelte';
 
   let page = $state<Page | null>(null);
-  // `#settings` = opened in a tab (for Import: a file picker closes the toolbar popup).
+  // `#settings` = opened in a tab (for Import: a file picker closes the toolbar popup); `#setup` = the tab opened on install.
   if (location.hash === '#settings') page = 'settings';
+  else if (location.hash === '#setup') page = 'firstrun';
   else storage.getItem<boolean>(FIRST_RUN_KEY).then((seen) => (page = seen ? 'main' : 'firstrun'));
 
   const go = (p: Page) => (page = p);

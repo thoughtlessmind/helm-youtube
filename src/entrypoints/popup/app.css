@@ -78,6 +78,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Opened in a tab (#setup, #settings; main.ts sets .tab): the popup-sized page sits centred. */
+html.tab {
+  width: auto;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
 *,
 *::before,
 *::after {

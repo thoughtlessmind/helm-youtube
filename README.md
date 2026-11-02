@@ -7,6 +7,8 @@
 
 **Take the helm back from the algorithm.** Helm is a lightweight Chrome extension that removes YouTube's noise and adds the power-user features youtube.com is missing: a queue that works across tabs, channel groups, per-channel speed, sponsor skipping, notes and watch-time stats.
 
+**[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/helm-for-youtube/eddgjdpcpplgboddgibajnbncdepjdgg)**
+
 Manifest V3 · Chrome 126+ · No account · No tracking
 
 <p align="center">
@@ -27,7 +29,7 @@ Manifest V3 · Chrome 126+ · No account · No tracking
 
 ## Features
 
-Every feature can be switched on or off, and configured, from the toolbar popup. Everything is on from install except Focus mode, Feed filters, Grid density, Volume boost, Channel groups, Video notes and Theme.
+Every feature can be switched on or off, and configured, from the toolbar popup. Everything is on from install except Focus mode, Feed filters, Grid density, Volume boost, Channel groups, Video notes and Theme. A short setup opens on install: what Helm already changed, a theme to try, and the extras.
 
 ### Clean up YouTube
 
@@ -53,7 +55,7 @@ Every feature can be switched on or off, and configured, from the toolbar popup.
 
 | Feature | What it does |
 |---|---|
-| **Queue** | One queue shared by every YouTube tab and window. It survives reloads and restarts, and shows as a panel next to the video. Add videos with YouTube's own "Add to queue", the button on a thumbnail's hover preview, or `Q`. It plays the next video automatically. |
+| **Queue** | One queue shared by every YouTube tab and window. It survives reloads and restarts, and shows as a panel next to the video. Add videos with YouTube's own "Add to queue", the button on a thumbnail's hover preview, or `Q`. With nothing playing, an added video opens paused in YouTube's miniplayer. It plays the next video automatically. |
 | **Channel groups** | Groups your channels. Pick a group on Home or Subscriptions to see only its channels' latest videos, newest first. |
 | **Video notes** | Keeps a private note on any video. Notes save automatically. |
 
@@ -93,8 +95,7 @@ Each works while its feature is on, and is ignored while you're typing in a text
 
 ## Install
 
-**Chrome Web Store:** coming soon.
-<!-- TODO: add the Chrome Web Store link once the listing is live. -->
+**Chrome Web Store:** [Helm for YouTube](https://chromewebstore.google.com/detail/helm-for-youtube/eddgjdpcpplgboddgibajnbncdepjdgg).
 
 **From source** (needs Node.js):
 

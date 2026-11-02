@@ -9,6 +9,7 @@ import {
   getVideo,
   isAdShowing,
   mountInPlayer,
+  onPlayerEnded,
   onVideoEvent,
   playerVideoId,
   tooltip,
@@ -214,7 +215,7 @@ const feature: Feature = {
         void load();
       }),
       onVideoEvent('durationchange', render),
-      onVideoEvent('ended', () => done.clear()),
+      onPlayerEnded(() => done.clear()),
       ctx.navigation.onNavigate(() => void load()),
       watchConfig('sponsorblock', (next) => {
         cfg = next;

@@ -1,5 +1,6 @@
 import type { FeatureId } from '../../lib/feature-catalog';
 import { fmtDuration } from '../../lib/format';
+import { getConfig, setConfig, setFlag } from '../../lib/settings';
 import { isoDate, type WatchLog } from '../../lib/yt/watch-tracker';
 
 /** Small helpers shared by the popup pages. */
@@ -53,6 +54,12 @@ export async function focusTab(tab: { id?: number; windowId?: number }) {
   if (tab.id == null) return;
   await browser.tabs.update(tab.id, { active: true });
   if (tab.windowId != null) await browser.windows.update(tab.windowId, { focused: true });
+}
+
+/** Same writes as Settings: `off` turns the theme flag off; a theme stores the preset, then turns the flag on. */
+export async function saveTheme(id: string) {
+  if (id !== 'off') await setConfig('theme', { ...(await getConfig('theme')), preset: id });
+  await setFlag('theme', id !== 'off');
 }
 
 /** Opens youtube.com in a new tab. */

@@ -33,8 +33,8 @@ import {
   previewVideoId,
 } from '../lib/yt/feed-cards';
 import { getVideoId, getWatchChannel, isWatchPage } from '../lib/yt/video';
-import { playInThisTab, watchTitle } from '../lib/yt/player-bridge';
-import { getVideo, isAdShowing, onVideoEvent, playerVideoId, watchMetaCurrent } from '../lib/yt/player';
+import { cueInMiniplayer, playInThisTab, watchTitle } from '../lib/yt/player-bridge';
+import { getVideo, isAdShowing, onPlayerEnded, onVideoEvent, playerVideoId, watchMetaCurrent } from '../lib/yt/player';
 import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelte';
 
 /**
@@ -42,7 +42,8 @@ import QueuePanel, { type PanelState } from './read-later-queue/QueuePanel.svelt
  * tab; only the *player tab* (`session:helm:player-tab`, or every tab while unset) shows the
  * watch-page panel and auto-advances, so two tabs never race for the same item. Not YouTube's own queue: that one
  * can only be filled through undocumented internal commands, can't show ✓, and resets on reload. Adding: YouTube's ⋮ → "Add to queue" (redirected by youtube-main.content.ts),
- * the button under a hover preview's mute / CC, and `Q`. Every tab marks a queued video ✓ when it starts playing.
+ * the button under a hover preview's mute / CC, and `Q`; in a tab with no video loaded, an add also opens it paused in
+ * YouTube's miniplayer. Every tab marks a queued video ✓ when it starts playing.
  */
 
 /** Focus mode's CSS keeps #secondary visible while it contains this id. */
@@ -193,6 +194,8 @@ const feature: Feature = {
 
     // ── Adding ──────────────────────────────────────────────────────────────
     const add = async (item: Omit<QueueItem, 'addedAt' | 'playedAt'>) => {
+      // Nothing loaded in this tab (no watch page, no miniplayer): show it paused in the miniplayer.
+      if (!playerVideoId()) cueInMiniplayer(item.videoId);
       const was = (await getQueue()).find((i) => i.videoId === item.videoId);
       const { upNext: n } = await addToQueue(item);
       // The player tab's watch page shows the panel instead of a toast.
@@ -244,7 +247,7 @@ const feature: Feature = {
       offQ,
       ctx.observer.onChange(placePreviewBtn),
       onVideoEvent('playing', notePlaying),
-      onVideoEvent('ended', onEnded),
+      onPlayerEnded(onEnded),
       onVideoEvent('play', render),
       onVideoEvent('pause', render),
       watchQueue((v) => {

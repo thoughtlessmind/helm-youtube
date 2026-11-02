@@ -12,6 +12,11 @@ export default defineBackground(() => {
     browser.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }),
   ).catch(() => {});
 
+  // A new install opens the setup in a tab: nothing else tells people where Helm lives.
+  browser.runtime.onInstalled.addListener(({ reason }) => {
+    if (reason === 'install') void browser.tabs.create({ url: browser.runtime.getURL('/popup.html#setup') });
+  });
+
   browser.tabs.onRemoved.addListener(async (tabId) => {
     if ((await getPlayerTabId()) === tabId) await setPlayerTabId(null);
   });

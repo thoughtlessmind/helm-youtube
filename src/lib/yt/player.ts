@@ -82,6 +82,15 @@ export function onVideoEvent(type: string, cb: (video: HTMLVideoElement) => void
   return () => document.removeEventListener(type, h, true);
 }
 
+/**
+ * The main player's video ended, by YouTube's own player state (youtube-main.content.ts relays
+ * it). Not <video>'s `ended`: a seek to the very end ends the video without firing it.
+ */
+export function onPlayerEnded(cb: () => void): () => void {
+  document.addEventListener('ytp-player-ended', cb);
+  return () => document.removeEventListener('ytp-player-ended', cb);
+}
+
 export const CLOSE_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 

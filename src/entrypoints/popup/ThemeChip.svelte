@@ -1,6 +1,6 @@
 <script lang="ts">
   import { themeById } from '../../features/theme/themes';
-  import { getConfig, setConfig, setFlag } from '../../lib/settings';
+  import { saveTheme } from './lib';
   import ThemePicker from './ThemePicker.svelte';
 
   /** The `theme` flag and its preset, as Main loaded them; picking writes both back. */
@@ -11,15 +11,10 @@
   const theme = $derived(themeById(preset));
   const fills = $derived([theme.light?.bg, theme.dark?.bg].filter((c) => c !== undefined));
 
-  /** Same writes as Settings: Off turns the flag off; a theme stores the preset, then turns the flag on. */
-  async function pick(id: string) {
-    const turnOn = id !== 'off';
-    on = turnOn;
-    if (turnOn) {
-      preset = id;
-      await setConfig('theme', { ...(await getConfig('theme')), preset: id });
-    }
-    await setFlag('theme', turnOn);
+  function pick(id: string) {
+    on = id !== 'off';
+    if (on) preset = id;
+    void saveTheme(id);
   }
 </script>
 
